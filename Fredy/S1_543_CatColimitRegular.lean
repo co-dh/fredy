@@ -11,7 +11,7 @@ import Fredy.S1_43
 import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_58
-open Freyd
+open CategoryTheory Freyd
 namespace Freyd.Colim
 universe u w
 variable {ι : Type u} {D : Directed ι}
@@ -1005,8 +1005,8 @@ theorem colimHom_isIso_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Ob
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
     (g₀ : C.F a.2.2 (colimOut C B).2 ⟶ C.F a.2.1 (colimOut C A).2)
-    (h1 : f₀ ≫ g₀ = Cat.id (C.F a.2.1 (colimOut C A).2))
-    (h2 : g₀ ≫ f₀ = Cat.id (C.F a.2.2 (colimOut C B).2)) :
+    (h1 : f₀ ≫ g₀ = 𝟙 (C.F a.2.1 (colimOut C A).2))
+    (h2 : g₀ ≫ f₀ = 𝟙 (C.F a.2.2 (colimOut C B).2)) :
     @IsIso C.Obj (colimitCat C hC) A B (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
   letI : Cat C.Obj := colimitCat C hC
   obtain ⟨av, ah1, ah2⟩ := a
@@ -1016,16 +1016,16 @@ theorem colimHom_isIso_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Ob
     rw [homCompRaw_eq_compAt C hC xA xB xA ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ av (D.refl av) (D.refl av)]
     unfold compAt
     simp only [homTr_refl C hC]; rw [h1]
-    show homIncl C hC xA xA ⟨av, ah1, ah1⟩ (Cat.id (C.F ah1 xA)) = colimId C hC A
+    show homIncl C hC xA xA ⟨av, ah1, ah1⟩ (𝟙 (C.F ah1 xA)) = colimId C hC A
     rw [← homTr_id C xA ⟨(colimOut C A).1, D.refl _, D.refl _⟩ ⟨av, ah1, ah1⟩ ah1]
-    exact homIncl_compat C hC xA xA ah1 (Cat.id _)
+    exact homIncl_compat C hC xA xA ah1 (𝟙 _)
   · show homCompRaw C hC xB xA xB ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ = colimId C hC B
     rw [homCompRaw_eq_compAt C hC xB xA xB ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ av (D.refl av) (D.refl av)]
     unfold compAt
     simp only [homTr_refl C hC]; rw [h2]
-    show homIncl C hC xB xB ⟨av, ah2, ah2⟩ (Cat.id (C.F ah2 xB)) = colimId C hC B
+    show homIncl C hC xB xB ⟨av, ah2, ah2⟩ (𝟙 (C.F ah2 xB)) = colimId C hC B
     rw [← homTr_id C xB ⟨(colimOut C B).1, D.refl _, D.refl _⟩ ⟨av, ah2, ah2⟩ ah2]
-    exact homIncl_compat C hC xB xB ah2 (Cat.id _)
+    exact homIncl_compat C hC xB xB ah2 (𝟙 _)
 
 /-- **`homIncl` is injective on hom-sets when the transition functors are faithful.**
     Two stage germs at the same bound including to the same colimit morphism are
@@ -1111,7 +1111,7 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
   exact hu2
 
 /-- `castHom` is injective (it's a transport along object equalities). -/
-theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+theorem castHom_injective {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') {a b : X ⟶ Y}
     (h : castHom hX hY a = castHom hX hY b) : a = b := by
   subst hX; subst hY; exact h
@@ -1217,18 +1217,18 @@ theorem homCompRaw_eq_id_stage (C : CatSystem ι D) (hC : C.Coherent) {ip iq : �
     (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq)
     (b : UpperBound D iq ip) (g : C.F b.2.1 xq ⟶ C.F b.2.2 xp)
     (h : homCompRaw C hC xp xq xp a f b g
-        = homIncl C hC xp xp ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp))) :
+        = homIncl C hC xp xp ⟨ip, D.refl ip, D.refl ip⟩ (𝟙 (C.F (D.refl ip) xp))) :
     ∃ (N : ι) (haN : D.le a.1 N) (hbN : D.le b.1 N),
       homTr C xp xq a ⟨N, D.trans a.2.1 haN, D.trans a.2.2 haN⟩ haN f
         ≫ homTr C xq xp b ⟨N, D.trans b.2.1 hbN, D.trans b.2.2 hbN⟩ hbN g
-      = Cat.id (C.F (D.trans a.2.1 haN) xp) := by
+      = 𝟙 (C.F (D.trans a.2.1 haN) xp) := by
   obtain ⟨N, haN, hbN, _, key⟩ := homCompRaw_eq_stage C hC xp xq xp a f b g
-    ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp)) h
+    ⟨ip, D.refl ip, D.refl ip⟩ (𝟙 (C.F (D.refl ip) xp)) h
   rw [homTr_id C] at key
   exact ⟨N, haN, hbN, key⟩
 
 /-- `castHom` reflects isomorphisms (it's a transport along object equalities). -/
-theorem isIso_of_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+theorem isIso_of_castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : IsIso (castHom hX hY m)) : IsIso m := by
   subst hX; subst hY; exact h
 
@@ -1254,10 +1254,10 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
   intro hl hr
   have hl' : homCompRaw C hC xA xB xA a f₀ b g₀
       = homIncl C hC xA xA ⟨(colimOut C A).1, D.refl _, D.refl _⟩
-          (Cat.id (C.F (D.refl (colimOut C A).1) xA)) := hl
+          (𝟙 (C.F (D.refl (colimOut C A).1) xA)) := hl
   have hr' : homCompRaw C hC xB xA xB b g₀ a f₀
       = homIncl C hC xB xB ⟨(colimOut C B).1, D.refl _, D.refl _⟩
-          (Cat.id (C.F (D.refl (colimOut C B).1) xB)) := hr
+          (𝟙 (C.F (D.refl (colimOut C B).1) xB)) := hr
   obtain ⟨N1, haN1, hbN1, eq1⟩ := homCompRaw_eq_id_stage C hC xA xB a f₀ b g₀ hl'
   obtain ⟨N2, hbN2, haN2, eq2⟩ := homCompRaw_eq_id_stage C hC xB xA b g₀ a f₀ hr'
   obtain ⟨L, hN1L, hN2L⟩ := D.bound N1 N2
@@ -1266,7 +1266,7 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
   -- transport both stage identities to the common stage `L`
   have eq1L : homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀
       ≫ homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀
-      = Cat.id (C.F (D.trans a.2.1 haL) xA) := by
+      = 𝟙 (C.F (D.trans a.2.1 haL) xA) := by
     have t := congrArg
       (homTr C xA xA ⟨N1, D.trans a.2.1 haN1, D.trans a.2.1 haN1⟩
         ⟨L, D.trans (D.trans a.2.1 haN1) hN1L, D.trans (D.trans a.2.1 haN1) hN1L⟩ hN1L) eq1
@@ -1274,7 +1274,7 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
     exact t
   have eq2L : homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀
       ≫ homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀
-      = Cat.id (C.F (D.trans b.2.1 hbL) xB) := by
+      = 𝟙 (C.F (D.trans b.2.1 hbL) xB) := by
     have t := congrArg
       (homTr C xB xB ⟨N2, D.trans b.2.1 hbN2, D.trans b.2.1 hbN2⟩
         ⟨L, D.trans (D.trans b.2.1 hbN2) hN2L, D.trans (D.trans b.2.1 hbN2) hN2L⟩ hN2L) eq2
@@ -1286,12 +1286,12 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
     ((C.functF haL).map f₀) hisoL⟩
 
 /-- `castHom` carries monos to monos (transport along object equalities). -/
-theorem mono_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+theorem mono_castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Monic m) : Monic (castHom hX hY m) := by
   subst hX; subst hY; exact h
 
 /-- `castHom` carries covers to covers (transport along object equalities). -/
-theorem cover_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+theorem cover_castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) (h : Cover m) : Cover (castHom hX hY m) := by
   subst hX; subst hY; exact h
 
@@ -1544,7 +1544,7 @@ theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     `colimHom_isIso_of_rep` yields the colimit iso.  Dual to `homInclObj_isIso_reflects`. -/
 theorem homInclObj_isIso_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     {i : ι} {x y : C.A i} (g : x ⟶ y) (g' : y ⟶ x)
-    (h1 : g ≫ g' = Cat.id x) (h2 : g' ≫ g = Cat.id y) :
+    (h1 : g ≫ g' = 𝟙 x) (h2 : g' ≫ g = 𝟙 y) :
     @IsIso C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
   let w := hioWitness C hC x y
   rw [homInclObj_eq C hC g w]
@@ -1553,10 +1553,10 @@ theorem homInclObj_isIso_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) (castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')) ?_ ?_
   · -- (w.germ g) ≫ (inverse germ) = id
     show castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g)
-        ≫ castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g') = Cat.id _
+        ≫ castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g') = 𝟙 _
     rw [castHom_comp, ← (C.functF w.hix).map_comp, h1, (C.functF w.hix).map_id, castHom_id]
   · show castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')
-        ≫ castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g) = Cat.id _
+        ≫ castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g) = 𝟙 _
     rw [castHom_comp, ← (C.functF w.hix).map_comp, h2, (C.functF w.hix).map_id, castHom_id]
 
 /-- **Cover preservation for the stage inclusion.**  If `g : x ⟶ y` is a cover that
@@ -1751,7 +1751,7 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     `pair p₁ p₂ : P ⟶ A × B` is an isomorphism.  Purely formal: the inverse is the
     mediator of `(fst, snd)`; the two round-trips collapse by `pair_uniq` (on the
     `A × B` side) and the UP uniqueness (on the `P` side). -/
-theorem isIso_of_product_up {𝒞 : Type w} [Cat.{w} 𝒞] [HasBinaryProducts 𝒞]
+theorem isIso_of_product_up {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasBinaryProducts 𝒞]
     {A B P : 𝒞} (p₁ : P ⟶ A) (p₂ : P ⟶ B)
     (hup : ∀ {Z : 𝒞} (f : Z ⟶ A) (g : Z ⟶ B),
       ∃ u : Z ⟶ P, (u ≫ p₁ = f ∧ u ≫ p₂ = g) ∧
@@ -1760,11 +1760,11 @@ theorem isIso_of_product_up {𝒞 : Type w} [Cat.{w} 𝒞] [HasBinaryProducts �
   obtain ⟨u, ⟨hu₁, hu₂⟩, _⟩ := hup (fst (A := A) (B := B)) (snd (A := A) (B := B))
   refine ⟨u, ?_, ?_⟩
   · obtain ⟨_, _, huniq⟩ := hup p₁ p₂
-    have e1 : (pair p₁ p₂ ≫ u) ≫ p₁ = p₁ := by rw [Cat.assoc, hu₁, fst_pair]
-    have e2 : (pair p₁ p₂ ≫ u) ≫ p₂ = p₂ := by rw [Cat.assoc, hu₂, snd_pair]
-    rw [huniq (pair p₁ p₂ ≫ u) e1 e2, huniq (Cat.id P) (Cat.id_comp _) (Cat.id_comp _)]
-  · have h1 : (u ≫ pair p₁ p₂) ≫ fst = fst (A := A) (B := B) := by rw [Cat.assoc, fst_pair, hu₁]
-    have h2 : (u ≫ pair p₁ p₂) ≫ snd = snd (A := A) (B := B) := by rw [Cat.assoc, snd_pair, hu₂]
+    have e1 : (pair p₁ p₂ ≫ u) ≫ p₁ = p₁ := by rw [CategoryTheory.Category.assoc, hu₁, fst_pair]
+    have e2 : (pair p₁ p₂ ≫ u) ≫ p₂ = p₂ := by rw [CategoryTheory.Category.assoc, hu₂, snd_pair]
+    rw [huniq (pair p₁ p₂ ≫ u) e1 e2, huniq (𝟙 P) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)]
+  · have h1 : (u ≫ pair p₁ p₂) ≫ fst = fst (A := A) (B := B) := by rw [CategoryTheory.Category.assoc, fst_pair, hu₁]
+    have h2 : (u ≫ pair p₁ p₂) ≫ snd = snd (A := A) (B := B) := by rw [CategoryTheory.Category.assoc, snd_pair, hu₂]
     rw [pair_uniq _ _ (u ≫ pair p₁ p₂) h1 h2, pair_fst_snd]
 
 /-- **Two same-domain germs are a `MonicPair` in `colimitCat` when jointly
@@ -2236,7 +2236,7 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
   (`cover_mono_diagonal`): any subobject `S` allowing `f` (`g ≫ S.arr = f = e ≫ m`) admits a
   diagonal `d : · ⟶ S.dom` filling the cover⊥mono square, giving `⟨·,m⟩ ≤ S` via `d`.  This is
   the colimit-level image construction: each colimit map factors at a stage as cover-then-mono. -/
-theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+theorem coverMono_isImage {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
     {A I B : 𝒞} {f : A ⟶ B} {e : A ⟶ I} {m : I ⟶ B} (hm : Monic m)
     (he : Cover e) (hfac : e ≫ m = f) :
     IsImage f (Subobject.mk I m hm) := by
@@ -2251,10 +2251,10 @@ theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
     intro W p q hpq
     have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
       apply S.monic
-      calc (p ≫ pb.cone.π₂) ≫ S.arr = p ≫ (pb.cone.π₁ ≫ m) := by rw [Cat.assoc, ← pb.cone.w]
-        _ = (q ≫ pb.cone.π₁) ≫ m := by rw [← Cat.assoc, hpq]
-        _ = (q ≫ pb.cone.π₂) ≫ S.arr := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
-    let cn : Cone m S.arr := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
+      calc (p ≫ pb.cone.π₂) ≫ S.arr = p ≫ (pb.cone.π₁ ≫ m) := by rw [CategoryTheory.Category.assoc, ← pb.cone.w]
+        _ = (q ≫ pb.cone.π₁) ≫ m := by rw [← CategoryTheory.Category.assoc, hpq]
+        _ = (q ≫ pb.cone.π₂) ≫ S.arr := by rw [CategoryTheory.Category.assoc, pb.cone.w, ← CategoryTheory.Category.assoc]
+    let cn : Cone m S.arr := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pb.cone.w]⟩
     rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
   let u := pb.lift ⟨A, e, g, hsq⟩
   have hu₁ : u ≫ pb.cone.π₁ = e := pb.lift_fst _
@@ -2262,7 +2262,7 @@ theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
   -- `d := inv ≫ π₂ : I ⟶ S.dom` fills `d ≫ S.arr = m`, so `⟨I,m⟩ ≤ S`.
   refine ⟨inv ≫ pb.cone.π₂, ?_⟩
   show (inv ≫ pb.cone.π₂) ≫ S.arr = m
-  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+  rw [CategoryTheory.Category.assoc, ← pb.cone.w, ← CategoryTheory.Category.assoc, hinvπ, CategoryTheory.Category.id_comp]
 
 /-! ## Generic: image preservation lifts the image-cover
 
@@ -2271,12 +2271,12 @@ theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
   the image of `F f` is `F (image f)` (by `himg`), so `F (image.lift f)` is *a* lift of `F f`
   through its image's mono `F (image f).arr`; that mono being monic and `image.lift (F f)` also
   factoring `F f`, the two lifts agree, hence `F (image.lift f)` is a cover. -/
-theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ] [HasImages 𝒜]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F) {A B : 𝒜} (f : A ⟶ B)
-    (himg : IsImage (hF.map f) (Subobject.map F hpm (image f))) :
+theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [CategoryTheory.Category.{w} 𝒜] [CategoryTheory.Category.{w} ℬ] [HasImages 𝒜]
+    (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono (bundledFunctor F)) {A B : 𝒜} (f : A ⟶ B)
+    (himg : IsImage (hF.map f) (Subobject.map (bundledFunctor F) hpm (image f))) :
     Cover (hF.map (image.lift f)) := by
   -- `F (image.lift f)` factors `F f` through the monic `(Subobject.map F hpm (image f)).arr`.
-  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
+  have hfac : hF.map (image.lift f) ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr = hF.map f := by
     show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
     rw [← hF.map_comp, image.lift_fac]
   -- That subobject IS the image of `F f` (himg), so its lift is `F (image.lift f)`;
@@ -2287,23 +2287,23 @@ theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} �
   -- `⟨Cobj, n⟩` is a subobject of `F (image f).dom`; lift it to a subobject of `F B` via the mono.
   -- The composite `n ≫ (image f-arr)` is monic and allows `F f` (via `p`), so the image of `F f`
   -- (= `Subobject.map F (image f)`) factors through it; combined with minimality this forces `n` iso.
-  have hcomp_mono : Monic (n ≫ (Subobject.map F hpm (image f)).arr) := by
+  have hcomp_mono : Monic (n ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr) := by
     intro W u v huv
-    exact hn _ _ ((Subobject.map F hpm (image f)).monic _ _ (by
-      rw [← Cat.assoc, ← Cat.assoc] at huv; exact huv))
-  have hallow : Allows (Subobject.mk Cobj (n ≫ (Subobject.map F hpm (image f)).arr) hcomp_mono)
+    exact hn _ _ ((Subobject.map (bundledFunctor F) hpm (image f)).monic _ _ (by
+      rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc] at huv; exact huv))
+  have hallow : Allows (Subobject.mk Cobj (n ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr) hcomp_mono)
       (hF.map f) := by
     refine ⟨p, ?_⟩
-    show p ≫ (n ≫ (Subobject.map F hpm (image f)).arr) = hF.map f
-    rw [← Cat.assoc, hpn, hfac]
+    show p ≫ (n ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr) = hF.map f
+    rw [← CategoryTheory.Category.assoc, hpn, hfac]
   obtain ⟨h, hh⟩ := himg.2 _ hallow
   -- `hh : h ≫ (n ≫ image-arr) = image-arr`, with `image-arr` mono ⟹ `h ≫ n = id`.
-  have hhn : h ≫ n = Cat.id _ := (Subobject.map F hpm (image f)).monic _ _ (by
-    show (h ≫ n) ≫ (Subobject.map F hpm (image f)).arr = Cat.id _ ≫ (Subobject.map F hpm (image f)).arr
-    rw [Cat.assoc, hh, Cat.id_comp])
+  have hhn : h ≫ n = 𝟙 _ := (Subobject.map (bundledFunctor F) hpm (image f)).monic _ _ (by
+    show (h ≫ n) ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr = 𝟙 _ ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr
+    rw [CategoryTheory.Category.assoc, hh, CategoryTheory.Category.id_comp])
   -- and `n ≫ h = id` by monic cancellation of `n`.
   refine ⟨h, ?_, hhn⟩
-  exact hn _ _ (by rw [Cat.assoc, hhn, Cat.id_comp]; exact Cat.comp_id n)
+  exact hn _ _ (by rw [CategoryTheory.Category.assoc, hhn, CategoryTheory.Category.id_comp]; exact CategoryTheory.Category.comp_id n)
 
 /-! ## Generic: cover + mono + pullback preservation ⟹ image preservation
 
@@ -2314,34 +2314,35 @@ theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} �
   a cover-then-mono factorization `F f = F(image.lift f) ≫ F((image f).arr)` in `ℬ`; by
   `coverMono_isImage` that IS the image of `F f`.  Hence `Subobject.map F hpm (image f)` — whose
   arrow is exactly `F((image f).arr)` — is the image of `F f`. -/
-theorem image_lift_cover_local {𝒜 : Type w} [Cat.{w} 𝒜] [HasImages 𝒜] {A B : 𝒜} (f : A ⟶ B) :
+theorem image_lift_cover_local {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] [HasImages 𝒜] {A B : 𝒜} (f : A ⟶ B) :
     Cover (image.lift f) := by
   -- (self-contained copy of `S1_56.image_lift_cover`, to avoid importing S1_56 here)
   intro D m g hm hfac
   have hmono_comp : Monic (m ≫ (image f).arr) := fun u v huv =>
-    hm _ _ ((image f).monic _ _ (by simpa [Cat.assoc] using huv))
+    hm _ _ ((image f).monic _ _ (by simpa [CategoryTheory.Category.assoc] using huv))
   have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f :=
-    ⟨g, by rw [← Cat.assoc, hfac, image.lift_fac]⟩
+    ⟨g, by rw [← CategoryTheory.Category.assoc, hfac, image.lift_fac]⟩
   obtain ⟨h, hh⟩ := image_min f _ h_allows
-  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
-    rw [Cat.assoc, hh, Cat.id_comp])
-  exact ⟨h, hm _ _ (by rw [Cat.assoc, hhm, Cat.id_comp, Cat.comp_id]), hhm⟩
+  have hhm : h ≫ m = 𝟙 (image f).dom := (image f).monic (h ≫ m) (𝟙 _) (by
+    rw [CategoryTheory.Category.assoc, hh, CategoryTheory.Category.id_comp])
+  exact ⟨h, hm _ _ (by rw [CategoryTheory.Category.assoc, hhm, CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]), hhm⟩
 
 /-- **Transition image-preservation from cover + mono + pullback preservation.**  Supplies the
     `himgpres` shape (`IsImage (F.map f) (Subobject.map F hpm (image f))`) WITHOUT it being a
     primitive axiom: it is derived from `F` preserving covers (`hcov`), preserving monos (`hpm`),
     and the target having pullbacks.  This is what turns the §1.543 tower (whose transitions
     already preserve covers/monos/finite limits) into an *image*-preserving tower. -/
-theorem transitions_preserve_images {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
-    [HasImages 𝒜] [HasPullbacks ℬ] (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F)
+theorem transitions_preserve_images {𝒜 ℬ : Type w} [CategoryTheory.Category.{w} 𝒜] [CategoryTheory.Category.{w} ℬ]
+    [HasImages 𝒜] [HasPullbacks ℬ] (F : 𝒜 → ℬ) [hF : Functor F]
+    (hpm : PreservesMono (bundledFunctor F))
     (hcov : PreservesCovers F) {A B : 𝒜} (f : A ⟶ B) :
-    IsImage (hF.map f) (Subobject.map F hpm (image f)) := by
+    IsImage (hF.map f) (Subobject.map (bundledFunctor F) hpm (image f)) := by
   -- target factorization `F(image.lift f) ≫ F((image f).arr) = F f`, cover-then-mono.
-  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
+  have hfac : hF.map (image.lift f) ≫ (Subobject.map (bundledFunctor F) hpm (image f)).arr = hF.map f := by
     show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
     rw [← hF.map_comp, image.lift_fac]
   have hcover : Cover (hF.map (image.lift f)) := hcov _ (image_lift_cover_local f)
-  exact coverMono_isImage (Subobject.map F hpm (image f)).monic hcover hfac
+  exact coverMono_isImage (Subobject.map (bundledFunctor F) hpm (image f)).monic hcover hfac
 
 /-- **`objIncl i` preserves images** (the image analog of `objIncl_preserves_equalizers`).
     Given per-stage images (`hi`), transition mono-preservation (`hmono`), faithfulness
@@ -2360,10 +2361,10 @@ theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+        PreservesMono (bundledFunctor (hF := C.functF hij) (C.F hij)))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := C.functF hij) (C.F hij)) (hmono hij)
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
     (i : ι) {a b : C.A i} (f : a ⟶ b) :
@@ -2405,10 +2406,10 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+        PreservesMono (bundledFunctor (hF := C.functF hij) (C.F hij)))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := C.functF hij) (C.F hij)) (hmono hij)
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)] :
     @HasImages C.Obj (colimitCat C hC) := by
@@ -2540,84 +2541,84 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
     Constructive universal-property version of the §1.432 construction for an
     *arbitrary* equalizer cone (not just the chosen one): if `(E, m)` equalizes
     `fst≫f` and `snd≫g`, then `(E, m≫fst, m≫snd)` is a pullback of `(f, g)`. -/
-theorem pullback_of_equalizer {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟]
+theorem pullback_of_equalizer {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] [HasBinaryProducts 𝒟]
     {A B C E : 𝒟} {f : A ⟶ C} {g : B ⟶ C} {m : E ⟶ prod A B}
     (hmeq : m ≫ (fst ≫ f) = m ≫ (snd ≫ g))
     (heq : (EqualizerCone.mk E m hmeq).IsEqualizer) :
     (Cone.mk (f := f) (g := g) E (m ≫ fst) (m ≫ snd)
-      (by rw [Cat.assoc, Cat.assoc]; exact hmeq)).IsPullback := by
+      (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hmeq)).IsPullback := by
   intro d
   -- a cone `d` over `(f,g)`: `d.π₁ ≫ f = d.π₂ ≫ g`.  Pair the legs to land in `A × B`.
   have hpd : pair d.π₁ d.π₂ ≫ (fst ≫ f) = pair d.π₁ d.π₂ ≫ (snd ≫ g) := by
-    rw [← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]; exact d.w
+    rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair]; exact d.w
   obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.pt (pair d.π₁ d.π₂) hpd)
   refine ⟨u, ⟨?_, ?_⟩, ?_⟩
   · show u ≫ (m ≫ fst) = d.π₁
-    rw [← Cat.assoc, hu, fst_pair]
+    rw [← CategoryTheory.Category.assoc, hu, fst_pair]
   · show u ≫ (m ≫ snd) = d.π₂
-    rw [← Cat.assoc, hu, snd_pair]
+    rw [← CategoryTheory.Category.assoc, hu, snd_pair]
   · intro v hv₁ hv₂
     -- `v ≫ m` equalizes the pair (it pairs to `(d.π₁,d.π₂)`), so `v = u` by uniqueness.
     refine huniq v ?_
     show v ≫ m = pair d.π₁ d.π₂
     refine pair_uniq _ _ _ ?_ ?_
-    · rw [Cat.assoc]; exact hv₁
-    · rw [Cat.assoc]; exact hv₂
+    · rw [CategoryTheory.Category.assoc]; exact hv₁
+    · rw [CategoryTheory.Category.assoc]; exact hv₂
 
 /-- **Transport an equalizer along an iso of the parallel pair's domain.**  If `(E,e)`
     is the equalizer of `(φ ≫ p, φ ≫ q)` and `φ : X ⟶ Y` is iso, then `(E, e ≫ φ)` is the
     equalizer of `(p, q)`.  Used to slide the `F`-image equalizer of `(F(fst≫f),F(snd≫g))`
     onto the cospan `(fst≫Ff, snd≫Fg)` over `prod (F A) (F B)` (the two pairs differ by the
     product-comparison iso `φ = pair (F fst) (F snd)`). -/
-theorem isEqualizer_comp_iso {𝒟 : Type u} [Cat.{v} 𝒟]
+theorem isEqualizer_comp_iso {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟]
     {X Y Z E : 𝒟} {p q : Y ⟶ Z} {φ : X ⟶ Y} (hφ : IsIso φ) {e : E ⟶ X}
     (hew : e ≫ (φ ≫ p) = e ≫ (φ ≫ q))
     (heq : (EqualizerCone.mk (f := φ ≫ p) (g := φ ≫ q) E e hew).IsEqualizer) :
     (EqualizerCone.mk (f := p) (g := q) E (e ≫ φ)
-      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [Cat.assoc, Cat.assoc]; exact hew)).IsEqualizer := by
+      (show (e ≫ φ) ≫ p = (e ≫ φ) ≫ q by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hew)).IsEqualizer := by
   obtain ⟨φ', hφφ', hφ'φ⟩ := hφ
   intro d
   -- `d : EqualizerCone p q`, i.e. `d.map ≫ p = d.map ≫ q`.  Pull `d.map` back through `φ'`
   -- to a cone over `(φ≫p, φ≫q)` with map `d.map ≫ φ'`.
   have hd' : (d.map ≫ φ') ≫ (φ ≫ p) = (d.map ≫ φ') ≫ (φ ≫ q) := by
-    rw [← Cat.assoc, Cat.assoc d.map, hφ'φ, Cat.comp_id,
-        ← Cat.assoc (d.map ≫ φ'), Cat.assoc d.map, hφ'φ, Cat.comp_id]
+    rw [← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc d.map, hφ'φ, CategoryTheory.Category.comp_id,
+        ← CategoryTheory.Category.assoc (d.map ≫ φ'), CategoryTheory.Category.assoc d.map, hφ'φ, CategoryTheory.Category.comp_id]
     exact d.eq
   obtain ⟨u, hu, huniq⟩ := heq (EqualizerCone.mk d.dom (d.map ≫ φ') hd')
   refine ⟨u, ?_, ?_⟩
   · show u ≫ (e ≫ φ) = d.map
-    rw [← Cat.assoc, hu, Cat.assoc, hφ'φ, Cat.comp_id]
+    rw [← CategoryTheory.Category.assoc, hu, CategoryTheory.Category.assoc, hφ'φ, CategoryTheory.Category.comp_id]
   · intro v hv
     -- `v ≫ e = d.map ≫ φ'` (post-compose `hv : v ≫ (e≫φ) = d.map` by `φ'`), so `v = u`.
     refine huniq v ?_
     show v ≫ e = d.map ≫ φ'
-    calc v ≫ e = (v ≫ e) ≫ Cat.id _ := (Cat.comp_id _).symm
+    calc v ≫ e = (v ≫ e) ≫ 𝟙 _ := (CategoryTheory.Category.comp_id _).symm
       _ = (v ≫ e) ≫ (φ ≫ φ') := by rw [hφφ']
-      _ = ((v ≫ e) ≫ φ) ≫ φ' := (Cat.assoc _ _ _).symm
-      _ = (v ≫ (e ≫ φ)) ≫ φ' := by rw [Cat.assoc v e φ]
+      _ = ((v ≫ e) ≫ φ) ≫ φ' := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = (v ≫ (e ≫ φ)) ≫ φ' := by rw [CategoryTheory.Category.assoc v e φ]
       _ = d.map ≫ φ' := by rw [hv]
 
 /-- **Transport an equalizer along an iso of its apex.**  If `(E, e)` is the equalizer of
     `(f, g)` and `i : E' ⟶ E`, `j : E ⟶ E'` are mutually inverse, then `(E', i ≫ e)` is also
     the equalizer of `(f, g)`.  Used to move the chosen equalizer (which `PreservesEqualizers`
     relates by an iso `k`) onto the `F`-image apex `F (eqObj …)`. -/
-theorem isEqualizer_iso_apex {𝒟 : Type u} [Cat.{v} 𝒟] {A B E E' : 𝒟} {f g : A ⟶ B}
+theorem isEqualizer_iso_apex {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] {A B E E' : 𝒟} {f g : A ⟶ B}
     {e : E ⟶ A} {hfe : e ≫ f = e ≫ g} (heq : (EqualizerCone.mk E e hfe).IsEqualizer)
-    (i : E' ⟶ E) (j : E ⟶ E') (hij : i ≫ j = Cat.id E') (hji : j ≫ i = Cat.id E) :
+    (i : E' ⟶ E) (j : E ⟶ E') (hij : i ≫ j = 𝟙 E') (hji : j ≫ i = 𝟙 E) :
     (EqualizerCone.mk (f := f) (g := g) E' (i ≫ e)
-      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [Cat.assoc, Cat.assoc, hfe])).IsEqualizer := by
+      (show (i ≫ e) ≫ f = (i ≫ e) ≫ g by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hfe])).IsEqualizer := by
   intro d
   obtain ⟨u, hu, huniq⟩ := heq d
   refine ⟨u ≫ j, ?_, ?_⟩
   · show (u ≫ j) ≫ (i ≫ e) = d.map
-    rw [Cat.assoc, ← Cat.assoc j i e, hji, Cat.id_comp, hu]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc j i e, hji, CategoryTheory.Category.id_comp, hu]
   · intro v hv
     -- `v ≫ i ≫ e = d.map`, so `v ≫ i = u`; hence `v = v ≫ id = v ≫ i ≫ j = u ≫ j`.
-    have hvi : (v ≫ i) ≫ e = d.map := by rw [Cat.assoc]; exact hv
+    have hvi : (v ≫ i) ≫ e = d.map := by rw [CategoryTheory.Category.assoc]; exact hv
     have : v ≫ i = u := huniq (v ≫ i) hvi
-    calc v = v ≫ Cat.id E' := (Cat.comp_id _).symm
+    calc v = v ≫ 𝟙 E' := (CategoryTheory.Category.comp_id _).symm
       _ = v ≫ (i ≫ j) := by rw [hij]
-      _ = (v ≫ i) ≫ j := (Cat.assoc _ _ _).symm
+      _ = (v ≫ i) ≫ j := (CategoryTheory.Category.assoc _ _ _).symm
       _ = u ≫ j := by rw [this]
 
 /-- **A product- and equalizer-preserving functor sends the §1.432 chosen pullback to a
@@ -2628,7 +2629,7 @@ theorem isEqualizer_iso_apex {𝒟 : Type u} [Cat.{v} 𝒟] {A B E E' : 𝒟} {f
     the equalizer of `(F(fst≫f), F(snd≫g))`, which equals `(fst≫Ff, snd≫Fg)` precomposed by the
     product-comparison iso `φ` (`isEqualizer_comp_iso`); `pullback_of_equalizer` then turns this
     equalizer over `prod (F A)(F B)` into the desired pullback. -/
-theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [CategoryTheory.Category.{v} 𝒞] [CategoryTheory.Category.{v} 𝒟]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
     [HasTerminal 𝒟] [HasBinaryProducts 𝒟] [HasEqualizers 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F]
@@ -2676,9 +2677,9 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
   have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
   -- the pair (F(fst≫f), F(snd≫g)) is (φ≫(fst≫Ff), φ≫(snd≫Fg))
   have hpair_f : hF.map (fst ≫ f) = φ ≫ (fst ≫ hF.map f) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_fst]
+    rw [hF.map_comp, ← CategoryTheory.Category.assoc, hφ_fst]
   have hpair_g : hF.map (snd ≫ g) = φ ≫ (snd ≫ hF.map g) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_snd]
+    rw [hF.map_comp, ← CategoryTheory.Category.assoc, hφ_snd]
   -- transport hFem_isEq onto the φ-precomposed pair (proof-irrelevant cone rewrite)
   have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ hF.map f)) (g := φ ≫ (snd ≫ hF.map g))
       (F eo) (hF.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
@@ -2692,7 +2693,7 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
     (by rw [← hpair_f, ← hpair_g]; exact hFem_eq) hFem_isEq'
   -- hslid : (F eo, F em ≫ φ) is the equalizer of (fst≫Ff, snd≫Fg) over prod (F A)(F B)
   have hmeq : (hF.map em ≫ φ) ≫ (fst ≫ hF.map f) = (hF.map em ≫ φ) ≫ (snd ≫ hF.map g) := by
-    rw [Cat.assoc, Cat.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
   have hpb := pullback_of_equalizer hmeq hslid
   -- hpb : (F eo, (F em ≫ φ)≫fst, (F em ≫ φ)≫snd) is the pullback of (Ff, Fg).
   -- those projections equal F P.π₁ = F(em≫fst), F P.π₂ = F(em≫snd).
@@ -2701,8 +2702,8 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
   -- bridge: (F em ≫ φ) ≫ fst = F (em ≫ fst), likewise snd
   have hbr₁ : hF.map em ≫ φ ≫ fst = hF.map (em ≫ fst) := by rw [hφ_fst, ← hF.map_comp]
   have hbr₂ : hF.map em ≫ φ ≫ snd = hF.map (em ≫ snd) := by rw [hφ_snd, ← hF.map_comp]
-  have hpr₁ : (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) := (Cat.assoc _ _ _).trans hbr₁
-  have hpr₂ : (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) := (Cat.assoc _ _ _).trans hbr₂
+  have hpr₁ : (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) := (CategoryTheory.Category.assoc _ _ _).trans hbr₁
+  have hpr₂ : (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) := (CategoryTheory.Category.assoc _ _ _).trans hbr₂
   refine ⟨u, ⟨?_, ?_⟩, ?_⟩
   · show u ≫ hF.map (em ≫ fst) = d.π₁
     rw [← hpr₁]; exact hu₁
@@ -2711,10 +2712,10 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
   · intro v hv₁ hv₂
     refine huniq v ?_ ?_
     · show v ≫ (hF.map em ≫ φ) ≫ fst = d.π₁
-      rw [show (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
+      rw [show (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) from (CategoryTheory.Category.assoc _ _ _).trans hbr₁]
       exact hv₁
     · show v ≫ (hF.map em ≫ φ) ≫ snd = d.π₂
-      rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
+      rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (CategoryTheory.Category.assoc _ _ _).trans hbr₂]
       exact hv₂
 
 /-! ## M3b — pullbacks for the colimit category
@@ -2797,7 +2798,7 @@ theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : No
     `φ : c.pt ⟶ c'.pt` compatible with the projections is an isomorphism: its
     inverse is the reverse comparison `ψ : c'.pt ⟶ c.pt`, and `φψ`, `ψφ` both
     satisfy the projection equations that the identity uniquely satisfies. -/
-theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
+theorem pullback_comparison_iso {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] {A B Z : 𝒞}
     {f : A ⟶ Z} {g : B ⟶ Z} {c c' : Cone f g}
     (hc : c.IsPullback) (hc' : c'.IsPullback) :
     ∃ φ : c.pt ⟶ c'.pt, IsIso φ ∧ φ ≫ c'.π₁ = c.π₁ ∧ φ ≫ c'.π₂ = c.π₂ := by
@@ -2805,13 +2806,13 @@ theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
   obtain ⟨ψ, ⟨hψ1, hψ2⟩, _⟩ := hc c'
   -- ψφ : c.pt ⟶ c.pt is compatible with c's projections, hence = id (uniqueness in c)
   obtain ⟨_, _, huniq⟩ := hc c
-  have hψφ : ψ ≫ φ = Cat.id c'.pt := by
+  have hψφ : ψ ≫ φ = 𝟙 c'.pt := by
     obtain ⟨_, _, huniq'⟩ := hc' c'
-    rw [huniq' (ψ ≫ φ) (by rw [Cat.assoc, hφ1, hψ1]) (by rw [Cat.assoc, hφ2, hψ2]),
-        ← huniq' (Cat.id c'.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
-  have hφψ : φ ≫ ψ = Cat.id c.pt := by
-    rw [huniq (φ ≫ ψ) (by rw [Cat.assoc, hψ1, hφ1]) (by rw [Cat.assoc, hψ2, hφ2]),
-        ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+    rw [huniq' (ψ ≫ φ) (by rw [CategoryTheory.Category.assoc, hφ1, hψ1]) (by rw [CategoryTheory.Category.assoc, hφ2, hψ2]),
+        ← huniq' (𝟙 c'.pt) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])]
+  have hφψ : φ ≫ ψ = 𝟙 c.pt := by
+    rw [huniq (φ ≫ ψ) (by rw [CategoryTheory.Category.assoc, hψ1, hφ1]) (by rw [CategoryTheory.Category.assoc, hψ2, hφ2]),
+        ← huniq (𝟙 c.pt) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])]
   exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
 
 /-- **Cover of the canonical pullback's `π₂` from *any* witnessing pullback cone.**
@@ -2823,7 +2824,7 @@ theorem pullback_comparison_iso {𝒞 : Type u} [Cat.{v} 𝒞] {A B Z : 𝒞}
     `colimitPullbacksTransferCovers`: it turns the opaque "canonical `π₂` is a cover"
     obligation into the concrete "*some* pullback cone of `(f, g)` has `π₂` a cover".
     Reusable in any `[Cat] [HasPullbacks]`, so DRY for both colimit assemblies. -/
-theorem hasPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞]
+theorem hasPullback_cover_of_witness {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
     {A B Z : 𝒞} {f : A ⟶ Z} {g : B ⟶ Z} (hpb : HasPullback f g)
     {c : Cone f g} (hc : c.IsPullback) (hcov : Cover c.π₂) :
     Cover hpb.cone.π₂ := by
@@ -2831,7 +2832,7 @@ theorem hasPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞]
   rw [← hφ2]
   exact cover_precomp_iso hφiso hcov
 
-theorem canonicalPullback_cover_of_witness {𝒞 : Type u} [Cat.{v} 𝒞] [HasPullbacks 𝒞]
+theorem canonicalPullback_cover_of_witness {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasPullbacks 𝒞]
     {A B Z : 𝒞} (f : A ⟶ Z) (g : B ⟶ Z)
     (c : Cone f g) (hc : c.IsPullback) (hcov : Cover c.π₂) :
     Cover (HasPullbacks.has f g).cone.π₂ := by
@@ -3123,7 +3124,7 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
   only to be in scope for `Capitalization`). -/
 section PreservationToColimShape
 
-variable {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+variable {𝒜 ℬ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ]
 
 /-- Transport `IsEqualizer` across a propositional equality of the cone map (same apex).  Avoids
     a `rw`-in-motive on the dependent `EqualizerCone.map` field. -/
@@ -3155,8 +3156,8 @@ theorem preservesBinaryProducts_jointly_monic [HasBinaryProducts 𝒜] [HasBinar
   apply hφmono
   -- `u ≫ φ = v ≫ φ` from joint agreement after `fst`/`snd` (φ's legs are `F fst`, `F snd`).
   apply fst_snd_jointly_monic (u ≫ φ) (v ≫ φ)
-  · rw [Cat.assoc, Cat.assoc, fst_pair, hu]
-  · rw [Cat.assoc, Cat.assoc, snd_pair, hv]
+  · rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, fst_pair, hu]
+  · rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, snd_pair, hv]
 
 /-- **Pairing through `(F fst, F snd)` from `PreservesBinaryProducts`.**  The comparison `φ` being
     iso lets any pair of legs `p : Z ⟶ F A`, `q : Z ⟶ F B` factor through `F(A×B)`: take
@@ -3173,8 +3174,8 @@ theorem preservesBinaryProducts_pair [HasBinaryProducts 𝒜] [HasBinaryProducts
   have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
   refine ⟨pair p q ≫ φ', ?_, ?_⟩
   · -- (pair p q ≫ φ') ≫ F fst = (pair p q ≫ φ') ≫ φ ≫ fst = pair p q ≫ fst = p
-    rw [← hφ_fst, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, fst_pair]
-  · rw [← hφ_snd, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, snd_pair]
+    rw [← hφ_fst, ← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc (pair p q), hφ'φ, CategoryTheory.Category.comp_id, fst_pair]
+  · rw [← hφ_snd, ← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc (pair p q), hφ'φ, CategoryTheory.Category.comp_id, snd_pair]
 
 /-- **Joint monicity of `F (eqMap f g)` from `PreservesEqualizers`.**  If `F` preserves the
     equalizer of `f, g`, then `F (eqMap f g)` is monic (an equalizer map is monic, and its
@@ -3196,13 +3197,13 @@ theorem preservesEqualizers_mono [HasEqualizers 𝒜] [HasEqualizers ℬ]
   have hEqMono : Monic cD.cone.map := by
     intro W p q hpq
     have hc : (p ≫ cD.cone.map) ≫ hF.map f = (p ≫ cD.cone.map) ≫ hF.map g := by
-      rw [Cat.assoc, Cat.assoc, cD.cone.eq]
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, cD.cone.eq]
     let c : EqualizerCone (hF.map f) (hF.map g) := ⟨W, p ≫ cD.cone.map, hc⟩
     rw [cD.uniq c p rfl, cD.uniq c q hpq.symm]
   -- `F (eqMap f g) = k ≫ cD.cone.map`, with `k` iso (mono via retraction) and `cD.cone.map` mono.
   intro W p q hpq
   rw [← hk_fac] at hpq
-  exact mono_of_retraction k k' hkk' p q (hEqMono _ _ (by rw [Cat.assoc, Cat.assoc]; exact hpq))
+  exact mono_of_retraction k k' hkk' p q (hEqMono _ _ (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hpq))
 
 /-- **Lifting through `F (eqMap f g)` from `PreservesEqualizers`.**  If a map `kk : Z ⟶ F A`
     equalizes `F f, F g`, it factors through `F (eqObj f g)` via `F (eqMap f g)`.  This is the
@@ -3224,7 +3225,7 @@ theorem preservesEqualizers_lift [HasEqualizers 𝒜] [HasEqualizers ℬ]
   have hu : u ≫ cD.cone.map = kk := cD.fac ⟨Z, kk, hk⟩
   refine ⟨u ≫ k', ?_⟩
   -- (u ≫ k') ≫ F(eqMap) = (u ≫ k') ≫ (k ≫ cD.cone.map) = u ≫ cD.cone.map = kk
-  rw [← hk_fac, ← Cat.assoc, Cat.assoc u k' k, hk'k, Cat.comp_id, hu]
+  rw [← hk_fac, ← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc u k' k, hk'k, CategoryTheory.Category.comp_id, hu]
 
 /-! ### Composition of preservation (lift a single rung to the iterated transition)
 
@@ -3232,7 +3233,7 @@ theorem preservesEqualizers_lift [HasEqualizers 𝒜] [HasEqualizers ℬ]
   that finite-limit preservation is closed under functor composition, so a per-rung preservation
   package lifts to the iterated transition by induction on the difference. -/
 
-variable {ℰ : Type u} [Cat.{u} ℰ]
+variable {ℰ : Type u} [CategoryTheory.Category.{u} ℰ]
 
 /-- **Terminal preservation composes** (on-the-nose form).  `(G ∘ F) one = one` from `F one = one`
     and `G one = one`. -/
@@ -3254,14 +3255,15 @@ theorem preservesBinaryProducts_comp [HasBinaryProducts 𝒜] [HasBinaryProducts
   let φF : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
   let φG : G (prod (F A) (F B)) ⟶ prod (G (F A)) (G (F B)) :=
     pair (hG.map (fst (A := F A) (B := F B))) (hG.map snd)
-  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso (F := G) φF (hppF (A := A) (B := B))
+  have hGφF_iso : IsIso (hG.map φF) :=
+    functor_preserves_iso (bundledFunctor G) φF (hppF (A := A) (B := B))
   have hcomp_iso : IsIso (hG.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F A) (B := F B))
   -- the `G∘F`-comparison equals `G(φF) ≫ φG`: agree after `fst` and after `snd` (jointly monic).
   have hfst : (hG.map φF ≫ φG) ≫ fst = (compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)) := by
     -- (G φF ≫ φG) ≫ fst = G φF ≫ G fst = G(φF ≫ fst) = G(F fst) = (G∘F) fst
-    rw [Cat.assoc, fst_pair, ← hG.map_comp, fst_pair]; rfl
+    rw [CategoryTheory.Category.assoc, fst_pair, ← hG.map_comp, fst_pair]; rfl
   have hsnd : (hG.map φF ≫ φG) ≫ snd = (compFunctor (F := F) (G := G)).map (snd (A := A) (B := B)) := by
-    rw [Cat.assoc, snd_pair, ← hG.map_comp, snd_pair]; rfl
+    rw [CategoryTheory.Category.assoc, snd_pair, ← hG.map_comp, snd_pair]; rfl
   have hkey : pair ((compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)))
       ((compFunctor (F := F) (G := G)).map snd) = hG.map φF ≫ φG :=
     (pair_uniq _ _ _ hfst hsnd).symm
@@ -3298,7 +3300,7 @@ theorem preservesEqualizers_isEqualizer [HasEqualizers 𝒜] [HasEqualizers ℬ]
   have hm_fac : m ≫ eqMap f g = c.map := eqLift_fac f g c.map c.eq
   have hm_iso : IsIso m :=
     isIso_of_two_equalizers hc (chosenEqualizer_isEqualizer f g) m hm_fac
-  obtain ⟨m', hmm', hm'm⟩ := functor_preserves_iso (F := F) m hm_iso
+  obtain ⟨m', hmm', hm'm⟩ := functor_preserves_iso (bundledFunctor F) m hm_iso
   -- transport hChosenImg (apex F(eqObj), map F(eqMap)) along `F m : F c.dom → F(eqObj)`.
   have h1 := isEqualizer_iso_apex (e := hF.map (eqMap f g)) (hfe := hcone.eq)
     hChosenImg (hF.map m) m' hmm' hm'm

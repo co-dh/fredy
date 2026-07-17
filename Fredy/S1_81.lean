@@ -13,6 +13,7 @@ import Fredy.S1_18
 import Fredy.S1_8
 import Fredy.S1_14
 
+open CategoryTheory
 
 universe v u₁ u₂
 

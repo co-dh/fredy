@@ -69,7 +69,7 @@ import Fredy.S1_543_CatColimit
 import Fredy.S1_543_CatColimitRegular
 import Fredy.S1_544_Inflation
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 
 universe v u
@@ -83,7 +83,7 @@ namespace Freyd
   faithfulness of `A = A₀ → Ā` through the (finitely or transfinitely many)
   successor steps and the final colimit inclusion. -/
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟] {ℰ : Type u} [Cat.{v} ℰ]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] {ℰ : Type u} [CategoryTheory.Category.{v} ℰ]
 
 /-- Faithful functors compose.  `embedding_comp` (§1.31) gives the embedding half;
     iso-reflection composes directly (`G` reflects iso, then `F` reflects iso). -/
@@ -123,15 +123,15 @@ abbrev stageInclObj (C : CatSystem ι D) (i : ι) : C.A i → C.Obj := C.objIncl
 
 /-- **The stage inclusion sends identities to identities.**  Needed to package the
     stage inclusion `(objIncl i, homInclObj)` as an honest `Functor`.  Compute
-    `homInclObj (Cat.id x)` at the canonical witness via `homInclObj_eq`; the germ is
-    a `castHom` of `functF.map (Cat.id x) = Cat.id (...)`, which is the identity germ
+    `homInclObj (𝟙 x)` at the canonical witness via `homInclObj_eq`; the germ is
+    a `castHom` of `functF.map (𝟙 x) = 𝟙 (...)`, which is the identity germ
     `colimId` of `objIncl i x` after absorbing the cast and transition. -/
 theorem homInclObj_id (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i) :
-    homInclObj C hC (Cat.id x) = colimId C hC (C.objIncl i x) := by
+    homInclObj C hC (𝟙 x) = colimId C hC (C.objIncl i x) := by
   let w := hioWitness C hC x x
   -- compute `homInclObj (id)` at the witness `w`; its germ is the identity at stage `w.K`.
-  rw [homInclObj_eq C hC (Cat.id x) w]
-  have hgerm : w.germ (Cat.id x) = Cat.id (C.F w.hpx (colimOut C (C.objIncl i x)).2) := by
+  rw [homInclObj_eq C hC (𝟙 x) w]
+  have hgerm : w.germ (𝟙 x) = 𝟙 (C.F w.hpx (colimOut C (C.objIncl i x)).2) := by
     unfold HioWitness.germ
     rw [(C.functF w.hix).map_id]
     exact castHom_of_heq _ _ (by rw [w.hgx])
@@ -142,7 +142,7 @@ theorem homInclObj_id (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i
   unfold colimId homClassId
   have key := homIncl_compat C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i x)).2
     (a := ⟨(colimOut C (C.objIncl i x)).1, D.refl _, D.refl _⟩)
-    (b := ⟨w.K, w.hpx, w.hpx⟩) w.hpx (Cat.id _)
+    (b := ⟨w.K, w.hpx, w.hpx⟩) w.hpx (𝟙 _)
   rw [homTr_id] at key
   -- `key` is exactly the goal: the witness bound `⟨w.K, w.hpx, w.hpy⟩` and `⟨w.K, w.hpx, w.hpx⟩`
   -- coincide proof-irrelevantly, and the trivial bound `⟨(out).1, refl, refl⟩` is `colimId`.
@@ -498,7 +498,7 @@ open Freyd.Colim
     (well-supported suffix).  Supplies the bridge `colimitCanonicalCover` with the Sorry-free per-stage PTC
     (`ordChainStagePTC`), transition cover-preservation (`ordChainHcovpres`) and mono-preservation
     (`ordChainHmono`), plus the 8 limit-preservation hypotheses already proven for the inner system. -/
-theorem ordChainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+theorem ordChainCanonicalCover {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
     {ι : Type u} {D : Directed ι} (O : OrdChain D 𝒞) [Nonempty ι]
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : (ordChainSliceSystem O).A i} (p q : x ⟶ y),
         ((ordChainSliceSystem O).functF hij).map p = ((ordChainSliceSystem O).functF hij).map q → p = q)
@@ -525,7 +525,7 @@ theorem ordChainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategor
 /-- **`hcanon` discharge for the ℕ-chain `chainSliceSystem`** (the `uliftNatDirected` specialization),
     modulo the same well-supported-suffix cover-reflection pair.  Feeds directly into the protected
     `chainSlicePreRegular`. -/
-theorem chainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+theorem chainCanonicalCover {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
     (P : PrefixChain 𝒞)
     (hfaith : ∀ {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
         {x y : (chainSliceSystem P).A i} (p q : x ⟶ y),
@@ -550,7 +550,7 @@ theorem chainCanonicalCover {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory �
     relative-capitalization chain whose appended objects ARE the well-supported `B`'s, holds.  This
     turns `chainCanonicalCover`'s two explicit `hfaith`/`hcons` hypotheses into the single, concrete,
     book-faithful precondition `hwsuf`. -/
-theorem chainCanonicalCoverWS {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+theorem chainCanonicalCoverWS {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
     (P : PrefixChain 𝒞)
     (hwsuf : ∀ {i j : ULift.{u} Nat} (_hij : uliftNatDirected.le i j),
         WellSupported
@@ -573,7 +573,7 @@ theorem chainCanonicalCoverWS {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory
     pre-regular structure, reduced to the single concrete book precondition `hwsuf`: every appended
     suffix is well-supported (true for the relative-capitalization chain, whose appended objects are the
     well-supported `B`'s).  No `hcanon` hypothesis remains. -/
-noncomputable def chainSlicePreRegularWS {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞]
+noncomputable def chainSlicePreRegularWS {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞]
     [HasEqualizers 𝒞] (P : PrefixChain 𝒞)
     (hwsuf : ∀ {i j : ULift.{u} Nat} (_hij : uliftNatDirected.le i j),
         WellSupported
@@ -584,13 +584,13 @@ noncomputable def chainSlicePreRegularWS {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegu
 /-- The data the §1.543 transfinite construction produces: a directed system of pre-regular
     categories, faithful in its transitions, whose colimit is capital, with a faithful base
     embedding of `A`.  See the module docstring for the field-by-field meaning. -/
-structure CapData (A : Type u) [Cat.{u} A] [PreRegularCategory A] where
+structure CapData (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] where
   /-- directed index of the tower -/
   ι : Type u
   D : Directed ι
   /-- the tower itself as a coherent system of categories.  Objects and morphisms share the
       universe `u`: the directed-colimit machinery (`CatSystem`/`colimitCat`) requires the
-      object and morphism universes to coincide (`catA : Cat.{u} (A i)` with `A i : Type u`),
+      object and morphism universes to coincide (`catA : CategoryTheory.Category.{u} (A i)` with `A i : Type u`),
       so the §1.543 capitalization is built for *small* categories with `Cat.{u}` on `Type u`. -/
   C : CatSystem.{u, u} ι D
   hC : C.Coherent
@@ -638,9 +638,9 @@ structure CapData (A : Type u) [Cat.{u} A] [PreRegularCategory A] where
 
 /-- **§1.543 reduction.**  From the capitalization data, assemble the capital pre-regular
     target `Ā = C.Obj` and the faithful representation `A → Ā = objIncl i₀ ∘ base`. -/
-theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+theorem capitalization_of_capData {A : Type u} [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (cd : CapData.{u} A) :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   haveI := cd.hne
@@ -666,16 +666,16 @@ theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A
     makes §2.218 R3(a) discharge once the §1.543 tower is shown to be image-preserving (the slice
     successors are regular, hence the rungs preserve images).  Returns a genuine `RegularCategory Ā`
     (capital, with the faithful `A → Ā`). -/
-theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+theorem capitalization_of_capData_regular {A : Type u} [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (cd : CapData.{u} A)
     (hi : ∀ i, HasImages (cd.C.A i))
     (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+        PreservesMono (bundledFunctor (hF := cd.C.functF hij) (cd.C.F hij)))
     (himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
         IsImage ((cd.C.functF hij).map f)
-          (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
-            (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f))) :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+          (Subobject.map (bundledFunctor (hF := cd.C.functF hij) (cd.C.F hij))
+            (hmono hij) (@image _ (cd.C.catA i) (hi i) _ _ f))) :
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   haveI := cd.hne
@@ -705,21 +705,21 @@ theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCa
     pre-regular, structure of the slice successors) and the `PreservesMono`/`PreservesCovers` forms.
     The per-stage target pullbacks `coverMono_isImage` needs are built from `cd.hp`/`cd.he`
     (`products_equalizers_implies_pullbacks`). -/
-theorem capitalization_of_capData_regular_of_covers {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+theorem capitalization_of_capData_regular_of_covers {A : Type u} [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (cd : CapData.{u} A)
     (hi : ∀ i, HasImages (cd.C.A i))
     (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+        PreservesMono (bundledFunctor (hF := cd.C.functF hij) (cd.C.F hij)))
     (hcovpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
         @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)) :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   -- derive `himgpres` per transition from cover + mono preservation + target stage pullbacks.
   have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
       IsImage ((cd.C.functF hij).map f)
-        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
-          (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
+        (Subobject.map (bundledFunctor (hF := cd.C.functF hij) (cd.C.F hij))
+            (hmono hij) (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
     intro i j hij X Y f
     letI : Cat (cd.C.A i) := cd.C.catA i
     letI : Cat (cd.C.A j) := cd.C.catA j
@@ -767,10 +767,10 @@ end Colim
   Producing the `step` from `S` is the parallel obligation that needs `PreRegularCategory (Over B)`
   for the slice successor; here `CapStep` is the *interface*, so the construction below is
   decoupled from that open sub-step. -/
-structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
+structure CapStep (S : Type u) [CategoryTheory.Category.{u} S] [PreRegularCategory S] where
   /-- the next stage `T = S*` -/
   T : Type u
-  catT : Cat.{u} T
+  catT : CategoryTheory.Category.{u} T
   preT : @PreRegularCategory T catT
   /-- the successor functor `S → T` and its functoriality -/
   step : S → T
@@ -797,7 +797,7 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
       with `HasTerminal` data, making `htpres` an on-the-nose object equality (`colimitHasTerminal`
       requires the strict form). -/
   stepTerminalArrow :
-    ∀ (X : T), @Cat.Hom T catT X (step (@HasTerminal.one S _ (PreRegularCategory.toHasTerminal)))
+    ∀ (X : T), @Quiver.Hom T catT.toCategoryStruct.toQuiver X (step (@HasTerminal.one S _ (PreRegularCategory.toHasTerminal)))
   /-- the step preserves binary products (`hppres`/`hppres_pair`). -/
   stepProds :
     @PreservesBinaryProducts S T _ catT step stepFun
@@ -833,7 +833,7 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
     Used to carry the dependent stages of the ω-tower through `Nat.rec`. -/
 structure PreRegBundle where
   carrier : Type u
-  cat : Cat.{u} carrier
+  cat : CategoryTheory.Category.{u} carrier
   pre : @PreRegularCategory carrier cat
 
 attribute [instance] PreRegBundle.cat PreRegBundle.pre
@@ -845,7 +845,7 @@ attribute [instance] PreRegBundle.cat PreRegBundle.pre
     on `PreRegBundle` (regularity threads through it via the per-stage `stepImages`, not the bundle). -/
 structure RegBundle where
   carrier : Type u
-  cat : Cat.{u} carrier
+  cat : CategoryTheory.Category.{u} carrier
   reg : @RegularCategory carrier cat
 
 attribute [instance] RegBundle.cat RegBundle.reg
@@ -854,7 +854,7 @@ attribute [instance] RegBundle.cat RegBundle.reg
 def RegBundle.toPreRegBundle (S : RegBundle.{u}) : PreRegBundle.{u} :=
   ⟨S.carrier, S.cat, inferInstance⟩
 
-variable {A : Type u} [Cat.{u} A] [PreRegularCategory A]
+variable {A : Type u} [CategoryTheory.Category.{u} A] [PreRegularCategory A]
 
 /-- The `n`-th stage of the ω-tower, as a bundle.  `stage 0 = A`; `stage (n+1)` is the
     successor `(stage n)*` chosen by `nextStep`. -/
@@ -1008,7 +1008,7 @@ theorem stageCastHom_heq (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carri
 /-- The morphism transport preserves identities. -/
 theorem stageCastHom_id (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) {m n : Nat}
     (h : m = n) (x : (stageBundle nextStep b m).carrier) :
-    stageCastHom b nextStep h (Cat.id x) = Cat.id (stageCast b nextStep h x) := by subst h; rfl
+    stageCastHom b nextStep h (𝟙 x) = 𝟙 (stageCast b nextStep h x) := by subst h; rfl
 
 /-- The morphism transport distributes over composition. -/
 theorem stageCastHom_comp (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) {m n : Nat}
@@ -1073,8 +1073,8 @@ theorem transNFun_map_congr_heq (nextStep : ∀ (S : PreRegBundle.{u}), CapStep 
     functor `transNFun i.down (j.down-i.down)`, then transport along the carrier equality. -/
 def towerFmap (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : i.down ≤ j.down)
-    {x y : towerObj b nextStep i} (g : @Cat.Hom _ (stageBundle nextStep b i.down).cat x y) :
-    @Cat.Hom _ (stageBundle nextStep b j.down).cat (towerF b nextStep hij x) (towerF b nextStep hij y) :=
+    {x y : towerObj b nextStep i} (g : @Quiver.Hom _ (stageBundle nextStep b i.down).cat.toCategoryStruct.toQuiver x y) :
+    @Quiver.Hom _ (stageBundle nextStep b j.down).cat.toCategoryStruct.toQuiver (towerF b nextStep hij x) (towerF b nextStep hij y) :=
   stageCastHom b nextStep (Nat.add_sub_cancel' hij)
     ((transNFun nextStep b i.down (j.down - i.down)).map g)
 
@@ -1240,7 +1240,7 @@ theorem towerHcons (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (uniqueness) and `s.stepTerminalArrow` (existence) — stated about the *bundled* terminal — plus
     the unique iso between any terminal `htS.one` and the bundled `one`, transported through the
     functor `s.stepFun`. -/
-noncomputable def capStepHasTerminal {S : Type u} [Cat.{u} S] [PreRegularCategory S]
+noncomputable def capStepHasTerminal {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S]
     (s : CapStep S) (htS : HasTerminal S) :
     @HasTerminal s.T s.catT := by
   letI : Cat s.T := s.catT
@@ -1248,14 +1248,14 @@ noncomputable def capStepHasTerminal {S : Type u} [Cat.{u} S] [PreRegularCategor
   letI bundled : HasTerminal S := PreRegularCategory.toHasTerminal
   -- the comparison arrow `step htS.one ⟶ step (bundled.one)` is `step (bundled.trm htS.one)`; it is
   -- iso (functor of the unique terminal iso `htS.one ≅ bundled.one`).
-  let base : @Cat.Hom _ _ htS.one bundled.one := bundled.trm htS.one
-  let cmp : @Cat.Hom _ s.catT (s.step htS.one) (s.step bundled.one) := fS.map base
+  let base : @Quiver.Hom _ _ htS.one bundled.one := bundled.trm htS.one
+  let cmp : @Quiver.Hom _ s.catT.toCategoryStruct.toQuiver (s.step htS.one) (s.step bundled.one) := fS.map base
   have hiso : @IsIso _ s.catT _ _ cmp := by
-    refine functor_preserves_iso (F := s.step) base ?_
-    exact ⟨htS.trm bundled.one, htS.uniq _ (Cat.id _), bundled.uniq _ (Cat.id _)⟩
+    refine functor_preserves_iso (bundledFunctor (hF := s.stepFun) s.step) base ?_
+    exact ⟨htS.trm bundled.one, htS.uniq _ (𝟙 _), bundled.uniq _ (𝟙 _)⟩
   -- choose the inverse (goal is `Type`, so eliminate the existential via `Classical.choose`).
-  let inv : @Cat.Hom _ s.catT (s.step bundled.one) (s.step htS.one) := Classical.choose hiso
-  have hinv₁ : cmp ≫ inv = Cat.id _ := (Classical.choose_spec hiso).1
+  let inv : @Quiver.Hom _ s.catT.toCategoryStruct.toQuiver (s.step bundled.one) (s.step htS.one) := Classical.choose hiso
+  have hinv₁ : cmp ≫ inv = 𝟙 _ := (Classical.choose_spec hiso).1
   refine @HasTerminal.mk s.T s.catT (s.step htS.one) (fun X => s.stepTerminalArrow X ≫ inv) ?_
   -- uniqueness into `step htS.one`: post-compose with the mono `cmp`, reducing to `stepTerminal`.
   intro X f g
@@ -1371,7 +1371,7 @@ theorem transN_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), C
       (pair ((transNFun nextStep b n 0).map fst) ((transNFun nextStep b n 0).map snd))
     rw [show (transNFun nextStep b n 0).map (fst (A := A) (B := B)) = fst from rfl,
       show (transNFun nextStep b n 0).map (snd (A := A) (B := B)) = snd from rfl, pair_fst_snd]
-    exact ⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩
+    exact ⟨𝟙 _, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩
   | succ d ihF =>
     -- `transN n (d+1) = stageStep (n+d) ∘ transN n d`; compose the two preservations (the goal's
     -- `transNFun n (d+1)` is defeq to the composite functor `compFunctor`).
@@ -1648,7 +1648,7 @@ theorem towerHcanon (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) :
     closure `hcap` — as the *only* inputs; everything categorical (cast-coherence, faithfulness,
     colimit pre-regularity) is discharged here, and both inputs are themselves now supplied
     Sorry-free in `Fredy/CapDataWiring.lean`, so §1.543 is proven. -/
-noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+noncomputable def capData_of_tower (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
     (ht : ∀ i, HasTerminal ((towerSystem b nextStep).A i))
@@ -1724,7 +1724,7 @@ noncomputable def capData_of_tower (A : Type u) [Cat.{u} A] [PreRegularCategory 
     the slices regular when `S` is), so its `HasImages` is itself a `colimitHasImages` of the inner
     slice system — derivable but requiring `CapStep`/`PreRegBundle` to *carry* the per-stage regular
     structure (an instance-level extension of those structures, deliberately not done here). -/
-theorem capData_of_tower_regular (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+theorem capData_of_tower_regular (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (hb : b = ⟨A, inferInstance, inferInstance⟩)
     (ht : ∀ i, HasTerminal ((towerSystem b nextStep).A i))
@@ -1768,7 +1768,7 @@ theorem capData_of_tower_regular (A : Type u) [Cat.{u} A] [PreRegularCategory A]
             hepres hepres_lift hcanon
       Capital (𝒞 := (towerSystem b nextStep).Obj))
     (hi : ∀ i, HasImages ((towerSystem b nextStep).A i)) :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   -- normalize `b = ⟨A,…⟩` everywhere FIRST, so `capData_of_tower`'s internal `subst` and the
@@ -1793,7 +1793,7 @@ theorem capData_of_tower_regular (A : Type u) [Cat.{u} A] [PreRegularCategory A]
   the slice/inflation upstream — all already imported.  Pure relocation; no semantics changed. -/
 
 section NextStep
-variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 variable [PullbacksTransferCovers 𝒞]
 
 /-- `∏[] = 1` is well-supported: `term 1 = id 1`, and the identity is a cover (a monic it
@@ -1801,11 +1801,11 @@ variable [PullbacksTransferCovers 𝒞]
     section of `S1_56`, unavailable here). -/
 theorem wellSupported_one : WellSupported (𝒞 := 𝒞) (listProd ([] : List 𝒞)) := by
   show Cover (term (HasTerminal.one : 𝒞))
-  rw [show term (HasTerminal.one : 𝒞) = Cat.id HasTerminal.one from term_uniq _ _]
+  rw [show term (HasTerminal.one : 𝒞) = 𝟙 HasTerminal.one from term_uniq _ _]
   intro C m g hm hgm
   -- `g ≫ m = id`, so `m` is split epi; `m` mono ⟹ `m` iso (`m ≫ g = id` by cancelling `m`).
-  refine ⟨g, hm (m ≫ g) (Cat.id C) ?_, hgm⟩
-  rw [Cat.assoc, hgm, Cat.id_comp]; exact Cat.comp_id m
+  refine ⟨g, hm (m ≫ g) (𝟙 C) ?_, hgm⟩
+  rw [CategoryTheory.Category.assoc, hgm, CategoryTheory.Category.id_comp]; exact CategoryTheory.Category.comp_id m
 
 omit [PullbacksTransferCovers 𝒞] in
 /-- **Composition of covers is a cover** (images-free; `cover_comp`/`cover_mono_diagonal` in
@@ -1825,17 +1825,17 @@ theorem cover_comp' {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : Cover f) (h
     intro W p q hpq
     have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
       apply hm
-      calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₁ ≫ g) := by rw [Cat.assoc, ← pb.cone.w]
-        _ = (q ≫ pb.cone.π₁) ≫ g := by rw [← Cat.assoc, hpq]
-        _ = (q ≫ pb.cone.π₂) ≫ m := by rw [Cat.assoc, pb.cone.w, ← Cat.assoc]
-    let cn : Cone g m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [Cat.assoc, Cat.assoc, pb.cone.w]⟩
+      calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₁ ≫ g) := by rw [CategoryTheory.Category.assoc, ← pb.cone.w]
+        _ = (q ≫ pb.cone.π₁) ≫ g := by rw [← CategoryTheory.Category.assoc, hpq]
+        _ = (q ≫ pb.cone.π₂) ≫ m := by rw [CategoryTheory.Category.assoc, pb.cone.w, ← CategoryTheory.Category.assoc]
+    let cn : Cone g m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pb.cone.w]⟩
     rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
   let u := pb.lift ⟨X, f, h, by rw [hfac]⟩
   have hu₁ : u ≫ pb.cone.π₁ = f := pb.lift_fst _
   obtain ⟨inv, _, hinvπ⟩ : IsIso pb.cone.π₁ := hf pb.cone.π₁ u hπmono hu₁
   -- `inv ≫ π₂` fills `(inv≫π₂) ≫ m = g`; then `g` a cover through `m` forces `m` iso.
   refine hg m (inv ≫ pb.cone.π₂) hm ?_
-  rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+  rw [CategoryTheory.Category.assoc, ← pb.cone.w, ← CategoryTheory.Category.assoc, hinvπ, CategoryTheory.Category.id_comp]
 
 /-- **The product of two well-supported objects is well-supported.**  `term (B×D)` factors as
     `fst ≫ term B`; `fst : B×D → B` is a cover (`prod_fst_cover`, needs `D` well-supported) and
@@ -1865,25 +1865,26 @@ theorem wellSupported_listProd : ∀ {U : List 𝒞}, (∀ B ∈ U, WellSupporte
 
 /-- The object part of the base embedding: `X ↦ ⟨[X], term [X]⟩ : innerSliceObj ([] : Infl 𝒞)`. -/
 def baseSliceObj (X : 𝒞) : innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞) :=
-  ⟨(infl X : Infl 𝒞), term (infl X : Infl 𝒞)⟩
+  CategoryTheory.Over.mk (term (infl X : Infl 𝒞))
 
 /-- The morphism part of the base embedding: `f : X → Y` becomes the over-hom whose underlying
     `Infl`-arrow is `inflFunctor.map f : [X] ⟶ [Y]` (commutes with `term` by `term_uniq`). -/
 def baseSliceMap {X Y : 𝒞} (f : X ⟶ Y) :
     OverHom (baseSliceObj (𝒞 := 𝒞) X) (baseSliceObj Y) :=
-  ⟨(inflFunctor.map f : (infl X : Infl 𝒞) ⟶ infl Y), term_uniq _ _⟩
+  CategoryTheory.Over.homMk
+    (inflFunctor.map f : (infl X : Infl 𝒞) ⟶ infl Y) (term_uniq _ _)
 
 /-- The base embedding `S → innerSliceObj []` is a functor: its underlying `Infl`-arrows are
-    `inflFunctor`'s, so the laws transport along `OverHom.ext` (a slice equation is its underlying
+    `inflFunctor`'s, so the laws transport along `CategoryTheory.Over.OverMorphism.ext` (a slice equation is its underlying
     equation). -/
 instance baseSliceFunctor : @Functor 𝒞 _ (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ baseSliceObj where
   map {X Y} f := baseSliceMap f
-  map_id X := OverHom.ext (by
-    show (inflFunctor.map (Cat.id X) : (infl X : Infl 𝒞) ⟶ infl X) = Cat.id (infl X : Infl 𝒞)
+  map_id X := CategoryTheory.Over.OverMorphism.ext (by
+    show (inflFunctor.map (𝟙 X) : (infl X : Infl 𝒞) ⟶ infl X) = 𝟙 (infl X : Infl 𝒞)
     exact inflFunctor.map_id X)
-  map_comp {X Y Z} f g := OverHom.ext (by
+  map_comp {X Y Z} f g := CategoryTheory.Over.OverMorphism.ext (by
     show (inflFunctor.map (f ≫ g) : (infl X : Infl 𝒞) ⟶ infl Z)
-        = (baseSliceMap f ⊚ baseSliceMap g).f
+        = (baseSliceMap f ⊚ baseSliceMap g).left
     exact inflFunctor.map_comp f g)
 
 /-- `infl : 𝒞 → Infl 𝒞` (the cross-section `X ↦ [X]`, underlying `(·)×1`) SEPARATES MORPHISMS:
@@ -1923,7 +1924,7 @@ theorem inflMap_reflects_iso {C D : 𝒞} (f : C ⟶ D)
     have hcov : Cover ((fst : prod C HasTerminal.one ⟶ C) ≫ f) := by
       rw [hstep]; exact cover_precomp_iso ⟨inv, hinv1, _hinv2⟩ (prod_fst_cover wellSupported_one)
     intro K m h hm hfac
-    exact hcov m ((fst : prod C HasTerminal.one ⟶ C) ≫ h) hm (by rw [Cat.assoc, hfac])
+    exact hcov m ((fst : prod C HasTerminal.one ⟶ C) ≫ h) hm (by rw [CategoryTheory.Category.assoc, hfac])
   exact monic_cover_iso f hfcover hfmono
 
 /-- **The base embedding `S → innerSliceObj []` is FAITHFUL.**  Embedding: equality of slice-images
@@ -1935,10 +1936,10 @@ theorem baseSliceFaithful :
   refine ⟨?_, ?_⟩
   · -- embedding
     intro X Y f g h
-    exact infl_separates f g (congrArg OverHom.f h)
+    exact infl_separates f g (congrArg CategoryTheory.CommaMorphism.left h)
   · -- reflects iso
     intro X Y f hiso
-    have hfiso : IsIso (baseSliceMap f).f := overIso_underlying hiso
+    have hfiso : IsIso (baseSliceMap f).left := overIso_underlying hiso
     exact inflMap_reflects_iso f hfiso
 
 /-! ### The base embedding `S → innerSliceObj []` is a `CartesianFunctor`
@@ -1958,11 +1959,11 @@ theorem baseSliceObjPresTerminal :
       _ (overHasTerminal _) := by
   letI : HasTerminal (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) := overHasTerminal _
   intro X f g
-  apply OverHom.ext
-  show f.f = g.f
-  have h1 : f.f ≫ (fst : prod HasTerminal.one HasTerminal.one ⟶ _) = g.f ≫ fst := term_uniq _ _
-  have h2 : f.f ≫ (snd : prod HasTerminal.one HasTerminal.one ⟶ _) = g.f ≫ snd := term_uniq _ _
-  exact fst_snd_jointly_monic f.f g.f h1 h2
+  apply CategoryTheory.Over.OverMorphism.ext
+  show f.left = g.left
+  have h1 : f.left ≫ (fst : prod HasTerminal.one HasTerminal.one ⟶ _) = g.left ≫ fst := term_uniq _ _
+  have h2 : f.left ≫ (snd : prod HasTerminal.one HasTerminal.one ⟶ _) = g.left ≫ snd := term_uniq _ _
+  exact fst_snd_jointly_monic f.left g.left h1 h2
 
 section BaseSliceCartesian
 variable [HasEqualizers 𝒞]
@@ -2006,9 +2007,9 @@ theorem isIso_is_cover {X Y : 𝒞} {e : X ⟶ Y} (he : IsIso e) : Cover e := by
   obtain ⟨e', he₁, he₂⟩ := he
   intro C m g hm hgm
   -- `m` iso with inverse `e' ≫ g`: `(e'≫g)≫m = e'≫(g≫m) = e'≫e = id`; and `m≫(e'≫g) = id` by mono.
-  have hinvm : (e' ≫ g) ≫ m = Cat.id Y := by rw [Cat.assoc, hgm, he₂]
-  refine ⟨e' ≫ g, hm (m ≫ (e' ≫ g)) (Cat.id C) ?_, hinvm⟩
-  rw [Cat.assoc, hinvm, Cat.comp_id, Cat.id_comp]
+  have hinvm : (e' ≫ g) ≫ m = 𝟙 Y := by rw [CategoryTheory.Category.assoc, hgm, he₂]
+  refine ⟨e' ≫ g, hm (m ≫ (e' ≫ g)) (𝟙 C) ?_, hinvm⟩
+  rw [CategoryTheory.Category.assoc, hinvm, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
 
 /-- **`baseSliceObj` preserves covers.**  `baseSliceMap φ` is a slice cover iff its underlying
     `Infl`-arrow `inflFunctor.map φ = pair (fst≫φ) snd = φ×1` is a cover (slice cover correspondence
@@ -2024,7 +2025,7 @@ theorem baseSlice_preservesCover [HasEqualizers 𝒞] {X Y : 𝒞} (φ : X ⟶ Y
       = (fst : prod X HasTerminal.one ⟶ X) ≫ (φ ≫ invY) := by
     refine (pair_uniq _ _ _ ?_ ?_).symm
     · -- `(fst ≫ (φ ≫ invY)) ≫ fst = fst ≫ φ`: `invY ≫ fst = id`.
-      rw [Cat.assoc, Cat.assoc, hinvY₂, Cat.comp_id]
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hinvY₂, CategoryTheory.Category.comp_id]
     · -- `(fst ≫ (φ ≫ invY)) ≫ snd = snd`: both sides land in the terminal `1`.
       exact term_uniq _ _
   have hcov𝒞 : Cover (𝒞 := 𝒞) (pair ((fst : prod X HasTerminal.one ⟶ X) ≫ φ) snd) := by
@@ -2034,7 +2035,7 @@ theorem baseSlice_preservesCover [HasEqualizers 𝒞] {X Y : 𝒞} (φ : X ⟶ Y
   -- (2) lift to a cover in `Infl S` (`coverC_to_inflCover`); the underlying arrow IS `inflFunctor.map φ`.
   have hcovInfl : Cover (𝒞 := Infl 𝒞) (X := (infl X : Infl 𝒞)) (Y := infl Y)
       (inflFunctor.map φ) := coverC_to_inflCover hcov𝒞
-  -- (3) slice cover from underlying cover (`cover_of_cover_f`); `(baseSliceMap φ).f = inflFunctor.map φ`.
+  -- (3) slice cover from underlying cover (`cover_of_cover_f`); `(baseSliceMap φ).left = inflFunctor.map φ`.
   intro Z m g hm hgm
   exact cover_of_cover_f (baseSliceMap φ) hcovInfl m g hm hgm
 
@@ -2047,7 +2048,7 @@ end BaseSliceCartesian
     is (`isIso_of_two_equalizers` against the shared cone `(F (eqObj f g), F (eqMap f g))`).  Lets the
     `objIncl`/comp equalizer-preservation (stated for `colimitHasEqualizers`) feed a field whose
     target equalizers are the `products_pullbacks_implies_equalizers` instance. -/
-theorem preservesEqualizers_target_irrel {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+theorem preservesEqualizers_target_irrel {𝒜 ℬ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ]
     (F : 𝒜 → ℬ) [hF : Functor F] [heS : HasEqualizers 𝒜]
     (e₁ e₂ : HasEqualizers ℬ)
     (h : @PreservesEqualizers 𝒜 ℬ _ _ F hF heS e₁) :
@@ -2080,10 +2081,11 @@ theorem preservesEqualizers_target_irrel {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat
     `G (F one_𝒜)` agree after the mono `G (term …)`, hence agree.  `preservesTerminal_comp` (in
     `CatColimitRegular`) is the on-the-nose form; this is the uniqueness form the `CapStep` field needs
     for the composite `objIncl i0 ∘ baseSliceObj`. -/
-theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ] [Cat.{u} ℰ]
+theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ] [CategoryTheory.Category.{u} ℰ]
     (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
     [HasTerminal 𝒜] [HasTerminal ℬ] [HasTerminal ℰ]
-    (hpF : PreservesTerminal F) (hpG : PreservesTerminal G) (hGmono : PreservesMono G) :
+    (hpF : PreservesTerminal F) (hpG : PreservesTerminal G)
+    (hGmono : PreservesMono (bundledFunctor G)) :
     PreservesTerminal (G ∘ F) := by
   intro X f g
   -- `t := term (F one) : F one ⟶ one_ℬ` is monic (maps into `F one` are unique, `hpF`).
@@ -2103,8 +2105,7 @@ theorem objIncl_preservesMono {ι : Type u} {D : Colim.Directed ι}
         Monic φ → Monic ((C.functF hij).map φ))
     (i : ι) :
     letI : Cat C.Obj := Colim.colimitCat C hC
-    @PreservesMono (C.A i) (C.catA i) C.Obj (Colim.colimitCat C hC) (C.objIncl i)
-      (stageInclFunctor C hC i) := by
+    PreservesMono (bundledFunctor (hF := stageInclFunctor C hC i) (C.objIncl i)) := by
   letI : Cat C.Obj := Colim.colimitCat C hC
   intro x y φ hφ
   -- `(stageInclFunctor i).map φ = homInclObj φ`; use the stage-mono lift with `hcancel` from `hmono`.
@@ -2130,20 +2131,20 @@ theorem objIncl_preservesCover {ι : Type u} {D : Colim.Directed ι}
     using `PreservesPullbacks T`), whose diagonal is `T δ` — iso by `functor_preserves_iso`; so
     `T f` is monic.  (`reflectsMono` in `S1_45` is the converse; this is the forward direction,
     needing no properness hypothesis.) -/
-theorem preservesPullbacks_preservesMono {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+theorem preservesPullbacks_preservesMono {𝒜 ℬ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
     (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T) :
-    PreservesMono T := by
+    PreservesMono (bundledFunctor T) := by
   intro A B f hf
   let L := canonicalLevel f
   have hδ : IsIso L.δ := (mono_iff_level_diag_iso L).1 hf
-  have hTδ : IsIso (hT.map L.δ) := functor_preserves_iso (F := T) L.δ hδ
+  have hTδ : IsIso (hT.map L.δ) := functor_preserves_iso (bundledFunctor T) L.δ hδ
   -- `(L.map T hpb).δ = hT.map L.δ`, so the image-level diagonal is iso ⟹ `T f` monic.
   intro W p q hpq
   exact (mono_iff_level_diag_iso (L.map T hpb)).2 hTδ p q hpq
 
 /-- Transport `Cone.IsPullback` across propositional equalities of the two legs (same apex). -/
-theorem isPullback_legs_congr {𝒟 : Type u} [Cat.{u} 𝒟] {A B C : 𝒟} {f : A ⟶ C} {g : B ⟶ C}
+theorem isPullback_legs_congr {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {A B C : 𝒟} {f : A ⟶ C} {g : B ⟶ C}
     {p : 𝒟} {π₁ π₁' : p ⟶ A} {π₂ π₂' : p ⟶ B} (h₁ : π₁ = π₁') (h₂ : π₂ = π₂')
     {w : π₁ ≫ f = π₂ ≫ g} (hc : (Cone.mk p π₁ π₂ w).IsPullback) :
     (Cone.mk p π₁' π₂' (by rw [← h₁, ← h₂]; exact w)).IsPullback := by
@@ -2157,7 +2158,7 @@ theorem isPullback_legs_congr {𝒟 : Type u} [Cat.{u} 𝒟] {A B C : 𝒟} {f :
     `isPullback_legs_congr` rewrites the transported legs `F m ≫ F P.πᵢ` to `F c.πᵢ`.  DRY hub for
     `baseSlice_preservesPullbacks` and (via `objIncl_preserves_pullbacks`)
     `objIncl_preservesPullbacks_generic`. -/
-theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
+theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ]
     [HasBinaryProducts 𝒜] [HasEqualizers 𝒜] (F : 𝒜 → ℬ) [hF : Functor F]
     (hchosen : ∀ {A B C : 𝒜} (f : A ⟶ C) (g : B ⟶ C),
       (Cone.mk (f := hF.map f) (g := hF.map g)
@@ -2173,14 +2174,14 @@ theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [Cat.{u} 𝒜] 
   obtain ⟨m, ⟨hm₁, hm₂⟩, _⟩ := hP c
   have hmiso : IsIso m := isIso_of_two_pullbacks hc hP m hm₁ hm₂
   have hPimg := hchosen f g
-  have hmimg : IsIso (hF.map m) := functor_preserves_iso (F := F) m hmiso
+  have hmimg : IsIso (hF.map m) := functor_preserves_iso (bundledFunctor F) m hmiso
   obtain ⟨n, hn₁, hn₂⟩ := hmimg
   have hwleg : hF.map P.cone.π₁ ≫ hF.map f = hF.map P.cone.π₂ ≫ hF.map g := by
     rw [← hF.map_comp, ← hF.map_comp, P.cone.w]
   have hc' := isPullback_of_iso_apex hPimg (hF.map m) n hn₁ hn₂
     (by show (hF.map m ≫ hF.map P.cone.π₁) ≫ hF.map f
           = (hF.map m ≫ hF.map P.cone.π₂) ≫ hF.map g
-        rw [Cat.assoc, Cat.assoc, hwleg])
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hwleg])
   have hleg₁ : hF.map m ≫ hF.map P.cone.π₁ = hF.map c.π₁ := by rw [← hF.map_comp, hm₁]
   have hleg₂ : hF.map m ≫ hF.map P.cone.π₂ = hF.map c.π₂ := by rw [← hF.map_comp, hm₂]
   exact isPullback_legs_congr hleg₁ hleg₂ hc'
@@ -2218,7 +2219,7 @@ theorem enumPrefix_succ (enum : Nat → 𝒞) (n : Nat) :
     EXPLICITLY (`@`-style) so the generalized signature carries `[Cat]/[HasTerminal]/[HasBinaryProducts]`
     at the SAME universe — relying on the `variable` auto-inclusion dropped them, which left the
     return `PrefixChain 𝒞` re-synthesizing those at a `max`-universe metavar at every use site. -/
-def enumChain {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+def enumChain {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞] (enum : Nat → 𝒞) : PrefixChain 𝒞 where
   chain := enumPrefix enum
   step n := by rw [enumPrefix_succ]; exact List.prefix_append _ _
@@ -2274,7 +2275,7 @@ end NextStep
     well-supported `B`, this is Freyd's §1.547 relative capitalization (the inner colimit acquires a
     point of every enumerated `B`).  `Classical`/ordinals are NOT used here — the enumeration is an
     explicit input. -/
-noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategory S]
+noncomputable def nextStepOfEnum {S : Type u} [CategoryTheory.Category.{u} S] [hreg : RegularCategory S]
     (enum : Nat → S) (hws : ∀ k, WellSupported (enum k)) : CapStep S := by
   letI hpre : PreRegularCategory S := inferInstance
   -- pin the four mixins at universe `u` (from the bundled `hpre`) so the chain machinery's
@@ -2337,10 +2338,13 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
         -- stage arrow `g` in `(chainSliceSystem P).A i0 = innerSliceObj []`: an `OverHom` from the
         -- stage terminal `⟨[], id⟩` to `baseSliceObj one = ⟨[one], term⟩`.  Underlying `[] ⟶ [one]`
         -- is `pair (term _) (term _) : 1 ⟶ one×1`; the over-condition is `term`-uniqueness (`[]` term).
-        let g : @Cat.Hom _ ((chainSliceSystem P).catA i0) (chainHasTerminal P i0).one
+        let g : @Quiver.Hom _ ((chainSliceSystem P).catA i0).toCategoryStruct.toQuiver
+            (chainHasTerminal P i0).one
             (baseSliceObj (𝒞 := S) one) :=
-          (⟨pair (term (listProd (𝒞 := S) ([] : List S))) (term (listProd (𝒞 := S) ([] : List S))),
-            term_uniq _ _⟩ : OverHom _ _)
+          CategoryTheory.Over.homMk
+            (pair (term (listProd (𝒞 := S) ([] : List S)))
+              (term (listProd (𝒞 := S) ([] : List S))))
+            (term_uniq _ _)
         -- target `objIncl i0 (chainHasTerminal i0).one = htCol.one` (the colimit terminal): both
         -- equal `objIncl (Classical.choice) (...).one` (the colimit terminal's apex) by
         -- `objIncl_terminal_eq`; `htCol.one` IS that apex definitionally.
@@ -2416,7 +2420,7 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
 
 /-- A well-supported-valued enumeration of `S` always exists: the constant terminator `fun _ => 1`
     (`1` is well-supported, `wellSupported_one`).  This makes the `nextStep` choice set nonempty. -/
-theorem exists_wellSupported_enum (S : Type u) [Cat.{u} S] [PreRegularCategory S] :
+theorem exists_wellSupported_enum (S : Type u) [CategoryTheory.Category.{u} S] [PreRegularCategory S] :
     ∃ enum : Nat → S, ∀ k, WellSupported (enum k) :=
   ⟨fun _ => HasTerminal.one, fun _ => wellSupported_one⟩
 
@@ -2480,7 +2484,7 @@ noncomputable def nextStep (S : RegBundle.{u}) : CapStep S.carrier :=
    pieces (`uniformStep`/`wsCover`/`hstage_of_cofinal`/`tower_capital_of_cofinal`), all of which
    import THIS file — so an in-place discharge would be an import cycle. ──
 
-theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
+theorem capData_exists (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
   -- The two genuine §1.543 walls, now SEPARATED into two named sub-obligations with the
   -- dependency between them made explicit (the capital closure is stated *over* the colimit
@@ -2635,7 +2639,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     --        PROGRESS (this session): the `Coherent` field IS NOW BUILT Sorry-free as
     --        `Freyd.chainSliceCoherent (P : PrefixChain 𝒞) : (chainSliceSystem P).Coherent`
     --        (`Fredy.Inflation`, axioms = propext) — the morphism-level mate of `innerSliceTr_refl`/
-    --        `innerSliceTr_trans`, via `chainSliceFunctor_map_f_heq` (underlying `.f = catMap suffix`)
+    --        `innerSliceTr_trans`, via `chainSliceFunctor_map_f_heq` (underlying `.left = catMap suffix`)
     --        + `catMap_nil_heq`/`catMap_append_heq` threaded through `overHom_heq`.  So `colimitCat`
     --        for the inner chain is now applicable.  STILL OPEN in (B-package): the 9 preservation
     --        hypotheses + `hcanon`, which presuppose (i) `PreRegularCategory (Infl 𝒞)` and (ii) a
@@ -2674,7 +2678,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- `S → S*` that `nextStep` must deliver (once (A) supplies the projections, (B-coverage) a cofinal `P`,
     -- and `hcanon` the cover transfer).
     have innerSystemAt :
-        ∀ (Sb : Type u) [Cat.{u} Sb] [HasTerminal Sb] [HasBinaryProducts Sb] (P : PrefixChain Sb),
+        ∀ (Sb : Type u) [CategoryTheory.Category.{u} Sb] [HasTerminal Sb] [HasBinaryProducts Sb] (P : PrefixChain Sb),
           (C : Colim.CatSystem.{u, u} (ULift.{u} Nat) uliftNatDirected) ×' C.Coherent :=
       fun Sb _ _ _ P => ⟨chainSliceSystem P, chainSliceCoherent P⟩
     clear innerSystemAt
@@ -2682,7 +2686,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     -- canonical cover transfer `hcanon` — `chainSlicePreRegular` consumes the 8 limit-preservation hyps
     -- (terminal/products/equalizers preserved by the strict suffix-append transition), all Sorry-free.
     have innerPreRegularAt :
-        ∀ (Sb : Type u) [Cat.{u} Sb] [PreRegularCategory Sb] [HasEqualizers Sb] (P : PrefixChain Sb)
+        ∀ (Sb : Type u) [CategoryTheory.Category.{u} Sb] [PreRegularCategory Sb] [HasEqualizers Sb] (P : PrefixChain Sb)
           (hcanon : letI : Cat (chainSliceSystem P).Obj := colimitCat _ (chainSliceCoherent P)
               letI : HasPullbacks (chainSliceSystem P).Obj :=
                 colimitHasPullbacks _ (chainSliceCoherent P)
@@ -2778,8 +2782,8 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Every small pre-regular category `A` admits a faithful representation into a capital
     pre-regular category `Ā`.  Reduced to `capData_exists` (the transfinite construction)
     via `capitalization_of_capData` (the colimit packaging, proven above). -/
-theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
+theorem capitalization_lemma_small (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] :
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
   (capData_exists A).elim (fun cd => capitalization_of_capData cd)

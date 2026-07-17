@@ -27,6 +27,8 @@ universe v u
 
 namespace Freyd
 
+open CategoryTheory
+
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 /-! ### Product functor A × -
@@ -242,25 +244,27 @@ theorem poset_exponential_iff_meets_heytingArrow
 section SigmaDeltaAdj
 
 /-- The DIAGONAL functor Δ : 𝒞 → Over B.  Sends Y ↦ ⟨Y × B, snd⟩ (§1.854). -/
-def deltaObj (B Y : 𝒞) : Over B := ⟨prod Y B, snd⟩
+def deltaObj (B Y : 𝒞) : Over B :=
+  CategoryTheory.Over.mk (snd (A := Y) (B := B))
 
 /-- Δ on morphisms: given f : Y → Z, Δ(f) = pair (fst ≫ f) snd : Y×B → Z×B. -/
 def deltaMap (B : 𝒞) {Y Z : 𝒞} (f : Y ⟶ Z) : OverHom (deltaObj B Y) (deltaObj B Z) :=
-  ⟨pair (fst ≫ f) snd, snd_pair _ _⟩
+  CategoryTheory.Over.homMk (pair (fst ≫ f) snd) (by
+    simpa [deltaObj] using snd_pair (fst ≫ f) (snd (A := Y) (B := B)))
 
 /-- The DIAGONAL FUNCTOR Δ B : 𝒞 → Over B. -/
 instance deltaFunctor (B : 𝒞) : Functor (fun Y => deltaObj B Y) where
   map f := deltaMap B f
   map_id _Y := by
-    apply OverHom.ext
-    simp only [deltaMap]
+    apply CategoryTheory.Over.OverMorphism.ext
+    change pair (fst ≫ 𝟙 _Y) snd = 𝟙 (prod _Y B)
     rw [Cat.comp_id]
     exact pair_fst_snd
   map_comp {_X _Y _Z} f g := by
-    apply OverHom.ext
+    apply CategoryTheory.Over.OverMorphism.ext
     simp only [deltaMap]
-    -- goal: pair (fst ≫ f ≫ g) snd = (deltaMap B f ≫ deltaMap B g).f
-    -- (deltaMap B f ≫ deltaMap B g).f = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd  (definitionally)
+    -- goal: pair (fst ≫ f ≫ g) snd = (deltaMap B f ≫ deltaMap B g).left
+    -- (deltaMap B f ≫ deltaMap B g).left = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd  (definitionally)
     change pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
     exact (pair_uniq _ _ _
       (by rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc])
@@ -268,46 +272,49 @@ instance deltaFunctor (B : 𝒞) : Functor (fun Y => deltaObj B Y) where
 
 /-- Forward direction of the Σ ⊣ Δ bijection:
     f : Σ X → Y  ↦  ⟨pair f X.hom, ...⟩ : X → Δ Y in Over B. -/
-def sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.dom ⟶ Y) : OverHom X (deltaObj B Y) :=
-  ⟨pair f X.hom, snd_pair _ _⟩
+def sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.left ⟶ Y) : OverHom X (deltaObj B Y) :=
+  CategoryTheory.Over.homMk (pair f X.hom) (by
+    simpa [deltaObj] using snd_pair f X.hom)
 
 /-- Backward direction of the Σ ⊣ Δ bijection:
-    h : X → Δ Y in Over B  ↦  h.f ≫ fst : Σ X → Y. -/
-def overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞} (h : OverHom X (deltaObj B Y)) : X.dom ⟶ Y :=
-  h.f ≫ fst
+    h : X → Δ Y in Over B  ↦  h.left ≫ fst : Σ X → Y. -/
+def overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞} (h : OverHom X (deltaObj B Y)) : X.left ⟶ Y :=
+  h.left ≫ fst
 
 /-- The bijection is a left inverse. -/
 theorem sigmaToOver_overToSigma {B : 𝒞} (X : Over B) {Y : 𝒞}
     (h : OverHom X (deltaObj B Y)) :
     sigmaToOver X (overToSigma X h) = h := by
-  apply OverHom.ext
-  simp only [sigmaToOver, overToSigma]
-  rw [← h.w]
-  exact (pair_uniq _ _ h.f rfl rfl).symm
+  apply CategoryTheory.Over.OverMorphism.ext
+  change pair (h.left ≫ fst) X.hom = h.left
+  have hsnd : h.left ≫ snd = X.hom := by
+    simpa [deltaObj] using CategoryTheory.Over.w h
+  exact (pair_uniq _ _ h.left rfl hsnd).symm
 
 /-- The bijection is a right inverse. -/
-theorem overToSigma_sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.dom ⟶ Y) :
+theorem overToSigma_sigmaToOver {B : 𝒞} (X : Over B) {Y : 𝒞} (f : X.left ⟶ Y) :
     overToSigma X (sigmaToOver X f) = f := by
   simp [overToSigma, sigmaToOver, fst_pair]
 
 /-- §1.854: The forgetful functor Σ : A/B → A (= SliceForget B) is left adjoint
     to the diagonal functor Δ : A → A/B (sending Y ↦ ⟨Y×B, snd⟩).
-    Adjunction: Hom_A(Σ X, Y) ≅ Hom_{A/B}(X, Δ Y), i.e., φ : (X.dom→Y) → OverHom X (ΔY). -/
+    Adjunction: Hom_A(Σ X, Y) ≅ Hom_{A/B}(X, Δ Y), i.e., φ : (X.left→Y) → OverHom X (ΔY). -/
 def sigma_adj_delta (B : 𝒞) :
     @Adjunction (Over B) _ 𝒞 _ (SliceForget B) (fun Y => deltaObj B Y)
       (sliceForgetFunctor B) (deltaFunctor B) :=
-  { φ  := fun {X _Y} f => sigmaToOver X f      -- φ : X.dom → Y  ↦  OverHom X (Δ Y)
-    ψ  := fun {X _Y} h => overToSigma X h      -- ψ : OverHom X (Δ Y)  ↦  X.dom → Y
+  { φ  := fun {X _Y} f => sigmaToOver X f      -- φ : X.left → Y  ↦  OverHom X (Δ Y)
+    ψ  := fun {X _Y} h => overToSigma X h      -- ψ : OverHom X (Δ Y)  ↦  X.left → Y
     φψ := fun {X _Y} h => sigmaToOver_overToSigma X h
     ψφ := fun {X _Y} f => overToSigma_sigmaToOver X f
     φ_nat_left  := fun {_X' X _Y} a f => by
-      apply OverHom.ext
-      -- Functor.map a = a.f (sliceForgetFunctor); (a ≫ k).f = a.f ≫ k.f (OverHom.comp)
-      change pair (a.f ≫ f) _X'.hom = a.f ≫ pair f X.hom
-      exact (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair]; exact a.w)).symm
+      apply CategoryTheory.Over.OverMorphism.ext
+      -- Functor.map a = a.left (sliceForgetFunctor); (a ≫ k).left = a.left ≫ k.left (OverHom.comp)
+      change pair (a.left ≫ f) _X'.hom = a.left ≫ pair f X.hom
+      exact (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair])
+        (by rw [Cat.assoc, snd_pair]; exact CategoryTheory.Over.w a)).symm
     φ_nat_right := fun {X _Y _Y'} f b => by
-      apply OverHom.ext
-      -- (k ≫ deltaMap B b).f = k.f ≫ pair (fst ≫ b) snd
+      apply CategoryTheory.Over.OverMorphism.ext
+      -- (k ≫ deltaMap B b).left = k.left ≫ pair (fst ≫ b) snd
       change pair (f ≫ b) X.hom = pair f X.hom ≫ pair (fst ≫ b) snd
       exact (pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair])
                (by rw [Cat.assoc, snd_pair, snd_pair])).symm }
@@ -320,32 +327,32 @@ def sigma_adj_delta (B : 𝒞) :
   sends k : C×B → A (with k ≫ f.hom = snd) to curry k : C → A^B. -/
 
 /-- The DEPENDENT PRODUCT functor on objects: Π(f : A → B) = A^B (§1.854). -/
-def piObj {B : 𝒞} (f : Over B) : 𝒞 := f.dom ^^ B
+def piObj {B : 𝒞} (f : Over B) : 𝒞 := f.left ^^ B
 
-/-- Π on morphisms: given h : f → g in Over B, h^B : f.dom^B → g.dom^B. -/
+/-- Π on morphisms: given h : f → g in Over B, h^B : f.left^B → g.left^B. -/
 def piMap {B : 𝒞} {f g : Over B} (h : OverHom f g) : piObj f ⟶ piObj g :=
-  expCovMap B h.f
+  expCovMap B h.left
 
 /-- Π is a functor Over B → 𝒞. -/
 instance piFunctor (B : 𝒞) : Functor (fun f : Over B => piObj f) where
   map h := piMap h
-  map_id f := expCovMap_id B f.dom
-  map_comp h k := expCovMap_comp B h.f k.f
+  map_id f := expCovMap_id B f.left
+  map_comp h k := expCovMap_comp B h.left k.left
 
 /-- §1.854: When 𝒞 has exponentials, Δ : 𝒞 → Over B has a right adjoint
     Π : Over B → 𝒞 sending f : A → B to A^B (§1.854).
-    One direction of the bijection Hom_{Over B}(Δ C, f) ≅ Hom_𝒞(C, f.dom^B):
-    any over-map h : C×B → f.dom (with h ≫ f.hom = snd) gives
-    curry(prodSwap ≫ h) : C → f.dom^B = piObj f.
+    One direction of the bijection Hom_{Over B}(Δ C, f) ≅ Hom_𝒞(C, f.left^B):
+    any over-map h : C×B → f.left (with h ≫ f.hom = snd) gives
+    curry(prodSwap ≫ h) : C → f.left^B = piObj f.
     (The full bijection requires showing this is an isomorphism; here we give
     just the map direction OverHom(ΔC, f) → Hom(C, piObj f).) -/
 theorem delta_adj_pi_overToExp (B : 𝒞) (C : 𝒞) (f : Over B) :
     Nonempty (OverHom (deltaObj B C) f) → Nonempty (C ⟶ piObj f) := by
   rintro ⟨h⟩
-  -- h.f : prod C B → f.dom, h.w : h.f ≫ f.hom = snd
-  -- curry (prodSwap C B ≫ h.f) : C → f.dom ^^ B = piObj f
-  -- prodSwap B C : prod B C → prod C B; compose with h.f : prod C B → f.dom
-  exact ⟨curry (prodSwap B C ≫ h.f)⟩
+  -- h.left : prod C B → f.left, h.w : h.left ≫ f.hom = snd
+  -- curry (prodSwap C B ≫ h.left) : C → f.left ^^ B = piObj f
+  -- prodSwap B C : prod B C → prod C B; compose with h.left : prod C B → f.left
+  exact ⟨curry (prodSwap B C ≫ h.left)⟩
 
 /-- §1.854(a): If for every object `A` the functor `(prod A -)` has a right adjoint `G A`,
     then the category has exponentials with `B^A := G A B`.
@@ -379,14 +386,14 @@ theorem pi_implies_exponentials_854
 
 /-! ### §1.854(b)  The TRUE dependent product Π_B ⊣ Δ_B (needs HasEqualizers)
 
-  `piObj f = f.dom^^B` above is NOT Freyd's right adjoint of Δ for a general
+  `piObj f = f.left^^B` above is NOT Freyd's right adjoint of Δ for a general
   `f : Over B`; it only sees the domain, forgetting the structure map `f.hom`.
   The correct dependent product is
 
-      Π(f) := equalizer of  ( expCovMap B f.hom , curry (fst : B×(f.dom^B) → B) ) : f.dom^B ⇉ B^B.
+      Π(f) := equalizer of  ( expCovMap B f.hom , curry (fst : B×(f.left^B) → B) ) : f.left^B ⇉ B^B.
 
-  Intuitively a "global section" `k : C → f.dom^B` lands in Π(f) exactly when its
-  transpose `B×C → f.dom` is a section of `f.hom` (lands in the fibre), i.e. the
+  Intuitively a "global section" `k : C → f.left^B` lands in Π(f) exactly when its
+  transpose `B×C → f.left` is a section of `f.hom` (lands in the fibre), i.e. the
   square `eval ≫ f.hom = fst` holds — which is what equalizing the two maps says.
   This requires `HasEqualizers`; with it `Δ_B ⊣ Π_B` is a genuine adjunction. -/
 
@@ -395,103 +402,105 @@ section RealPi
 variable [HasEqualizers 𝒞]
 
 /-- §1.854(b): Freyd's dependent product `Π(f)`, the equalizer of `expCovMap B f.hom`
-    and `curry (fst : B×(f.dom^B) → B)`. -/
+    and `curry (fst : B×(f.left^B) → B)`. -/
 def realPiObj {B : 𝒞} (f : Over B) : 𝒞 :=
-  eqObj (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
+  eqObj (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B))
 
 /-- The equalizing condition for the forward transpose:
-    `curry(prodSwap ≫ h.f)` equalizes the two parallel maps because both legs
-    collapse to `curry (fst : B×C → B)` (one via `h.w : h.f ≫ f.hom = snd`). -/
+    `curry(prodSwap ≫ h.left)` equalizes the two parallel maps because both legs
+    collapse to `curry (fst : B×C → B)` (one via `h.w : h.left ≫ f.hom = snd`). -/
 theorem realPi_phi_cond {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) :
-    curry (prodSwap B C ≫ h.f) ≫ expCovMap B f.hom
-      = curry (prodSwap B C ≫ h.f) ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B) := by
-  have hL : curry (prodSwap B C ≫ h.f) ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B) := by
+    curry (prodSwap B C ≫ h.left) ≫ expCovMap B f.hom
+      = curry (prodSwap B C ≫ h.left) ≫ curry (fst : prod B (f.left ^^ B) ⟶ B) := by
+  have hL : curry (prodSwap B C ≫ h.left) ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B) := by
     unfold expCovMap
     rw [curry_precomp]; congr 1
-    rw [← Cat.assoc, curry_eval_eq, Cat.assoc, show h.f ≫ f.hom = snd from h.w,
+    rw [← Cat.assoc, curry_eval_eq, Cat.assoc,
+      show h.left ≫ f.hom = snd from CategoryTheory.Over.w h,
       show prodSwap B C ≫ snd = fst (A := B) (B := C) from snd_pair _ _]
-  have hR : curry (prodSwap B C ≫ h.f) ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B)
+  have hR : curry (prodSwap B C ≫ h.left) ≫ curry (fst : prod B (f.left ^^ B) ⟶ B)
       = curry (fst : prod B C ⟶ B) := by rw [curry_precomp, prodMap_fst]
   rw [hL, hR]
 
 /-- Forward transpose `φ : OverHom (Δ_B C) f → (C ⟶ Π(f))`. -/
 def realPhi {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) : C ⟶ realPiObj f :=
-  eqLift _ _ (curry (prodSwap B C ≫ h.f)) (realPi_phi_cond f h)
+  eqLift _ _ (curry (prodSwap B C ≫ h.left)) (realPi_phi_cond f h)
 
 /-- The underlying arrow of the backward transpose is a section of `f.hom`
     (so it is a legitimate `OverHom` into `f`).  Uses `eqMap_eq` to see that
     `k ≫ eqMap` lands in the fibre. -/
 theorem realPsi_w {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) :
-    (prodSwap C B ≫ prodMap B C (f.dom ^^ B)
-        (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
-        ≫ eval_exp B f.dom) ≫ f.hom = (deltaObj B C).hom := by
+    (prodSwap C B ≫ prodMap B C (f.left ^^ B)
+        (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
+        ≫ eval_exp B f.left) ≫ f.hom = (deltaObj B C).hom := by
   show (prodSwap C B ≫ _) ≫ f.hom = (snd : prod C B ⟶ B)
-  have key : eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B f.hom
-      = eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
-          ≫ curry (fst : prod B (f.dom ^^ B) ⟶ B) := eqMap_eq _ _
-  have hcomp : prodMap B C (f.dom ^^ B)
-      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
-      ≫ eval_exp B f.dom ≫ f.hom = (fst : prod B C ⟶ B) := by
+  have key : eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)) ≫ expCovMap B f.hom
+      = eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B))
+          ≫ curry (fst : prod B (f.left ^^ B) ⟶ B) := eqMap_eq _ _
+  have hcomp : prodMap B C (f.left ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
+      ≫ eval_exp B f.left ≫ f.hom = (fst : prod B C ⟶ B) := by
     apply curry_inj
     rw [← curry_precomp]
-    show (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
+    show (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
         ≫ expCovMap B f.hom = curry (fst : prod B C ⟶ B)
     rw [Cat.assoc, key, ← Cat.assoc, curry_precomp, prodMap_fst]
   rw [Cat.assoc, Cat.assoc, hcomp, show prodSwap C B ≫ fst = snd (A := C) (B := B) from fst_pair _ _]
 
 /-- Backward transpose `ψ : (C ⟶ Π(f)) → OverHom (Δ_B C) f`. -/
 def realPsi {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) : OverHom (deltaObj B C) f :=
-  ⟨prodSwap C B ≫ prodMap B C (f.dom ^^ B)
-      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
-      ≫ eval_exp B f.dom, realPsi_w f k⟩
+  CategoryTheory.Over.homMk (prodSwap C B ≫ prodMap B C (f.left ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
+      ≫ eval_exp B f.left) (realPsi_w f k)
 
 theorem realPsi_realPhi {B C : 𝒞} (f : Over B) (h : OverHom (deltaObj B C) f) :
     realPsi f (realPhi f h) = h := by
-  apply OverHom.ext
-  show prodSwap C B ≫ prodMap B C (f.dom ^^ B)
-      (realPhi f h ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
-      ≫ eval_exp B f.dom = h.f
+  apply CategoryTheory.Over.OverMorphism.ext
+  show prodSwap C B ≫ prodMap B C (f.left ^^ B)
+      (realPhi f h ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
+      ≫ eval_exp B f.left = h.left
   rw [realPhi, eqLift_fac, curry_eval_eq, ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
 
 theorem realPhi_realPsi {B C : 𝒞} (f : Over B) (k : C ⟶ realPiObj f) :
     realPhi f (realPsi f k) = k := by
-  show eqLift _ _ (curry (prodSwap B C ≫ (realPsi f k).f)) (realPi_phi_cond f (realPsi f k)) = k
+  show eqLift _ _ (curry (prodSwap B C ≫ (realPsi f k).left)) (realPi_phi_cond f (realPsi f k)) = k
   symm
   apply eqLift_uniq
-  show k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B))
-      = curry (prodSwap B C ≫ (realPsi f k).f)
-  rw [show (realPsi f k).f = prodSwap C B ≫ prodMap B C (f.dom ^^ B)
-      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)))
-      ≫ eval_exp B f.dom from rfl,
+  show k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B))
+      = curry (prodSwap B C ≫ (realPsi f k).left)
+  rw [show (realPsi f k).left = prodSwap C B ≫ prodMap B C (f.left ^^ B)
+      (k ≫ eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)))
+      ≫ eval_exp B f.left from rfl,
       ← Cat.assoc, prodSwap_prodSwap, Cat.id_comp]
   exact curry_unique_eq rfl
 
 /-- The equalizing condition for `Π` on morphisms: `b : f → g` lifts to
-    `eqMap_f ≫ expCovMap B b.f`, which equalizes the `g`-maps because
-    `expCovMap` is functorial and `b.w : b.f ≫ g.hom = f.hom`. -/
+    `eqMap_f ≫ expCovMap B b.left`, which equalizes the `g`-maps because
+    `expCovMap` is functorial and `b.w : b.left ≫ g.hom = f.hom`. -/
 theorem realPiMap_cond {B : 𝒞} {f g : Over B} (b : OverHom f g) :
-    (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
+    (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)) ≫ expCovMap B b.left)
         ≫ expCovMap B g.hom
-      = (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
-          ≫ curry (fst : prod B (g.dom ^^ B) ⟶ B) := by
-  rw [Cat.assoc, ← expCovMap_comp, show b.f ≫ g.hom = f.hom from b.w, eqMap_eq, Cat.assoc]
+      = (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)) ≫ expCovMap B b.left)
+          ≫ curry (fst : prod B (g.left ^^ B) ⟶ B) := by
+  rw [Cat.assoc, ← expCovMap_comp,
+    show b.left ≫ g.hom = f.hom from CategoryTheory.Over.w b, eqMap_eq, Cat.assoc]
   congr 1
   rw [curry_precomp, prodMap_fst]
 
 /-- `Π` on morphisms: `b : f → g` gives `Π(b) : Π(f) → Π(g)`. -/
 def realPiMap {B : 𝒞} {f g : Over B} (b : OverHom f g) : realPiObj f ⟶ realPiObj g :=
-  eqLift _ _ (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.dom ^^ B) ⟶ B)) ≫ expCovMap B b.f)
+  eqLift _ _ (eqMap (expCovMap B f.hom) (curry (fst : prod B (f.left ^^ B) ⟶ B)) ≫ expCovMap B b.left)
     (realPiMap_cond b)
 
 theorem realPiMap_id {B : 𝒞} (f : Over B) : realPiMap (Cat.id f) = Cat.id (realPiObj f) := by
   symm; apply eqLift_uniq
-  show Cat.id (realPiObj f) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (Cat.id f.dom)
+  show Cat.id (realPiObj f) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (Cat.id f.left)
   rw [Cat.id_comp, expCovMap_id, Cat.comp_id]
 
 theorem realPiMap_comp {B : 𝒞} {f g h : Over B} (b : OverHom f g) (c : OverHom g h) :
     realPiMap (b ⊚ c) = realPiMap b ≫ realPiMap c := by
   symm; apply eqLift_uniq
-  show (realPiMap b ≫ realPiMap c) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (b.f ≫ c.f)
+  show (realPiMap b ≫ realPiMap c) ≫ eqMap _ _ = eqMap _ _ ≫ expCovMap B (b.left ≫ c.left)
   simp only [realPiMap]
   rw [Cat.assoc, eqLift_fac, ← Cat.assoc, eqLift_fac, Cat.assoc, ← expCovMap_comp]
 
@@ -504,13 +513,13 @@ instance realPiFunctor (B : 𝒞) : Functor (fun f : Over B => realPiObj f) wher
 theorem realPhi_nat_left {B C' C : 𝒞} (f : Over B) (a : C' ⟶ C) (h : OverHom (deltaObj B C) f) :
     realPhi f (deltaMap B a ⊚ h) = a ≫ realPhi f h := by
   symm
-  show a ≫ realPhi f h = eqLift _ _ (curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).f)) _
+  show a ≫ realPhi f h = eqLift _ _ (curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).left)) _
   apply eqLift_uniq
   rw [Cat.assoc]
-  show a ≫ (realPhi f h ≫ eqMap _ _) = curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).f)
+  show a ≫ (realPhi f h ≫ eqMap _ _) = curry (prodSwap B C' ≫ (deltaMap B a ⊚ h).left)
   rw [realPhi, eqLift_fac, curry_precomp]
   congr 1
-  show prodMap B C' C a ≫ prodSwap B C ≫ h.f = prodSwap B C' ≫ (pair (fst ≫ a) snd ≫ h.f)
+  show prodMap B C' C a ≫ prodSwap B C ≫ h.left = prodSwap B C' ≫ (pair (fst ≫ a) snd ≫ h.left)
   rw [← Cat.assoc, ← Cat.assoc]
   congr 1
   rw [pair_uniq _ _ (prodMap B C' C a ≫ prodSwap B C) rfl rfl,
@@ -527,12 +536,12 @@ theorem realPhi_nat_right {B C : 𝒞} {f g : Over B}
     (h : OverHom (deltaObj B C) f) (b : OverHom f g) :
     realPhi g (h ⊚ b) = realPhi f h ≫ realPiMap b := by
   symm
-  show realPhi f h ≫ realPiMap b = eqLift _ _ (curry (prodSwap B C ≫ (h ⊚ b).f)) _
+  show realPhi f h ≫ realPiMap b = eqLift _ _ (curry (prodSwap B C ≫ (h ⊚ b).left)) _
   apply eqLift_uniq
   rw [Cat.assoc]
-  show realPhi f h ≫ (realPiMap b ≫ eqMap _ _) = curry (prodSwap B C ≫ (h ⊚ b).f)
+  show realPhi f h ≫ (realPiMap b ≫ eqMap _ _) = curry (prodSwap B C ≫ (h ⊚ b).left)
   rw [realPiMap, eqLift_fac, ← Cat.assoc, realPhi, eqLift_fac]
-  show curry (prodSwap B C ≫ h.f) ≫ expCovMap B b.f = curry (prodSwap B C ≫ (h.f ≫ b.f))
+  show curry (prodSwap B C ≫ h.left) ≫ expCovMap B b.left = curry (prodSwap B C ≫ (h.left ≫ b.left))
   unfold expCovMap
   rw [curry_precomp, ← Cat.assoc, curry_eval_eq, Cat.assoc]
 

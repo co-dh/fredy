@@ -18,7 +18,7 @@
 
 import Fredy.S1_57
 
-open Freyd
+open CategoryTheory Freyd
 
 namespace Freyd.Rcat
 
@@ -707,7 +707,7 @@ instance : Cat ExtNat where
 theorem comp_fn {α β γ : ExtNat} (f : α ⟶ β) (g : β ⟶ γ) (a : El α) :
     (f ≫ g).1 a = g.1 (f.1 a) := rfl
 
-theorem id_fn {α : ExtNat} (a : El α) : (Cat.id α).1 a = a := rfl
+theorem id_fn {α : ExtNat} (a : El α) : (show Mor α α from 𝟙 α).1 a = a := rfl
 
 /-- Pointwise consequence of a morphism equation. -/
 theorem Mor.congr {α β : ExtNat} {f g : α ⟶ β} (h : f = g) (a : El α) : f.1 a = g.1 a := by
@@ -1387,7 +1387,7 @@ noncomputable def eMor {α β : ExtNat} (x : α ⟶ β) : α ⟶ α := ⟨idemFn
 
 /-- Generic (any category with pullbacks): if `kp₁(u) ≫ w = kp₂(u) ≫ w` then
     `level(u) ⊂ level(w)` — the kernel-pair comparison is a pullback lift. -/
-theorem kernelPairRel_le_of_comm {𝒟 : Type u} [Cat.{v} 𝒟] [HasTerminal 𝒟]
+theorem kernelPairRel_le_of_comm {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] [HasTerminal 𝒟]
     [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] {A B C : 𝒟} (u : A ⟶ B) (w : A ⟶ C)
     (h : kp₁ (f := u) ≫ w = kp₂ (f := u) ≫ w) :
     (kernelPairRel u) ⊂ (kernelPairRel w) :=
@@ -1420,7 +1420,7 @@ theorem eMor_same_level {α β : ExtNat} (x : α ⟶ β) :
     followed by a monic — §1.571 instantiated with `e(n) = min{ i ≤ n | x(i) = x(n) }`. -/
 theorem rFactorization {α β : ExtNat} (x : α ⟶ β) :
     ∃ (C : ExtNat) (p : α ⟶ C) (n : C ⟶ β),
-      (∃ s : C ⟶ α, s ≫ p = Cat.id C) ∧ Monic n ∧ p ≫ n = x :=
+      (∃ s : C ⟶ α, s ≫ p = 𝟙 C) ∧ Monic n ∧ p ≫ n = x :=
   ac_factorization_via_idempotent
     (fun x => ⟨eMor x, Mor.ext fun a => idemFn_idem x a, Mor.ext fun a => idemFn_absorb x a,
       (eMor_same_level x).1, (eMor_same_level x).2⟩) x
@@ -1428,7 +1428,7 @@ theorem rFactorization {α β : ExtNat} (x : α ⟶ β) :
 /-- The factorization data, extracted by choice. -/
 noncomputable def facData {α β : ExtNat} (x : α ⟶ β) :
     Σ' (C : ExtNat) (p : α ⟶ C) (n : C ⟶ β) (s : C ⟶ α),
-      s ≫ p = Cat.id C ∧ Monic n ∧ p ≫ n = x :=
+      s ≫ p = 𝟙 C ∧ Monic n ∧ p ≫ n = x :=
   Classical.choice <| by
     obtain ⟨C, p, n, ⟨s, hs⟩, hn, hfac⟩ := rFactorization x
     exact ⟨⟨C, p, n, s, hs, hn, hfac⟩⟩
@@ -1444,26 +1444,26 @@ noncomputable instance : HasImages ExtNat where
     · rintro S ⟨g, hg⟩
       refine ⟨s ≫ g, ?_⟩
       show (s ≫ g) ≫ S.arr = n
-      calc (s ≫ g) ≫ S.arr = s ≫ (g ≫ S.arr) := Cat.assoc _ _ _
+      calc (s ≫ g) ≫ S.arr = s ≫ (g ≫ S.arr) := CategoryTheory.Category.assoc _ _ _
         _ = s ≫ x := by rw [hg]
         _ = s ≫ (p ≫ n) := by rw [hfac]
-        _ = (s ≫ p) ≫ n := (Cat.assoc _ _ _).symm
-        _ = Cat.id C ≫ n := by rw [hs]
-        _ = n := Cat.id_comp n
+        _ = (s ≫ p) ≫ n := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = 𝟙 C ≫ n := by rw [hs]
+        _ = n := CategoryTheory.Category.id_comp n
 
 /-- **AC**: every cover of R splits (covers are exactly the split epis). -/
 theorem cover_split {α β : ExtNat} (f : α ⟶ β) (hc : Cover f) :
-    ∃ s : β ⟶ α, s ≫ f = Cat.id β := by
+    ∃ s : β ⟶ α, s ≫ f = 𝟙 β := by
   obtain ⟨C, p, n, s, hs, hn, hfac⟩ := facData f
   have hiso : IsIso n := hc n p hn hfac
   obtain ⟨ninv, hn1, hn2⟩ := hiso
   refine ⟨ninv ≫ s, ?_⟩
-  calc (ninv ≫ s) ≫ f = ninv ≫ (s ≫ f) := Cat.assoc _ _ _
+  calc (ninv ≫ s) ≫ f = ninv ≫ (s ≫ f) := CategoryTheory.Category.assoc _ _ _
     _ = ninv ≫ (s ≫ (p ≫ n)) := by rw [hfac]
-    _ = ninv ≫ ((s ≫ p) ≫ n) := by rw [Cat.assoc]
-    _ = ninv ≫ (Cat.id C ≫ n) := by rw [hs]
-    _ = ninv ≫ n := by rw [Cat.id_comp]
-    _ = Cat.id β := hn2
+    _ = ninv ≫ ((s ≫ p) ≫ n) := by rw [CategoryTheory.Category.assoc]
+    _ = ninv ≫ (𝟙 C ≫ n) := by rw [hs]
+    _ = ninv ≫ n := by rw [CategoryTheory.Category.id_comp]
+    _ = 𝟙 β := hn2
 
 /-- Pullbacks transfer covers: covers split, and split epis transfer along any
     pullback square (Freyd §1.57: "left-invertibles are always covers and are
@@ -1471,9 +1471,9 @@ theorem cover_split {α β : ExtNat} (f : α ⟶ β) (hc : Cover f) :
 instance : PullbacksTransferCovers ExtNat where
   pullbacks_transfer_covers {A B C} {f g} c hpb hf := by
     obtain ⟨s, hs⟩ := cover_split f hf
-    have hw : (g ≫ s) ≫ f = Cat.id C ≫ g := by
-      rw [Cat.assoc, hs, Cat.comp_id, Cat.id_comp]
-    obtain ⟨u, ⟨_, hu2⟩, _⟩ := hpb ⟨C, g ≫ s, Cat.id C, hw⟩
+    have hw : (g ≫ s) ≫ f = 𝟙 C ≫ g := by
+      rw [CategoryTheory.Category.assoc, hs, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
+    obtain ⟨u, ⟨_, hu2⟩, _⟩ := hpb ⟨C, g ≫ s, 𝟙 C, hw⟩
     intro D m g' hm hgm
     exact cover_of_section c.π₂ u hu2 m g' hm hgm
 

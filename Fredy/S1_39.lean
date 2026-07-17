@@ -19,6 +19,8 @@ universe v u
 
 namespace Freyd
 
+open CategoryTheory
+
 variable {𝒞 : Type u} [Cat.{v} 𝒞]
 
 -- ADJOINT PAIR / LEFT ADJOINT / RIGHT ADJOINT (§1.81, §1.373) are defined canonically

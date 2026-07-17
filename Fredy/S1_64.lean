@@ -31,7 +31,7 @@ import Fredy.S1_77
 import Fredy.S1_658_Complement
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -2479,7 +2479,7 @@ theorem terminator_is_choice : Choice (one : 𝒞) := by
   have h_simple : Simple R :=
     ⟨⟨(R° ⊚ R).colA,
       by simp [graph, Cat.comp_id],
-      by simp [graph]; rw [Cat.comp_id]; exact term_uniq _ _⟩⟩
+      by simp [graph]; exact term_uniq _ _⟩⟩
   -- Entire + Simple = Map, so R.colA is an isomorphism.
   have h_iso : IsIso R.colA :=
     (tabulated_is_map_iff_left_iso R.colA R.colB R.isMonicPair).mp ⟨hent, h_simple⟩

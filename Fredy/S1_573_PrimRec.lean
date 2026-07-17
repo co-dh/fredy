@@ -34,7 +34,7 @@ import Fredy.S1_39
 import Fredy.S1_55
 import Fredy.S2_21c
 
-open Freyd Freyd.Rcat
+open CategoryTheory Freyd Freyd.Rcat
 
 namespace Freyd.Pcat
 
@@ -478,7 +478,7 @@ instance : Cat PObj where
 theorem pcomp_fn {α β γ : PObj} (f : α ⟶ β) (g : β ⟶ γ) (a : El α) :
     (f ≫ g).1 a = g.1 (f.1 a) := rfl
 
-theorem pid_fn {α : PObj} (a : El α) : (Cat.id α).1 a = a := rfl
+theorem pid_fn {α : PObj} (a : El α) : (show PMor α α from 𝟙 α).1 a = a := rfl
 
 /-- Pointwise consequence of a P-morphism equation. -/
 theorem PMor.congr {α β : ExtNat} {f g : PMor α β} (h : f = g) (a : El α) :
@@ -658,16 +658,16 @@ instance : Cat PhatObj where
   Hom := PhatHom
   id E := ⟨E.e, E.idem, E.idem⟩
   comp {E F G} φ ψ := ⟨φ.1 ≫ ψ.1,
-    by rw [← Cat.assoc, φ.2.1], by rw [Cat.assoc, ψ.2.2]⟩
+    by rw [← CategoryTheory.Category.assoc, φ.2.1], by rw [CategoryTheory.Category.assoc, ψ.2.2]⟩
   id_comp φ := PhatHom.ext φ.2.1
   comp_id φ := PhatHom.ext φ.2.2
-  assoc φ ψ χ := PhatHom.ext (Cat.assoc _ _ _)
+  assoc φ ψ χ := PhatHom.ext (CategoryTheory.Category.assoc _ _ _)
 
 /-- The embedding P → P̂ on objects: identity idempotents. -/
-def embP (α : PObj) : PhatObj := ⟨α, Cat.id α, Cat.id_comp _⟩
+def embP (α : PObj) : PhatObj := ⟨α, 𝟙 α, CategoryTheory.Category.id_comp _⟩
 
 instance embPFunctor : Functor embP where
-  map f := ⟨f, Cat.id_comp f, Cat.comp_id f⟩
+  map f := ⟨f, CategoryTheory.Category.id_comp f, CategoryTheory.Category.comp_id f⟩
   map_id _ := PhatHom.ext rfl
   map_comp _ _ := PhatHom.ext rfl
 
@@ -690,13 +690,13 @@ theorem phat_idem_split {E : PhatObj} (Φ : E ⟶ E) (h : Idempotent Φ) :
 
 instance : HasTerminal PhatObj where
   one := embP one
-  trm E := ⟨HasTerminal.trm E.carrier, HasTerminal.uniq _ _, Cat.comp_id _⟩
+  trm E := ⟨HasTerminal.trm E.carrier, HasTerminal.uniq _ _, CategoryTheory.Category.comp_id _⟩
   uniq f g := PhatHom.ext (HasTerminal.uniq f.1 g.1)
 
 /-- Post-composition into a pair (products are natural in the source). -/
-private theorem comp_pair {𝒞 : Type u} [Cat.{v} 𝒞] [HasBinaryProducts 𝒞] {X Y A B : 𝒞}
+private theorem comp_pair {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasBinaryProducts 𝒞] {X Y A B : 𝒞}
     (h : X ⟶ Y) (f : Y ⟶ A) (g : Y ⟶ B) : h ≫ pair f g = pair (h ≫ f) (h ≫ g) :=
-  Freyd.pair_uniq _ _ _ (by rw [Cat.assoc, Freyd.fst_pair]) (by rw [Cat.assoc, Freyd.snd_pair])
+  Freyd.pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, Freyd.fst_pair]) (by rw [CategoryTheory.Category.assoc, Freyd.snd_pair])
 
 /-- The product idempotent `e×f` on the carrier product. -/
 noncomputable def eProd (E F : PhatObj) :
@@ -705,13 +705,13 @@ noncomputable def eProd (E F : PhatObj) :
 
 theorem eProd_absorb_fst (E F : PhatObj) :
     eProd E F ≫ (Freyd.fst ≫ E.e) = Freyd.fst ≫ E.e := by
-  rw [← Cat.assoc, show eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e from Freyd.fst_pair _ _,
-    Cat.assoc, E.idem]
+  rw [← CategoryTheory.Category.assoc, show eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e from Freyd.fst_pair _ _,
+    CategoryTheory.Category.assoc, E.idem]
 
 theorem eProd_absorb_snd (E F : PhatObj) :
     eProd E F ≫ (Freyd.snd ≫ F.e) = Freyd.snd ≫ F.e := by
-  rw [← Cat.assoc, show eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e from Freyd.snd_pair _ _,
-    Cat.assoc, F.idem]
+  rw [← CategoryTheory.Category.assoc, show eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e from Freyd.snd_pair _ _,
+    CategoryTheory.Category.assoc, F.idem]
 
 theorem eProd_idem (E F : PhatObj) : eProd E F ≫ eProd E F = eProd E F := by
   show eProd E F ≫ pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e) = eProd E F
@@ -724,34 +724,34 @@ noncomputable def phatProd (E F : PhatObj) : PhatObj :=
 
 noncomputable instance : HasBinaryProducts PhatObj where
   prod := phatProd
-  fst {E F} := ⟨Freyd.fst ≫ E.e, eProd_absorb_fst E F, by rw [Cat.assoc, E.idem]⟩
-  snd {E F} := ⟨Freyd.snd ≫ F.e, eProd_absorb_snd E F, by rw [Cat.assoc, F.idem]⟩
+  fst {E F} := ⟨Freyd.fst ≫ E.e, eProd_absorb_fst E F, by rw [CategoryTheory.Category.assoc, E.idem]⟩
+  snd {E F} := ⟨Freyd.snd ≫ F.e, eProd_absorb_snd E F, by rw [CategoryTheory.Category.assoc, F.idem]⟩
   pair {X E F} φ ψ := ⟨pair φ.1 ψ.1,
     by rw [comp_pair, φ.2.1, ψ.2.1],
     by
       have h1 : pair φ.1 ψ.1 ≫ (Freyd.fst ≫ E.e) = φ.1 := by
-        rw [← Cat.assoc, Freyd.fst_pair, φ.2.2]
+        rw [← CategoryTheory.Category.assoc, Freyd.fst_pair, φ.2.2]
       have h2 : pair φ.1 ψ.1 ≫ (Freyd.snd ≫ F.e) = ψ.1 := by
-        rw [← Cat.assoc, Freyd.snd_pair, ψ.2.2]
+        rw [← CategoryTheory.Category.assoc, Freyd.snd_pair, ψ.2.2]
       show pair φ.1 ψ.1 ≫ pair (Freyd.fst ≫ E.e) (Freyd.snd ≫ F.e) = pair φ.1 ψ.1
       rw [comp_pair, h1, h2]⟩
   fst_pair {X E F} φ ψ := PhatHom.ext (by
     show pair φ.1 ψ.1 ≫ (Freyd.fst ≫ E.e) = φ.1
-    rw [← Cat.assoc, Freyd.fst_pair, φ.2.2])
+    rw [← CategoryTheory.Category.assoc, Freyd.fst_pair, φ.2.2])
   snd_pair {X E F} φ ψ := PhatHom.ext (by
     show pair φ.1 ψ.1 ≫ (Freyd.snd ≫ F.e) = ψ.1
-    rw [← Cat.assoc, Freyd.snd_pair, ψ.2.2])
+    rw [← CategoryTheory.Category.assoc, Freyd.snd_pair, ψ.2.2])
   pair_uniq {X E F} φ ψ h h₁ h₂ := PhatHom.ext (by
     have habs : h.1 ≫ eProd E F = h.1 := h.2.2
     have hfst : h.1 ≫ Freyd.fst = φ.1 :=
       calc h.1 ≫ Freyd.fst = (h.1 ≫ eProd E F) ≫ Freyd.fst := by rw [habs]
-        _ = h.1 ≫ (eProd E F ≫ Freyd.fst) := Cat.assoc _ _ _
+        _ = h.1 ≫ (eProd E F ≫ Freyd.fst) := CategoryTheory.Category.assoc _ _ _
         _ = h.1 ≫ (Freyd.fst ≫ E.e) := by
           rw [show eProd E F ≫ Freyd.fst = Freyd.fst ≫ E.e from Freyd.fst_pair _ _]
         _ = φ.1 := congrArg Subtype.val h₁
     have hsnd : h.1 ≫ Freyd.snd = ψ.1 :=
       calc h.1 ≫ Freyd.snd = (h.1 ≫ eProd E F) ≫ Freyd.snd := by rw [habs]
-        _ = h.1 ≫ (eProd E F ≫ Freyd.snd) := Cat.assoc _ _ _
+        _ = h.1 ≫ (eProd E F ≫ Freyd.snd) := CategoryTheory.Category.assoc _ _ _
         _ = h.1 ≫ (Freyd.snd ≫ F.e) := by
           rw [show eProd E F ≫ Freyd.snd = Freyd.snd ≫ F.e from Freyd.snd_pair _ _]
         _ = ψ.1 := congrArg Subtype.val h₂
@@ -928,8 +928,8 @@ def phatPoints (E : PhatObj) : Type := omegaPhat ⟶ E
 
 instance phatPointsFunctor : Functor phatPoints where
   map φ := fun h => h ≫ φ
-  map_id _ := funext fun h => Cat.comp_id h
-  map_comp φ ψ := funext fun h => (Cat.assoc h φ ψ).symm
+  map_id _ := funext fun h => CategoryTheory.Category.comp_id h
+  map_comp φ ψ := funext fun h => (CategoryTheory.Category.assoc h φ ψ).symm
 
 /-- The constant point of `E` through the idempotent: `k ↦ e(a)`. -/
 def pointAt {E : PhatObj} (a : El E.carrier) : phatPoints E :=

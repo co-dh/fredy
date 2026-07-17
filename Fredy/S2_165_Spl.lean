@@ -78,7 +78,7 @@ universe v u
 
 namespace Freyd.Alg
 
-open Cat
+open CategoryTheory Cat
 
 /-! ## §2.165 / §2.166  Pre-tabular and tabular completion
 

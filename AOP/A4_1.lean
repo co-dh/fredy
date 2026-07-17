@@ -11,6 +11,8 @@
 import Fredy.S2_1
 import Fredy.S1_38
 
+open CategoryTheory
+
 universe v u
 
 namespace Freyd.Alg

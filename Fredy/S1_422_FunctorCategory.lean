@@ -26,7 +26,7 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_56
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 

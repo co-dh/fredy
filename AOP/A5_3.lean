@@ -137,6 +137,14 @@ theorem sumMap_comp {s a₁ a₂ t b₁ b₂ w c₁ c₂ : 𝒜} (C : Coproduct 
     rw [Cat.assoc, u₂_junc, Cat.assoc]
   rw [h1, h2]
 
+/-- **B&dM p.42** (coproduct fusion, lifted to relations): `[P,Q] · (R+S) = [P·R, Q·S]`,
+    mirrored to `(R+S) ≫ [P,Q] = [R≫P, S≫Q]`. -/
+theorem sumMap_junc {s a₁ a₂ t b₁ b₂ c : 𝒜} (C : Coproduct s a₁ a₂) (D : Coproduct t b₁ b₂)
+    (R : a₁ ⟶ b₁) (S : a₂ ⟶ b₂) (P : b₁ ⟶ c) (Q : b₂ ⟶ c) :
+    sumMap C D R S ≫ junc D P Q = junc C (R ≫ P) (S ≫ Q) := by
+  show junc C (R ≫ D.u₁) (S ≫ D.u₂) ≫ junc D P Q = junc C (R ≫ P) (S ≫ Q)
+  rw [junc_comp, Cat.assoc, Cat.assoc, u₁_junc, u₂_junc]
+
 /-- **B&dM 5.10**, functor law: `sumMap` commutes with converse (with the coproducts swapped). -/
 theorem sumMap_recip {s a₁ a₂ t b₁ b₂ : 𝒜} (C : Coproduct s a₁ a₂) (D : Coproduct t b₁ b₂)
     (R : a₁ ⟶ b₁) (S : a₂ ⟶ b₂) : (sumMap C D R S)° = sumMap D C R° S° := by

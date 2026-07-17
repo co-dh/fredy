@@ -35,7 +35,7 @@ universe v u
 
 namespace Freyd.Alg
 
-open Cat
+open CategoryTheory Cat
 
 variable {𝒜 : Type u} [Allegory 𝒜]
 

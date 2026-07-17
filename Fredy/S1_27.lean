@@ -20,6 +20,7 @@ import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_41
 
+open CategoryTheory
 
 universe v u
 
@@ -32,17 +33,17 @@ namespace Freyd
 /-- A natural transformation α : F → G between parallel functors F, G : 𝒞 → 𝒟 (§1.27).
     For each X : 𝒞 a component α_X : F X → G X; for every f : X → Y,
     F(f) ≫ α_Y = α_X ≫ G(f) (naturality). -/
-structure NaturalTransformation (F G : 𝒞 → 𝒟) [Functor F] [Functor G] where
+structure NaturalTransformation (F G : 𝒞 → 𝒟) [hF : Functor F] [hG : Functor G] where
   app : (X : 𝒞) → (F X ⟶ G X)
-  naturality : ∀ {X Y : 𝒞} (f : X ⟶ Y), (Functor.map f) ≫ app Y = app X ≫ (Functor.map f)
-
-infix:25 " ⟹ " => NaturalTransformation
+  naturality : ∀ {X Y : 𝒞} (f : X ⟶ Y),
+    (hF.map f) ≫ app Y = app X ≫ (hG.map f)
 
 /-! ## §1.274  Natural equivalence (isomorphism in the functor category) -/
 
 /-- A natural equivalence (§1.274): a natural transformation whose every component is
     an isomorphism.  In the functor category this is precisely an isomorphism. -/
-def NaturalIso (F G : 𝒞 → 𝒟) [Functor F] [Functor G] (α : F ⟹ G) : Prop :=
+def NaturalIso (F G : 𝒞 → 𝒟) [Functor F] [Functor G]
+    (α : NaturalTransformation F G) : Prop :=
   ∀ X : 𝒞, IsIso (NaturalTransformation.app α X)
 
 /-! ## §1.272  Cayley representation -/

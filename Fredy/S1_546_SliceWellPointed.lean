@@ -55,7 +55,7 @@ import Fredy.S1_48_RationalCapitalization
 namespace Freyd
 
 universe u
-variable {𝒞 : Type u} [Cat.{u} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞]
 
 section SliceWellPointed
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [PullbacksTransferCovers 𝒞]
@@ -71,9 +71,9 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [Pullba
     `m.f` is mono (the slice mono reflects to its underlying arrow, `sigma_reflects_mono`)
     and a cover, so iso (`monic_cover_iso`); then `m` is iso (`overIso_of_underlying`). -/
 theorem cover_imp_slice_iso {P A : 𝒞} {D : Over P}
-    (m : OverHom D (sliceEmbedObj P A)) (hm : OverMono m) (hcov : Cover m.f) :
+    (m : OverHom D (sliceEmbedObj P A)) (hm : OverMono m) (hcov : Cover m.left) :
     OverIso m :=
-  overIso_of_underlying m (monic_cover_iso m.f hcov (sigma_preserves_mono m hm))
+  overIso_of_underlying m (monic_cover_iso m.left hcov (sigma_preserves_mono m hm))
 
 /-! ## The decisive negative determination (Sorry-free)
 
@@ -108,35 +108,43 @@ theorem factorWP_imp_wp (A : 𝒞)
     WellPointed A := by
   intro D m hm hm_not_iso
   -- the slice object and slice mono built from `m`
-  let Dbar : Over (one : 𝒞) := ⟨D, term D⟩
+  let Dbar : Over (one : 𝒞) := CategoryTheory.Over.mk (term D)
   let mbar : OverHom Dbar (sliceEmbedObj one A) :=
-    ⟨pair m (term D), snd_pair m (term D)⟩
-  have hmbarf_mono : Monic mbar.f := mono_pair_of_mono_fst m (term D) hm
+    CategoryTheory.Over.homMk (pair m (term D)) (snd_pair m (term D))
+  have hmbarf_mono : Monic mbar.left := mono_pair_of_mono_fst m (term D) hm
   have hmbar_mono : OverMono mbar := sigma_reflects_mono mbar hmbarf_mono
   -- `mbar` is proper: if iso, `mbar.f` iso, and `m = mbar.f ≫ fst` with `fst` iso, so `m` iso.
   have hmbar_not_iso : ¬ OverIso mbar := by
     intro hiso
     apply hm_not_iso
-    have hf_iso : IsIso mbar.f := overIso_underlying hiso
-    have : m = mbar.f ≫ (fst : prod A one ⟶ A) := (fst_pair m (term D)).symm
-    rw [this]
-    exact isIso_comp hf_iso prod_one_iso_right
+    have hf_iso : IsIso mbar.left := overIso_underlying hiso
+    have hpair_iso : IsIso (pair m (term D)) := by
+      simpa [mbar, Dbar] using hf_iso
+    rw [← fst_pair m (term D)]
+    exact isIso_comp hpair_iso prod_one_iso_right
   -- well-pointedness of the factor yields a slice point `x` missed by `mbar`
   obtain ⟨x, hx_miss⟩ := hwp mbar hmbar_mono hmbar_not_iso
   -- the missed point of `A`: project `x` to `A` by `·≫fst`
-  refine ⟨x.f ≫ fst, ?_⟩
+  let xp : (one : 𝒞) ⟶ prod A (one : 𝒞) := by
+    simpa [overHasTerminal, overTerm, sliceEmbedObj] using
+      CategoryTheory.CommaMorphism.left x
+  let p : (one : 𝒞) ⟶ A := Cat.comp xp (@fst 𝒞 _ _ A (one : 𝒞))
+  refine ⟨p, ?_⟩
   rintro ⟨y, hy⟩
   -- lift `y : 1 → D` to a slice point `ybar : overTerm 1 → Dbar` with `ybar ≫ mbar = x`
   apply hx_miss
-  refine ⟨⟨y, term_uniq _ _⟩, ?_⟩
+  refine ⟨CategoryTheory.Over.homMk y (term_uniq _ _), ?_⟩
   -- `ybar ≫ mbar = x` : a slice equation, check the underlying `y ≫ pair m (term D) = x.f`
-  apply OverHom.ext
-  show y ≫ pair m (term D) = x.f
-  refine fst_snd_jointly_monic _ x.f ?_ ?_
-  · -- `fst`-leg : `y ≫ m = x.f ≫ fst` is exactly `hy`
-    rw [Cat.assoc, fst_pair]; exact hy
-  · -- `snd`-leg : both are the unique map to `1`
-    rw [Cat.assoc, snd_pair]; exact term_uniq _ _
+  apply CategoryTheory.Over.OverMorphism.ext
+  have hbase : Cat.comp y (pair m (term D)) = xp := by
+    refine fst_snd_jointly_monic _ xp ?_ ?_
+    · -- `fst`-leg : `y ≫ m = x.f ≫ fst` is exactly `hy`
+      rw [CategoryTheory.Category.assoc, fst_pair]
+      simpa [p] using hy
+    · -- `snd`-leg : both are the unique map to `1`
+      rw [CategoryTheory.Category.assoc, snd_pair]
+      exact term_uniq _ _
+  simpa [mbar, Dbar, xp] using hbase
 
 end SliceWellPointed
 

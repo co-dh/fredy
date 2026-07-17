@@ -275,7 +275,7 @@ namespace Freyd
 
 universe u
 
-open Freyd
+open CategoryTheory Freyd
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞]
 
@@ -4093,9 +4093,9 @@ def pairFactorMap (X : PairObj 𝒞) : X.A ⟶ listProd X.targets := factorTuple
     `Â → Σ U, A/(∏U)`: an object of `Â` is exactly a slice object over the product of its factor
     targets, the factor map tupling all recorded factors. -/
 def pairSliceObj (X : PairObj 𝒞) : Over (listProd X.targets) :=
-  ⟨X.A, pairFactorMap X⟩
+  CategoryTheory.Over.mk (pairFactorMap X)
 
-@[simp] theorem pairSliceObj_dom (X : PairObj 𝒞) : (pairSliceObj X).dom = X.A := rfl
+@[simp] theorem pairSliceObj_dom (X : PairObj 𝒞) : (pairSliceObj X).left = X.A := rfl
 @[simp] theorem pairSliceObj_hom (X : PairObj 𝒞) :
     (pairSliceObj X).hom = pairFactorMap X := rfl
 
@@ -4266,10 +4266,10 @@ theorem pairHom_commutes_restrict [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : 
 def pairHomToSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : PairHom X Y) :
     OverHom (reindexObj (listProdRestrict X.targets Y.targets (pairHom_targets_subset m))
               (pairSliceObj X)) (pairSliceObj Y) :=
-  ⟨m.g, by
+  CategoryTheory.Over.homMk m.g (by
     show m.g ≫ pairFactorMap Y
         = pairFactorMap X ≫ listProdRestrict X.targets Y.targets (pairHom_targets_subset m)
-    exact pairHom_commutes_restrict m⟩
+    exact pairHom_commutes_restrict m)
 
 /-- **§1.547 — FULLNESS of the bridge over the codomain base `∏Y°`.**  Conversely to
     `pairHomToSlice`, EVERY slice morphism `φ` over `∏Y°` from the reindexed `pairSliceObj X` to
@@ -4282,7 +4282,7 @@ def pairHomToSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (m : PairHom X Y) :
 def pairHomOfSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.targets, T ∈ X.targets)
     (φ : OverHom (reindexObj (listProdRestrict X.targets Y.targets hsub) (pairSliceObj X))
                  (pairSliceObj Y)) : PairHom X Y where
-  g := φ.f
+  g := φ.left
   compat p hp := by
     -- locate `p` positionally in `Y.F` (so we can project the commuting square at its coordinate)
     obtain ⟨k, hk⟩ := List.mem_iff_get.1 hp
@@ -4293,8 +4293,8 @@ def pairHomOfSlice [HasPullbacks 𝒞] {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.
       simp only [kt, PairObj.targets, List.get_eq_getElem, List.getElem_map]
       rw [← hk]; rfl
     -- the slice commuting square, projected at coordinate `kt`
-    have hw : φ.f ≫ pairFactorMap Y
-        = pairFactorMap X ≫ listProdRestrict X.targets Y.targets hsub := φ.w
+    have hw : φ.left ≫ pairFactorMap Y
+        = pairFactorMap X ≫ listProdRestrict X.targets Y.targets hsub := CategoryTheory.Over.w φ
     have hproj := congrArg (· ≫ listProdProj Y.targets kt) hw
     simp only [Cat.assoc] at hproj
     -- LHS coordinate: `pairFactorMap Y ≫ proj_kt = htgt? ▸ (Y.F.get k).2`
@@ -4420,7 +4420,7 @@ theorem pairSlice_base_wellSupported [HasPullbacks 𝒞] [HasEqualizers 𝒞] [D
     per-object §1.547 structure: every object of `Â` determines a slice that points all its factors. -/
 theorem pairSlice_points_every_factor [HasPullbacks 𝒞] (X : PairObj 𝒞)
     (k : Fin X.targets.length) :
-    (sliceFactorPoint (X.targets.get k) (listProdProj X.targets k)).f
+    (sliceFactorPoint (X.targets.get k) (listProdProj X.targets k)).left
         ≫ (sliceEmbedObj (listProd X.targets) (X.targets.get k)).hom
       = (overTerm (listProd X.targets)).hom :=
   listProdSliceAcquiresEveryFactor X.targets k
@@ -4456,7 +4456,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [Pullba
     `A[𝒟⁻¹]`, the slice `A/(∏U)` IS the stage `A*|U`, its terminator `overTerm (∏U)` is the
     `1` of that stage, and this is a genuine point `1 → A` at that stage. -/
 theorem slice_factor_point_acquired {P : 𝒞} (A : 𝒞) (g : P ⟶ A) :
-    (sliceFactorPoint A g).f ≫ (sliceEmbedObj P A).hom = (overTerm P).hom :=
+    (sliceFactorPoint A g).left ≫ (sliceEmbedObj P A).hom = (overTerm P).hom :=
   sliceAcquiresFactorPoint A g
 
 /-- **§1.547 core — `A/(∏U)` points every factor (the one-step payoff).**  For each factor
@@ -4467,7 +4467,7 @@ theorem slice_factor_point_acquired {P : 𝒞} (A : 𝒞) (g : P ⟶ A) :
     rational step `A ⊆ A*` points every well-supported object simultaneously).  Sorry-free;
     this is `listProdSliceAcquiresEveryFactor` re-exposed as the rational-step payoff. -/
 theorem ratStep_points_every_factor (U : List 𝒞) (k : Fin U.length) :
-    (sliceFactorPoint (U.get k) (listProdProj U k)).f
+    (sliceFactorPoint (U.get k) (listProdProj U k)).left
         ≫ (sliceEmbedObj (listProd U) (U.get k)).hom = (overTerm (listProd U)).hom :=
   listProdSliceAcquiresEveryFactor U k
 
@@ -4492,16 +4492,17 @@ theorem ratStep_points_every_factor (U : List 𝒞) (k : Fin U.length) :
 theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
     (m : D ⟶ sliceEmbedObj P A) (g : P ⟶ A) :
     (∃ y : overTerm P ⟶ D, y ≫ m = sliceFactorPoint A g)
-      ↔ ∃ s : P ⟶ D.dom, s ≫ m.f = pair g (Cat.id P) := by
+      ↔ ∃ s : P ⟶ D.left, s ≫ m.left = pair g (Cat.id P) := by
   constructor
   · rintro ⟨y, hy⟩
-    exact ⟨y.f, congrArg OverHom.f hy⟩
+    exact ⟨y.left, congrArg CategoryTheory.CommaMorphism.left hy⟩
   · rintro ⟨s, hs⟩
     -- the over-triangle `s ≫ D.hom = id` follows from `m.w` and `snd_pair`.
-    have hDhom : m.f ≫ snd = D.hom := m.w
+    have hDhom : m.left ≫ snd = D.hom := CategoryTheory.Over.w m
     have hsw : s ≫ D.hom = Cat.id P := by
       rw [← hDhom, ← Cat.assoc, hs, snd_pair]
-    exact ⟨⟨s, hsw⟩, OverHom.ext hs⟩
+    exact ⟨CategoryTheory.Over.homMk s hsw,
+      CategoryTheory.Over.OverMorphism.ext hs⟩
 
 /-! ### §1.546 — the product-form escape (the true core of the missed-point argument)
 
@@ -4522,10 +4523,11 @@ theorem sliceFactorPoint_lift_iff {P A : 𝒞} {D : Over P}
     monic (`i` monic ⟹ `snd ≫ i`… in fact `pair fst (snd ≫ i)` is split-monic via `pair fst (snd ≫
     i) ≫ pair fst snd`-style retract; we record monicity directly from joint-monicity of fst/snd). -/
 def prodFormMono {A P B' : 𝒞} (i : B' ⟶ P) :
-    OverHom (⟨prod A B', snd ≫ i⟩ : Over P) (sliceEmbedObj P A) :=
-  ⟨pair fst (snd ≫ i), by
+    OverHom (CategoryTheory.Over.mk ((snd : prod A B' ⟶ B') ≫ i))
+      (sliceEmbedObj P A) :=
+  CategoryTheory.Over.homMk (pair fst (snd ≫ i)) (by
     show pair (fst : prod A B' ⟶ A) (snd ≫ i) ≫ snd = snd ≫ i
-    exact snd_pair _ _⟩
+    exact snd_pair _ _)
 
 /-- **§1.546 product-form escape.**  For a *proper* monic `i : B' ↪ P` of the base, the
     product-form subobject `id_A × i` of `sliceEmbedObj P A` is missed by EVERY `g`-point
@@ -4535,7 +4537,7 @@ def prodFormMono {A P B' : 𝒞} (i : B' ⟶ P) :
     This is the core of "AB' ↪ AB does not allow the generic point" (§1.546). -/
 theorem prodFormMono_misses_point {A P B' : 𝒞} (i : B' ⟶ P)
     (hi_mono : Monic i) (hi_proper : ¬ IsIso i) (g : P ⟶ A) :
-    ¬ ∃ s : P ⟶ prod A B', s ≫ (prodFormMono (A := A) i).f = pair g (Cat.id P) := by
+    ¬ ∃ s : P ⟶ prod A B', s ≫ (prodFormMono (A := A) i).left = pair g (Cat.id P) := by
   rintro ⟨s, hs⟩
   -- `s ≫ snd` is a section of `i`: compose `hs` with `snd`.
   have hsec : (s ≫ snd) ≫ i = Cat.id P := by
@@ -4556,7 +4558,7 @@ theorem prodFormMono_misses_point {A P B' : 𝒞} (i : B' ⟶ P)
     — the slice-level "AB' ↪ AB does not allow the generic point". -/
 theorem prodFormMono_misses_slicePoint {A P B' : 𝒞} (i : B' ⟶ P)
     (hi_mono : Monic i) (hi_proper : ¬ IsIso i) (g : P ⟶ A) :
-    ¬ ∃ y : overTerm P ⟶ (⟨prod A B', snd ≫ i⟩ : Over P),
+    ¬ ∃ y : overTerm P ⟶ CategoryTheory.Over.mk (snd ≫ i),
         y ≫ prodFormMono (A := A) i = sliceFactorPoint A g := by
   rw [sliceFactorPoint_lift_iff (prodFormMono (A := A) i) g]
   exact prodFormMono_misses_point i hi_mono hi_proper g
@@ -4580,7 +4582,8 @@ theorem prodFormMono_mono {A P B' : 𝒞} (i : B' ⟶ P) (hi_mono : Monic i) :
       rwa [Cat.assoc, Cat.assoc, snd_pair, ← Cat.assoc, ← Cat.assoc] at e
     exact fst_snd_jointly_monic u v h1 (hi_mono _ _ h2)
   intro W u v huv
-  exact OverHom.ext (hf_mono u.f v.f (congrArg OverHom.f huv))
+  exact CategoryTheory.Over.OverMorphism.ext
+    (hf_mono u.left v.left (congrArg CategoryTheory.CommaMorphism.left huv))
 
 /-- **§1.547 — exact "reach" characterization of a missed g-point (Sorry-free).**  In `Over P`,
     a slice mono `m : D ↪ sliceEmbedObj P A`, the global points are the g-points `sliceFactorPoint
@@ -4593,9 +4596,9 @@ theorem prodFormMono_mono {A P B' : 𝒞} (i : B' ⟶ P) (hi_mono : Monic i) :
 theorem sliceMiss_iff_g_unreachable {P A : 𝒞} {D : Over P}
     (m : D ⟶ sliceEmbedObj P A) (g : P ⟶ A) :
     (¬ ∃ y : overTerm P ⟶ D, y ≫ m = sliceFactorPoint A g)
-      ↔ ¬ ∃ s : P ⟶ D.dom, s ≫ D.hom = Cat.id P ∧ s ≫ (m.f ≫ fst) = g := by
+      ↔ ¬ ∃ s : P ⟶ D.left, s ≫ D.hom = Cat.id P ∧ s ≫ (m.left ≫ fst) = g := by
   rw [sliceFactorPoint_lift_iff m g]
-  have hmw : m.f ≫ snd = D.hom := m.w
+  have hmw : m.left ≫ snd = D.hom := CategoryTheory.Over.w m
   constructor
   · intro h ⟨s, hsw, hsp⟩
     exact h ⟨s, by
@@ -4605,9 +4608,9 @@ theorem sliceMiss_iff_g_unreachable {P A : 𝒞} {D : Over P}
       · rw [Cat.assoc, hmw]; exact hsw⟩
   · intro h ⟨s, hs⟩
     refine h ⟨s, ?_, ?_⟩
-    · have : s ≫ m.f ≫ snd = pair g (Cat.id P) ≫ snd := by rw [← Cat.assoc, hs]
+    · have : s ≫ m.left ≫ snd = pair g (Cat.id P) ≫ snd := by rw [← Cat.assoc, hs]
       rw [hmw, snd_pair] at this; exact this
-    · have : s ≫ m.f ≫ fst = pair g (Cat.id P) ≫ fst := by rw [← Cat.assoc, hs]
+    · have : s ≫ m.left ≫ fst = pair g (Cat.id P) ≫ fst := by rw [← Cat.assoc, hs]
       rw [fst_pair] at this; exact this
 
 /- (DEAD route — documents the commented-out `sliceEmbed_factor_wellPointed` below.)
@@ -4663,19 +4666,23 @@ theorem sliceEmbed_factor_wellPointed (U : List 𝒞)
     claim is specifically about subobjects of the FORM `AB' ↪ AB` (product monics `id_A × (B'↪B)`),
     NOT arbitrary slice monics.  See the note on `genericPoint_escapes_proper`. -/
 theorem graph_satisfies_hyps (U : List 𝒞) (k : Fin U.length) :
-    ∃ (m : (⟨listProd U, Cat.id (listProd U)⟩ : Over (listProd U))
+    ∃ (m : CategoryTheory.Over.mk (Cat.id (listProd U))
             ⟶ sliceEmbedObj (listProd U) (U.get k)),
-        m.f = pair (listProdProj U k) (Cat.id (listProd U)) ∧ Monic m ∧
+        m.left = pair (listProdProj U k) (Cat.id (listProd U)) ∧ Monic m ∧
         (∃ s : listProd U ⟶ listProd U,
-          s ≫ m.f = pair (listProdProj U k) (Cat.id (listProd U))) := by
+          s ≫ m.left = pair (listProdProj U k) (Cat.id (listProd U))) := by
   have hw : pair (listProdProj U k) (Cat.id (listProd U))
       ≫ (sliceEmbedObj (listProd U) (U.get k)).hom = Cat.id (listProd U) := snd_pair _ _
   have hidmono : Monic (Cat.id (listProd U)) := by
     intro W a b heq; rw [← Cat.comp_id a, ← Cat.comp_id b, heq]
   have hmf : Monic (pair (listProdProj U k) (Cat.id (listProd U))) :=
     monic_pair_of_monic _ (Cat.id (listProd U)) hidmono
-  refine ⟨⟨pair (listProdProj U k) (Cat.id (listProd U)), hw⟩, rfl,
-    sigma_reflects_mono (B := listProd U) ⟨_, hw⟩ hmf, ⟨Cat.id (listProd U), ?_⟩⟩
+  let m := CategoryTheory.Over.homMk
+    (U := CategoryTheory.Over.mk (Cat.id (listProd U)))
+    (V := sliceEmbedObj (listProd U) (U.get k))
+    (pair (listProdProj U k) (Cat.id (listProd U))) hw
+  refine ⟨m, rfl, sigma_reflects_mono (B := listProd U) m hmf,
+    ⟨Cat.id (listProd U), ?_⟩⟩
   show Cat.id (listProd U) ≫ pair (listProdProj U k) (Cat.id (listProd U))
       = pair (listProdProj U k) (Cat.id (listProd U))
   rw [Cat.id_comp]

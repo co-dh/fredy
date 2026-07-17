@@ -1,27 +1,44 @@
 /-
   Freyd & Scedrov, *Categories and Allegories* §1.1  Basic definitions.
 
-  The `Cat` typeclass: objects, typed Hom-sets, identity, composition,
-  and the three axioms (id_comp, comp_id, assoc).
+  Mathlib migration spike: categories, typed homs, identities, composition,
+  and their laws now come from `CategoryTheory.Category`.
 -/
 
+import Mathlib.CategoryTheory.Category.Basic
+import Mathlib.CategoryTheory.Iso
 
-class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
-  Hom     : 𝒞 → 𝒞 → Type w
-  id      : (X : 𝒞) → Hom X X
-  comp    : {X Y Z : 𝒞} → Hom X Y → Hom Y Z → Hom X Z
-  id_comp : ∀ {X Y : 𝒞} (f : Hom X Y), comp (id X) f = f
-  comp_id : ∀ {X Y : 𝒞} (f : Hom X Y), comp f (id Y) = f
-  assoc   : ∀ {W X Y Z : 𝒞} (f : Hom W X) (g : Hom X Y) (h : Hom Y Z),
-              comp (comp f g) h = comp f (comp g h)
+open CategoryTheory
 
--- `scoped` in `Freyd` (active only under `open Freyd`, which every Fredy file does) so a bridge
--- file MAY import `Mathlib.CategoryTheory` without the `«term_⟶_»` global-notation clash against
--- mathlib's `Quiver` `⟶`. Keeps the §1.543 mathlib route's bridge file possible. (`Cat` is at
--- `_root_`; the notation just lives in the `Freyd` scope.)
+universe v u
+
+/-- Transitional spelling for files not yet migrated.  This is an abbreviation for
+Mathlib's category class, not a second category structure. -/
+abbrev Cat.{w, z} (C : Type z) := CategoryTheory.Category.{w, z} C
+
+namespace Cat
+
+abbrev Hom {C : Type u} [CategoryTheory.Category.{v} C] := @Quiver.Hom C inferInstance
+abbrev id {C : Type u} [CategoryTheory.Category.{v} C] (X : C) : X ⟶ X := 𝟙 X
+abbrev comp {C : Type u} [CategoryTheory.Category.{v} C] {X Y Z : C}
+    (f : X ⟶ Y) (g : Y ⟶ Z) : X ⟶ Z := f ≫ g
+
+theorem id_comp {C : Type u} [CategoryTheory.Category.{v} C] {X Y : C} (f : X ⟶ Y) :
+    id X ≫ f = f := CategoryTheory.Category.id_comp f
+
+theorem comp_id {C : Type u} [CategoryTheory.Category.{v} C] {X Y : C} (f : X ⟶ Y) :
+    f ≫ id Y = f := CategoryTheory.Category.comp_id f
+
+theorem assoc {C : Type u} [CategoryTheory.Category.{v} C] {W X Y Z : C}
+    (f : W ⟶ X) (g : X ⟶ Y) (h : Y ⟶ Z) : (f ≫ g) ≫ h = f ≫ g ≫ h :=
+  CategoryTheory.Category.assoc f g h
+
+end Cat
+
 namespace Freyd
-scoped infixr:25 " ⟶ "  => Cat.Hom
-scoped infixr:80 " ≫ "  => Cat.comp
+
+/- Mathlib already provides the book-compatible notation
+     `X ⟶ Y`, `𝟙 X`, and diagram-order composition `f ≫ g`.
+-/
+
 end Freyd
-
-

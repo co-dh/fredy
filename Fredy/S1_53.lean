@@ -20,9 +20,11 @@ import Fredy.S1_51
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
+
+open CategoryTheory
 
 variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
 
@@ -51,13 +53,13 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
   `slice_preservesMono` / `slice_reflectsMono` packaging via `PreservesMono` /
   `ReflectsMono`).  Cover reflection is here since it additionally needs `Cover`. -/
 
-/-- **§1.531**: Σ reflects covers.  If u.f is a cover in A and factors
-    through a monic m in A/B, then m.f is iso in A. -/
+/-- **§1.531**: Σ reflects covers.  If u.left is a cover in A and factors
+    through a monic m in A/B, then m.left is iso in A. -/
 theorem sigma_reflects_cover {B : 𝒞} {X Y Z : Over B} (u : OverHom X Y) (m : OverHom Z Y)
-    (g : OverHom X Z) (hu : Cover u.f) (hmMono : OverMono m) (hgm : g ⊚ m = u) : IsIso m.f := by
-  have hgmA : g.f ≫ m.f = u.f := congrArg OverHom.f hgm
-  have hmA : Monic m.f := sigma_preserves_mono m hmMono
-  exact hu m.f g.f hmA hgmA
+    (g : OverHom X Z) (hu : Cover u.left) (hmMono : OverMono m) (hgm : g ⊚ m = u) : IsIso m.left := by
+  have hgmA : g.left ≫ m.left = u.left := congrArg CommaMorphism.left hgm
+  have hmA : Monic m.left := sigma_preserves_mono m hmMono
+  exact hu m.left g.left hmA hgmA
 
 /-! ## §1.532  The pullback square for Δ -/
 
@@ -65,11 +67,11 @@ theorem sigma_reflects_cover {B : 𝒞} {X Y Z : Over B} (u : OverHom X Y) (m : 
 theorem pair_prod_map {X B A₁ A₂ : 𝒞} (a : X ⟶ B) (b : X ⟶ A₁) (x : A₁ ⟶ A₂) :
     pair a b ≫ pair fst (snd ≫ x) = pair a (b ≫ x) := by
   apply pair_uniq _ _ (pair a b ≫ pair fst (snd ≫ x))
-  · rw [Cat.assoc, fst_pair, fst_pair]
+  · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
   · calc
-      (pair a b ≫ pair fst (snd ≫ x)) ≫ snd = pair a b ≫ (pair fst (snd ≫ x) ≫ snd) := by rw [Cat.assoc]
+      (pair a b ≫ pair fst (snd ≫ x)) ≫ snd = pair a b ≫ (pair fst (snd ≫ x) ≫ snd) := by rw [CategoryTheory.Category.assoc]
       _ = pair a b ≫ (snd ≫ x) := by rw [snd_pair]
-      _ = (pair a b ≫ snd) ≫ x := by rw [← Cat.assoc]
+      _ = (pair a b ≫ snd) ≫ x := by rw [← CategoryTheory.Category.assoc]
       _ = b ≫ x := by rw [snd_pair]
 
 /-- **§1.532 pullback square**.  In any category with binary products,
@@ -95,7 +97,7 @@ def prod_pullback (B A₁ A₂ : 𝒞) (x : A₁ ⟶ A₂) : HasPullback (snd (A
     exact (pair_uniq (c.π₁ ≫ fst) (c.π₁ ≫ snd) c.π₁ rfl rfl).symm
   · dsimp [p₂]; simp [snd_pair]
   · apply pair_uniq _ _ u
-    · dsimp [p₁] at hu₁; rw [← hu₁, Cat.assoc, fst_pair]
+    · dsimp [p₁] at hu₁; rw [← hu₁, CategoryTheory.Category.assoc, fst_pair]
     · dsimp [p₂] at hu₂; rw [← hu₂]
 
 end Freyd

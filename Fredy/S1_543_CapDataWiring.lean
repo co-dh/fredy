@@ -45,7 +45,7 @@ open Freyd.UniformWellPoints (FibreDensity stepWellPoints_of_fibreDensity)
 
     The §1.546 stage-local density `FibreDensity (wsCover S)` (every proper fibre mono is missed by a
     fibre point at a later stage) is `wsCover_fibreDensity`; the whole lemma is Sorry-free. -/
-theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
+theorem capData_exists (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] :
     Nonempty (CapData.{u} A) := by
   -- §1.546 fibre-density, for every bundle's cofinal cover `wsCover S` (Sorry-free: `wsCover_fibreDensity`).
   have hFD : ∀ (S : PreRegBundle.{u}),
@@ -99,8 +99,8 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     Every small pre-regular category `A` admits a faithful representation into a capital
     pre-regular category `Ā`.  Reduced to `capData_exists` (the §1.547/§1.543 construction above)
     via `capitalization_of_capData` (the colimit packaging, in `Capitalization.lean`). -/
-theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
+theorem capitalization_lemma_small (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] :
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
   (capData_exists A).elim (fun cd => capitalization_of_capData cd)
@@ -108,8 +108,8 @@ theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory 
 /-- **§1.54 Capitalization Lemma** (small case).  `= capitalization_lemma_small`; the §1.543
     construction lives in `capData_exists` above (relocated here, downstream of the §1.547
     uniform-successor pieces, which a `Capitalization.lean` placement could not reach). -/
-theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
+theorem capitalization_lemma (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A] :
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
   capitalization_lemma_small A

@@ -58,9 +58,11 @@ import Fredy.S1_36
 
 namespace Freyd
 
+open CategoryTheory
+
 universe u
 
-variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
   [DecidableEq 𝒞]
 
 /-! ## The fixed-base slice bridge, packaged as a two-sided correspondence
@@ -86,7 +88,7 @@ theorem bridge_roundtrip_g {X Y : PairObj 𝒞} (m : PairHom X Y) :
 theorem bridge_roundtrip_f {X Y : PairObj 𝒞} (hsub : ∀ T ∈ Y.targets, T ∈ X.targets)
     (φ : OverHom (reindexObj (listProdRestrict X.targets Y.targets hsub) (pairSliceObj X))
                  (pairSliceObj Y)) :
-    (pairHomToSlice (pairHomOfSlice hsub φ)).f = φ.f := rfl
+    (pairHomToSlice (pairHomOfSlice hsub φ)).left = φ.left := rfl
 
 /-! ## The well-pointedness reduction: from product-form to the R15 escape
 
@@ -109,7 +111,7 @@ variable [PullbacksTransferCovers 𝒞]
 def ProperMonoIsProductForm (P A : 𝒞) : Prop :=
   ∀ {D : Over P} (m : D ⟶ sliceEmbedObj P A), OverMono m → ¬ OverIso m →
     ∃ (B' : 𝒞) (i : B' ⟶ P) (_ : Monic i) (_ : ¬ IsIso i)
-      (e : D ⟶ (⟨prod A B', snd ≫ i⟩ : Over P)),
+      (e : D ⟶ CategoryTheory.Over.mk ((snd : prod A B' ⟶ B') ≫ i)),
       OverIso e ∧ e ⊚ prodFormMono (A := A) i = m
 
 /-- **Well-pointedness from the product-form reduction (the R15 escape, applied uniformly).**
@@ -128,7 +130,7 @@ theorem wellPointed_of_productForm {P A : 𝒞} (g : P ⟶ A) (hpf : ProperMonoI
   rintro ⟨y, hy⟩
   -- `y ≫ m = point`, and `m = e ≫ prodFormMono i`, so `(y ≫ e) ≫ prodFormMono i = point`.
   refine prodFormMono_misses_slicePoint (A := A) i hi_mono hi_proper g ⟨y ≫ e, ?_⟩
-  rw [Cat.assoc, show e ≫ prodFormMono (A := A) i = m from hfac]; exact hy
+  rw [CategoryTheory.Category.assoc, show e ≫ prodFormMono (A := A) i = m from hfac]; exact hy
 
 /-- **Well-pointedness of the structured factor object (the §1.547 payoff under the named gap).**
     For `A = U.get k` a well-supported factor of a finite set `U`, the embedded object
@@ -180,7 +182,7 @@ theorem sliceEmbed_factor_wellPointed_of_productForm (U : List 𝒞) (k : Fin U.
     base mono `i` to be iso — the contradiction inside the proof.) -/
 theorem properMono_forces_graph_iso (U : List 𝒞) (k : Fin U.length)
     (hpf : ProperMonoIsProductForm (listProd U) (U.get k)) :
-    IsIso (pair (listProdProj U k) (Cat.id (listProd U))) := by
+    IsIso (pair (listProdProj U k) (𝟙 (listProd U))) := by
   obtain ⟨m, hmf, hmono, _hsec⟩ := graph_satisfies_hyps U k
   have hOverMono : OverMono m := hmono
   by_cases hiso : OverIso m
@@ -189,19 +191,19 @@ theorem properMono_forces_graph_iso (U : List 𝒞) (k : Fin U.length)
   · obtain ⟨B', i, hi_mono, hi_proper, e, _he_iso, hfac⟩ := hpf m hOverMono hiso
     exfalso
     apply hi_proper
-    have hunder : e.f ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) = m.f := by
-      have := congrArg OverHom.f hfac
+    have hunder : e.left ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) = m.left := by
+      have := congrArg CategoryTheory.CommaMorphism.left hfac
       simpa [prodFormMono] using this
-    have hsnd : (e.f ≫ snd) ≫ i = Cat.id (listProd U) := by
-      have h2 : e.f ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) ≫ snd
-              = pair (listProdProj U k) (Cat.id (listProd U)) ≫ snd := by
-        rw [← Cat.assoc, hunder, hmf]
+    have hsnd : (e.left ≫ snd) ≫ i = 𝟙 (listProd U) := by
+      have h2 : e.left ≫ pair (fst : prod (U.get k) B' ⟶ U.get k) (snd ≫ i) ≫ snd
+              = pair (listProdProj U k) (𝟙 (listProd U)) ≫ snd := by
+        rw [← CategoryTheory.Category.assoc, hunder, hmf]
       rw [snd_pair, snd_pair] at h2
-      rw [Cat.assoc]; exact h2
-    have hleft : i ≫ (e.f ≫ snd) = Cat.id B' := by
+      rw [CategoryTheory.Category.assoc]; exact h2
+    have hleft : i ≫ (e.left ≫ snd) = 𝟙 B' := by
       apply hi_mono
-      rw [Cat.assoc, hsnd, Cat.comp_id, Cat.id_comp]
-    exact ⟨e.f ≫ snd, hleft, hsnd⟩
+      rw [CategoryTheory.Category.assoc, hsnd, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
+    exact ⟨e.left ≫ snd, hleft, hsnd⟩
 
 /-- **`ProperMonoIsProductForm` is FALSE — witness 2 (forces Capital).**  At base `P = 1`, the
     hypothesis `ProperMonoIsProductForm 1 A` together with any global point `g : 1 → A` makes `A`
@@ -244,11 +246,11 @@ theorem prodFormMono_proper (hSp : SpecialHere (𝒞 := 𝒞)) {A P B' : 𝒞} (
     (hi : ProperMono i) {A'' : 𝒞} (j : A'' ⟶ A) (hj : ProperMono j) :
     ¬ OverIso (prodFormMono (A := A) i) := by
   intro hiso
-  have hf : IsIso (prodFormMono (A := A) i).f := overIso_underlying hiso
-  have hform : (prodFormMono (A := A) i).f = (prodEndoIsFunctor A).map i := by
+  have hf : IsIso (prodFormMono (A := A) i).left := overIso_underlying hiso
+  have hform : (prodFormMono (A := A) i).left = (prodEndoIsFunctor A).map i := by
     rw [prodEndo_map]
-    show pair (fst : prod A B' ⟶ A) (snd ≫ i) = pair (fst ≫ Cat.id A) (snd ≫ i)
-    rw [Cat.comp_id]
+    show pair (fst : prod A B' ⟶ A) (snd ≫ i) = pair (fst ≫ 𝟙 A) (snd ≫ i)
+    rw [CategoryTheory.Category.comp_id]
   rw [hform, ← isIso_prod_mono_iff A i] at hf
   exact (hSp i j hi hj).2 hf
 
@@ -265,7 +267,7 @@ theorem prodFormMono_wellPointed (hSp : SpecialHere (𝒞 := 𝒞)) {A P B' : �
     (hi : ProperMono i)
     {A'' : 𝒞} (j : A'' ⟶ A) (hj : ProperMono j) (g : P ⟶ A) :
     OverMono (prodFormMono (A := A) i) ∧ ¬ OverIso (prodFormMono (A := A) i) ∧
-      ¬ ∃ y : overTerm P ⟶ (⟨prod A B', snd ≫ i⟩ : Over P),
+      ¬ ∃ y : overTerm P ⟶ CategoryTheory.Over.mk ((snd : prod A B' ⟶ B') ≫ i),
           y ≫ prodFormMono (A := A) i = sliceFactorPoint A g :=
   ⟨prodFormMono_mono i hi.1, prodFormMono_proper hSp i hi j hj,
    prodFormMono_misses_slicePoint i hi.1 hi.2 g⟩
@@ -311,25 +313,26 @@ structure PairOnU where
   htgt : obj.targets = U
 
 /-- Homs of `PairOnU U` are the `PairHom`s of underlying objects (full subcategory). -/
-instance : Cat.{u} (PairOnU U) where
+instance : CategoryTheory.Category.{u} (PairOnU U) where
   Hom X Y := PairHom X.obj Y.obj
   id X := PairHom.id X.obj
   comp f g := f.comp g
-  id_comp f := PairHom.ext (Cat.id_comp f.g)
-  comp_id f := PairHom.ext (Cat.comp_id f.g)
-  assoc f g h := PairHom.ext (Cat.assoc f.g g.g h.g)
+  id_comp f := PairHom.ext (CategoryTheory.Category.id_comp f.g)
+  comp_id f := PairHom.ext (CategoryTheory.Category.comp_id f.g)
+  assoc f g h := PairHom.ext (CategoryTheory.Category.assoc f.g g.g h.g)
 
 /-- **The object map `A*|U → A/(∏U)`.**  `X = ⟨(A,F), F° = U⟩ ↦ ⟨A, factorMap : A → ∏U⟩`.  This is
     `pairSliceObj` of the underlying object, whose base `∏(F°)` is rewritten to `∏U` along `X.htgt`.
     Concretely `⟨X.obj.A, X.htgt ▸ pairFactorMap X.obj⟩ : Over (listProd U)`. -/
 def pairOnUSlice {U : List 𝒞} (X : PairOnU U) : Over (listProd U) :=
-  ⟨X.obj.A, pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt)⟩
+  CategoryTheory.Over.mk
+    (pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt))
 
 @[simp] theorem pairOnUSlice_hom {U : List 𝒞} (X : PairOnU U) :
     (pairOnUSlice X).hom = pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt) := rfl
 
 @[simp] theorem pairOnUSlice_dom {U : List 𝒞} (X : PairOnU U) :
-    (pairOnUSlice X).dom = X.obj.A := rfl
+    (pairOnUSlice X).left = X.obj.A := rfl
 
 /-- **The factor map is FIXED by the self base-restriction.**  `pairFactorMap X` post-composed with
     `listProdRestrict X° X°` (the §1.547 base projection of `∏X°` onto itself) is `pairFactorMap X`
@@ -344,7 +347,7 @@ theorem pairFactorMap_restrict_self [HasPullbacks 𝒞] (X : PairObj 𝒞)
     pairFactorMap X ≫ listProdRestrict X.targets X.targets h = pairFactorMap X := by
   apply listProd_hom_ext X.targets
   intro k
-  rw [Cat.assoc, listProdRestrict_proj X.targets X.targets h k]
+  rw [CategoryTheory.Category.assoc, listProdRestrict_proj X.targets X.targets h k]
   -- RHS coordinate: factor map ≫ proj_k = (X.F.get k').2 (positional)
   have hk' : k.1 < X.F.length := by simpa [PairObj.targets] using k.2
   have htgt : X.targets.get k = (X.F.get ⟨k.1, hk'⟩).1 := by
@@ -378,7 +381,7 @@ theorem pairFactorMap_restrict_eqToHom [HasPullbacks 𝒞] (Xo : PairObj 𝒞) (
     pairFactorMap Xo ≫ listProdRestrict Xo.targets l h
       = pairFactorMap Xo ≫ eqToHom (congrArg listProd e) := by
   cases e
-  rw [pairFactorMap_restrict_self Xo h, eqToHom_refl, Cat.comp_id]
+  rw [pairFactorMap_restrict_self Xo h, eqToHom_refl, CategoryTheory.Category.comp_id]
 
 /-- The morphism map: a `PairOnU`-hom `m` (a `PairHom X.obj → Y.obj`) gives the slice triangle
     `m.g ≫ (pairOnUSlice Y).hom = (pairOnUSlice X).hom`.  After `subst`ing both `htgt` proofs, this
@@ -386,20 +389,20 @@ theorem pairFactorMap_restrict_eqToHom [HasPullbacks 𝒞] (Xo : PairObj 𝒞) (
     base restriction is the identity on factor maps). -/
 def pairOnUSliceMap [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U} (m : PairHom X.obj Y.obj) :
     OverHom (pairOnUSlice X) (pairOnUSlice Y) :=
-  ⟨m.g, by
+  CategoryTheory.Over.homMk m.g (by
     simp only [pairOnUSlice_hom]
     -- LHS: m.g ≫ pairFactorMap Y.obj ≫ eqToHom Y.htgt.  Re-associate, apply `pairHom_commutes_restrict`,
     -- collapse the base restriction via `restrict_eqToHom`, fuse the two `eqToHom`s.
     rw [show m.g ≫ pairFactorMap Y.obj ≫ eqToHom (congrArg listProd Y.htgt)
-          = (m.g ≫ pairFactorMap Y.obj) ≫ eqToHom (congrArg listProd Y.htgt) from (Cat.assoc _ _ _).symm,
+          = (m.g ≫ pairFactorMap Y.obj) ≫ eqToHom (congrArg listProd Y.htgt) from (CategoryTheory.Category.assoc _ _ _).symm,
        pairHom_commutes_restrict m,
        show pairFactorMap X.obj ≫ listProdRestrict X.obj.targets Y.obj.targets (pairHom_targets_subset m)
             = pairFactorMap X.obj ≫ eqToHom (congrArg listProd (X.htgt.trans Y.htgt.symm)) from
          pairFactorMap_restrict_eqToHom X.obj Y.obj.targets _ (X.htgt.trans Y.htgt.symm),
-       Cat.assoc, eqToHom_trans]
+       CategoryTheory.Category.assoc, eqToHom_trans]
     -- both sides now `pairFactorMap X.obj ≫ eqToHom (·)`; the two equalities `X° = U` coincide (proof
     -- irrelevance), so `eqToHom_trans` already closed the goal.
-    ⟩
+    )
 
 /-- **§1.547 — the functor `Φ : A*|U → A/(∏U)`.**  Objects `↦ pairOnUSlice` (the factor-slice over
     the common base `∏U`); morphisms `↦ pairOnUSliceMap` (the underlying arrow `m.g`, the slice
@@ -408,12 +411,12 @@ def pairOnUSliceMap [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U} (m : P
 instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
     Functor (fun X : PairOnU U => pairOnUSlice X) where
   map {X Y} (m : PairHom X.obj Y.obj) := pairOnUSliceMap m
-  map_id X := OverHom.ext rfl
-  map_comp m n := OverHom.ext rfl
+  map_id X := CategoryTheory.Over.OverMorphism.ext rfl
+  map_comp m n := CategoryTheory.Over.OverMorphism.ext rfl
 
 @[simp] theorem pairOnUToSlice_map_f [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
     (m : PairHom X.obj Y.obj) :
-    (pairOnUToSlice.map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).f = m.g := rfl
+    (pairOnUToSlice.map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).left = m.g := rfl
 
 /-! ### The functor `Φ` is an `EquivalenceFunctor` (fully faithful + essentially surjective)
 
@@ -429,7 +432,7 @@ instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
 theorem pairOnUToSlice_embedding [HasPullbacks 𝒞] (U : List 𝒞) :
     Embedding (fun X : PairOnU U => pairOnUSlice X) := by
   intro X Y m₁ m₂ h
-  exact PairHom.ext (congrArg OverHom.f h)
+  exact PairHom.ext (congrArg CategoryTheory.CommaMorphism.left h)
 
 /-- For `X Y : PairOnU U`, `Y°` is a subset of `X°` (both equal `U`).  The bridge's `hsub`. -/
 theorem pairOnU_targets_sub {U : List 𝒞} (X Y : PairOnU U) :
@@ -444,19 +447,20 @@ theorem pairOnU_targets_sub {U : List 𝒞} (X Y : PairOnU U) :
     and apply `pairFactorMap_restrict_eqToHom` to turn that into the base restriction. -/
 theorem pairOnUSlice_triangle_to_bridge [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
     (φ : OverHom (pairOnUSlice X) (pairOnUSlice Y)) :
-    φ.f ≫ pairFactorMap Y.obj
+    φ.left ≫ pairFactorMap Y.obj
       = pairFactorMap X.obj
           ≫ listProdRestrict X.obj.targets Y.obj.targets (pairOnU_targets_sub X Y) := by
-  have hw : φ.f ≫ (pairFactorMap Y.obj ≫ eqToHom (congrArg listProd Y.htgt))
+  have hw : φ.left ≫ (pairFactorMap Y.obj ≫ eqToHom (congrArg listProd Y.htgt))
       = pairFactorMap X.obj ≫ eqToHom (congrArg listProd X.htgt) := by
-    have := φ.w; simpa [pairOnUSlice_hom] using this
+    have := CategoryTheory.Over.w φ
+    simpa [pairOnUSlice_hom] using this
   -- right-cancel the iso `eqToHom (congrArg listProd Y.htgt)` from `hw`
-  have hiso : φ.f ≫ pairFactorMap Y.obj
+  have hiso : φ.left ≫ pairFactorMap Y.obj
       = pairFactorMap X.obj ≫ eqToHom (congrArg listProd (X.htgt.trans Y.htgt.symm)) := by
     have h2 := congrArg (· ≫ eqToHom (congrArg listProd Y.htgt).symm) hw
     -- LHS: cancel `eqToHom hY ≫ eqToHom hY.symm = id`; RHS: fuse the two `eqToHom`s.
-    simp only [Cat.assoc] at h2
-    rw [eqToHom_comp_eqToHom_symm, Cat.comp_id, eqToHom_trans] at h2
+    simp only [CategoryTheory.Category.assoc] at h2
+    rw [eqToHom_comp_eqToHom_symm, CategoryTheory.Category.comp_id, eqToHom_trans] at h2
     exact h2
   rw [hiso, ← pairFactorMap_restrict_eqToHom X.obj Y.obj.targets _ (X.htgt.trans Y.htgt.symm)]
 
@@ -467,8 +471,9 @@ theorem pairOnUSlice_triangle_to_bridge [HasPullbacks 𝒞] {U : List 𝒞} {X Y
 theorem pairOnUToSlice_full [HasPullbacks 𝒞] (U : List 𝒞) :
     Full (fun X : PairOnU U => pairOnUSlice X) := by
   intro X Y φ
-  refine ⟨pairHomOfSlice (pairOnU_targets_sub X Y) ⟨φ.f, ?_⟩, OverHom.ext rfl⟩
-  show φ.f ≫ (pairSliceObj Y.obj).hom
+  refine ⟨pairHomOfSlice (pairOnU_targets_sub X Y)
+    (CategoryTheory.Over.homMk φ.left ?_), CategoryTheory.Over.OverMorphism.ext rfl⟩
+  show φ.left ≫ (pairSliceObj Y.obj).hom
       = pairFactorMap X.obj ≫ listProdRestrict X.obj.targets Y.obj.targets (pairOnU_targets_sub X Y)
   rw [pairSliceObj_hom]
   exact pairOnUSlice_triangle_to_bridge φ
@@ -505,7 +510,7 @@ theorem padFactors_targets : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listProd 
 theorem eqToHom_listProd_cons {T : 𝒞} {l : List 𝒞} {U : List 𝒞} (e₀ : l = U) :
     eqToHom (congrArg listProd (congrArg (T :: ·) e₀))
       = pair (fst : prod T (listProd l) ⟶ T) (snd ≫ eqToHom (congrArg listProd e₀)) := by
-  cases e₀; simp only [eqToHom_refl, Cat.comp_id]; exact pair_fst_snd.symm
+  cases e₀; simp only [eqToHom_refl, CategoryTheory.Category.comp_id]; exact pair_fst_snd.symm
 
 /-- The padding factor list reconstructs `h`: composing `factorTuple (padFactors U h)` with the
     `eqToHom` re-typing its codomain `∏((padFactors U h)°)` to `∏U` recovers `h`.  By the product
@@ -532,11 +537,11 @@ theorem padFactors_factorTuple : ∀ (U : List 𝒞) {A : 𝒞} (h : A ⟶ listP
       have hfst : (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd)))
           ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
               (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ fst
-          = h ≫ fst := by rw [Cat.assoc, fst_pair, fst_pair]
+          = h ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
       have hsnd : (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd)))
           ≫ pair (fst : prod T (listProd ((padFactors U (h ≫ snd)).map (·.1))) ⟶ T)
               (snd ≫ eqToHom (congrArg listProd (padFactors_targets U (h ≫ snd))))) ≫ snd
-          = h ≫ snd := by rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, hsub]
+          = h ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair, hsub]
       rw [pair_uniq _ _ (pair (h ≫ fst) (factorTuple (padFactors U (h ≫ snd))) ≫ _) rfl rfl,
         hfst, hsnd, ← pair_uniq _ _ h rfl rfl]
 
@@ -583,9 +588,10 @@ def padPairObj (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nod
     (`padFactors_factorTuple`).  So no nontrivial iso is needed — the representative is exact. -/
 theorem pairOnUSlice_padPairObj [HasPullbacks 𝒞] (U : List 𝒞) (hws : ∀ T ∈ U, WellSupported T)
     (hnd : U.Nodup) {A : 𝒞} (h : A ⟶ listProd U) :
-    pairOnUSlice (padPairObj U hws hnd h) = (⟨A, h⟩ : Over (listProd U)) := by
-  show (⟨A, factorTuple (padFactors U h) ≫ eqToHom (congrArg listProd (padFactors_targets U h))⟩
-        : Over (listProd U)) = ⟨A, h⟩
+    pairOnUSlice (padPairObj U hws hnd h) = CategoryTheory.Over.mk h := by
+  show CategoryTheory.Over.mk
+      (factorTuple (padFactors U h) ≫ eqToHom (congrArg listProd (padFactors_targets U h)))
+        = CategoryTheory.Over.mk h
   rw [padFactors_factorTuple]
 
 /-- **§1.547 — `Φ : A*|U → A/(∏U)` is essentially surjective** (has a representative image): for a
@@ -598,6 +604,8 @@ theorem pairOnUToSlice_representativeImage [HasPullbacks 𝒞] (U : List 𝒞)
   intro Z
   have heq : pairOnUSlice (padPairObj U hws hnd Z.hom) = Z := by
     rw [pairOnUSlice_padPairObj]
+    rcases Z with ⟨Z, ⟨⟨⟩⟩, h⟩
+    rfl
   exact ⟨padPairObj U hws hnd Z.hom, eqToHom heq,
     ⟨eqToHom heq.symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩⟩
 

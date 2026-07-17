@@ -5,9 +5,11 @@
 
 import Fredy.S1_1
 
+open CategoryTheory
+
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -23,7 +25,7 @@ def MonicFamily {T : 𝒞} {I : Type} (feet : I → 𝒞) (cols : (i : I) → T 
   ∀ {X : 𝒞} (f g : X ⟶ T), (∀ i, f ≫ cols i = g ≫ cols i) → f = g
 
 def IsIso {X Y : 𝒞} (f : X ⟶ Y) : Prop :=
-  ∃ g : Y ⟶ X, f ≫ g = Cat.id X ∧ g ≫ f = Cat.id Y
+  ∃ g : Y ⟶ X, f ≫ g = 𝟙 X ∧ g ≫ f = 𝟙 Y
 
 /-- Isomorphisms are closed under composition; the inverse is `g⁻¹ ≫ f⁻¹`. -/
 theorem isIso_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : IsIso f) (hg : IsIso g) :
@@ -31,18 +33,18 @@ theorem isIso_comp {X Y Z : 𝒞} {f : X ⟶ Y} {g : Y ⟶ Z} (hf : IsIso f) (hg
   obtain ⟨f', hf1, hf2⟩ := hf
   obtain ⟨g', hg1, hg2⟩ := hg
   exact ⟨g' ≫ f',
-    by rw [Cat.assoc, ← Cat.assoc g, hg1, Cat.id_comp, hf1],
-    by rw [Cat.assoc, ← Cat.assoc f', hf2, Cat.id_comp, hg2]⟩
+    by rw [Category.assoc, ← Category.assoc g, hg1, Category.id_comp, hf1],
+    by rw [Category.assoc, ← Category.assoc f', hf2, Category.id_comp, hg2]⟩
 
 /-- A split mono is monic: a map with a retraction is left-cancellable. -/
 theorem mono_of_retraction {X Y : 𝒞} (m : X ⟶ Y) (r : Y ⟶ X)
-    (hr : m ≫ r = Cat.id X) : Monic m := by
+    (hr : m ≫ r = 𝟙 X) : Monic m := by
   intro W g h hgh
-  calc g = g ≫ m ≫ r   := by rw [hr, Cat.comp_id]
-    _    = (g ≫ m) ≫ r := (Cat.assoc _ _ _).symm
+  calc g = g ≫ m ≫ r   := by rw [hr, Category.comp_id]
+    _    = (g ≫ m) ≫ r := (Category.assoc _ _ _).symm
     _    = (h ≫ m) ≫ r := by rw [hgh]
-    _    = h ≫ m ≫ r   := Cat.assoc _ _ _
-    _    = h           := by rw [hr, Cat.comp_id]
+    _    = h ≫ m ≫ r   := Category.assoc _ _ _
+    _    = h           := by rw [hr, Category.comp_id]
 
 /-! ## §1.413  Containment of tables
 
@@ -74,14 +76,14 @@ theorem tableContained_mono {I : Type} {feet : I → 𝒞}
     (z : T ⟶ T') (hz : ∀ i, z ≫ cols' i = cols i) : Monic z :=
   fun {W} f g hfg => hm f g (fun i => by
     calc f ≫ cols i = f ≫ z ≫ cols' i := by rw [hz i]
-      _              = g ≫ z ≫ cols' i := by rw [← Cat.assoc, hfg, Cat.assoc]
+      _              = g ≫ z ≫ cols' i := by rw [← Category.assoc, hfg, Category.assoc]
       _              = g ≫ cols i      := by rw [hz i])
 
 /-- Containment is reflexive (witness = identity). -/
 theorem tableContained_refl {I : Type} {feet : I → 𝒞}
     {T : 𝒞} (cols : (i : I) → T ⟶ feet i) (hm : MonicFamily feet cols) :
     TableContained cols hm cols hm :=
-  ⟨Cat.id T, fun i => Cat.id_comp (cols i)⟩
+  ⟨𝟙 T, fun i => Category.id_comp (cols i)⟩
 
 /-- Containment is transitive. -/
 theorem tableContained_trans {I : Type} {feet : I → 𝒞}
@@ -91,7 +93,7 @@ theorem tableContained_trans {I : Type} {feet : I → 𝒞}
     (h1 : TableContained cols hm cols' hm') (h2 : TableContained cols' hm' cols'' hm'') :
     TableContained cols hm cols'' hm'' := by
   obtain ⟨z, hz⟩ := h1; obtain ⟨w, hw⟩ := h2
-  exact ⟨z ≫ w, fun i => by rw [Cat.assoc, hw i, hz i]⟩
+  exact ⟨z ≫ w, fun i => by rw [Category.assoc, hw i, hz i]⟩
 
 /-- Mutual containment gives an isomorphism of tops (partial order up to iso). -/
 theorem tableContained_antisymm {I : Type} {feet : I → 𝒞}
@@ -99,13 +101,13 @@ theorem tableContained_antisymm {I : Type} {feet : I → 𝒞}
     {T' : 𝒞} (cols' : (i : I) → T' ⟶ feet i) (hm' : MonicFamily feet cols')
     (h1 : TableContained cols hm cols' hm') (h2 : TableContained cols' hm' cols hm) :
     ∃ (z : T ⟶ T') (w : T' ⟶ T), (∀ i, z ≫ cols' i = cols i) ∧
-        (∀ i, w ≫ cols i = cols' i) ∧ z ≫ w = Cat.id T ∧ w ≫ z = Cat.id T' := by
+        (∀ i, w ≫ cols i = cols' i) ∧ z ≫ w = 𝟙 T ∧ w ≫ z = 𝟙 T' := by
   obtain ⟨z, hz⟩ := h1; obtain ⟨w, hw⟩ := h2
   refine ⟨z, w, hz, hw, ?_, ?_⟩
   · -- z ≫ w = id T: both make cols agree, use hm
-    exact hm (z ≫ w) (Cat.id T) (fun i => by rw [Cat.assoc, hw i, hz i, Cat.id_comp])
+    exact hm (z ≫ w) (𝟙 T) (fun i => by rw [Category.assoc, hw i, hz i, Category.id_comp])
   · -- w ≫ z = id T': both make cols' agree, use hm'
-    exact hm' (w ≫ z) (Cat.id T') (fun i => by rw [Cat.assoc, hz i, hw i, Cat.id_comp])
+    exact hm' (w ≫ z) (𝟙 T') (fun i => by rw [Category.assoc, hz i, hw i, Category.id_comp])
 
 /-! ## §1.414  Monic iff subterminator in the slice
 
@@ -131,3 +133,5 @@ theorem mono_iff_monoInSlice {A B : 𝒞} (f : A ⟶ B) : Monic f ↔ MonoInSlic
     exact hm u v (by rw [hu, hv])
   · intro hs W u v huv
     exact hs (u ≫ f) u v rfl (by rw [huv])
+
+end Freyd

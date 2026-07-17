@@ -36,13 +36,13 @@
 import Fredy.S1_422_FunctorCategory
 import Fredy.S1_595_AbRegular
 
-open Freyd
+open CategoryTheory Freyd
 
 universe u
 
 namespace Freyd.AbFun
 
-variable {𝒜 𝒮 : Type u} [Cat.{u} 𝒜] [Cat.{u} 𝒮] [HasTerminal 𝒮] [HasBinaryProducts 𝒮]
+variable {𝒜 𝒮 : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} 𝒮] [HasTerminal 𝒮] [HasBinaryProducts 𝒮]
 
 /-! ## Forward direction  `Ab(𝒮^𝒜) → (Ab 𝒮)^𝒜`
 
@@ -101,9 +101,9 @@ def bwdZero (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
   app a := (H.obj a).zero
   naturality {a b} f := by
     have h := hom_preserves_zero (H.isFunctor.map f).property (term (one : 𝒮))
-    rw [term_uniq (term (one : 𝒮)) (Cat.id one), Cat.id_comp, Cat.id_comp] at h
-    show Cat.id one ≫ (H.obj b).zero = (H.obj a).zero ≫ (H.isFunctor.map f).val
-    rw [Cat.id_comp, h]
+    rw [term_uniq (term (one : 𝒮)) (𝟙 one), CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp] at h
+    show 𝟙 one ≫ (H.obj b).zero = (H.obj a).zero ≫ (H.isFunctor.map f).val
+    rw [CategoryTheory.Category.id_comp, h]
 
 /-- Levelwise negation as an NT `bwdCarrier H ⟶ bwdCarrier H`.  Naturality = `H.map f`
     preserves negation (`hom_preserves_neg`). -/
@@ -111,8 +111,8 @@ def bwdNeg (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
     bwdCarrier H ⟶ bwdCarrier H where
   app a := (H.obj a).neg
   naturality {a b} f := by
-    have h := hom_preserves_neg (H.isFunctor.map f).property (Cat.id (H.obj a).carrier)
-    rw [Cat.id_comp, Cat.id_comp] at h
+    have h := hom_preserves_neg (H.isFunctor.map f).property (𝟙 (H.obj a).carrier)
+    rw [CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp] at h
     exact h.symm
 
 /-- Levelwise addition as an NT `bwdCarrier H × bwdCarrier H ⟶ bwdCarrier H`.  Naturality is
@@ -184,7 +184,7 @@ theorem fwdHom_bwdHom (ψ : FunctorHom (fwdFun G₁) (fwdFun G₂)) : fwdHom (bw
 
 /-- `fwdHom` preserves identities (`Cat.id` in `Ab(𝒮^𝒜)` ↦ `natTrans_id` in `(Ab 𝒮)^𝒜`). -/
 theorem fwdHom_id (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) :
-    fwdHom (Cat.id G) = natTrans_id (fwdFun G) := rfl
+    fwdHom (𝟙 G) = natTrans_id (fwdFun G) := rfl
 
 /-- `fwdHom` preserves composition (`≫` in `Ab(𝒮^𝒜)` ↦ `natTrans_comp` in `(Ab 𝒮)^𝒜`).
     (Args typed as `G₁ ⟶ G₂` — syntactically `Cat.Hom` — so `≫` resolves the `Ab(𝒮^𝒜)` instance.) -/

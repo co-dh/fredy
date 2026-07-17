@@ -10,7 +10,7 @@ import Fredy.S1_31
 import Fredy.S1_41
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -42,7 +42,9 @@ theorem functor_preserves_iso_obj (F : 𝒞 → 𝒟) [hF : Functor F] {A B : �
     (h : Isomorphic A B) : Isomorphic (F A) (F B) := by
   rcases h with ⟨f, hf_iso⟩
   rcases hf_iso with ⟨g, hfg, hgf⟩
-  have h_iso : IsIso (hF.map f) := functor_preserves_iso (F := F) f ⟨g, hfg, hgf⟩
+  have h_iso : IsIso (hF.map f) := ⟨hF.map g,
+    by rw [← hF.map_comp, hfg, hF.map_id],
+    by rw [← hF.map_comp, hgf, hF.map_id]⟩
   exact ⟨hF.map f, h_iso⟩
 
 /-- Full embeddings reflect isomorphism of objects. -/

@@ -42,7 +42,7 @@ import Fredy.S1_64
 
 universe v u
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Alg
 
 namespace Freyd.Alg
@@ -455,11 +455,11 @@ instance relMapAllegory : Allegory.{v} (RelMapObj 𝒜) where
   At the allegory level they preserve all operations. -/
 
 /-- **§2.148 Φ** — sends `R : a ⟶ b` to `⟨R, tabular⟩` in RelMap 𝒜. -/
-def relMap_Phi {a b : 𝒜} (R : a ⟶ b) : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩ :=
+def relMap_Phi {a b : 𝒜} (R : a ⟶ b) : @Cat.Hom _ relMapAllegory.toCategory ⟨a⟩ ⟨b⟩ :=
   ⟨R, TabularAllegory.tabular R⟩
 
 /-- **§2.148 Ψ** — discards the tabularity certificate. -/
-def relMap_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩) : a ⟶ b :=
+def relMap_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCategory ⟨a⟩ ⟨b⟩) : a ⟶ b :=
   R.val
 
 /-- **§2.148 (Ψ∘Φ = id)**. -/
@@ -467,7 +467,7 @@ def relMap_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩
     relMap_Psi (relMap_Phi R) = R := rfl
 
 /-- **§2.148 (Φ∘Ψ = id)**. -/
-@[simp] theorem relMap_Phi_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩) :
+@[simp] theorem relMap_Phi_Psi {a b : 𝒜} (R : @Cat.Hom _ relMapAllegory.toCategory ⟨a⟩ ⟨b⟩) :
     relMap_Phi (relMap_Psi R) = R := by cases R; rfl
 
 /-- **§2.148 — Φ preserves composition** (val-level). -/
@@ -564,7 +564,7 @@ variable {𝒜 : Type u} [TabularAllegory 𝒜]
 
 /-- The hom-map of Ψ: forget the tabularity certificate, reindexed by `obj`-projections. -/
 private def relMap_Psi_map {A B : RelMapObj 𝒜}
-    (R : @Cat.Hom _ relMapAllegory.toCat A B) : A.obj ⟶ B.obj := R.val
+    (R : @Cat.Hom _ relMapAllegory.toCategory A B) : A.obj ⟶ B.obj := R.val
 
 /-- **§2.148 — Ψ is an allegory functor** RelMap 𝒜 → 𝒜. -/
 def relMap_Psi_functor : AllegoryFunctor (RelMapObj 𝒜) 𝒜 where
@@ -579,7 +579,7 @@ def relMap_Psi_functor : AllegoryFunctor (RelMapObj 𝒜) 𝒜 where
 
 /-- The hom-map of Φ: wrap with tabularity certificate. -/
 private def relMap_Phi_map {a b : 𝒜} (R : a ⟶ b) :
-    @Cat.Hom _ relMapAllegory.toCat ⟨a⟩ ⟨b⟩ :=
+    @Cat.Hom _ relMapAllegory.toCategory ⟨a⟩ ⟨b⟩ :=
   ⟨R, TabularAllegory.tabular R⟩
 
 /-- Φ preserves `≫` at the Subtype level. -/
@@ -622,7 +622,7 @@ private theorem relMap_PsiPhi_obj (a : 𝒜) :
 
 /-- Φ∘Ψ = id on homs (HEq): `Φ(Ψ(S)) ≅ S`. -/
 private theorem relMap_PhiPsi_map {A B : RelMapObj 𝒜}
-    (S : @Cat.Hom _ relMapAllegory.toCat A B) :
+    (S : @Cat.Hom _ relMapAllegory.toCategory A B) :
     HEq (relMap_Phi_functor.map (relMap_Psi_functor.map S)) S := by
   cases A; cases B; cases S; exact HEq.refl _
 
@@ -751,8 +751,8 @@ section MapPreLogos
 -- `HasSubobjectUnions` (the pre-logos upgrade), which lives in the next section.
 variable {A : Type u} [TabularUnitaryAllegory A]
 
--- mapCat is at priority 0 by default; do NOT raise it higher than Allegory.toCat (~1000)
--- since that would break the allegory operations (°, ⊑, etc.) which use Allegory.toCat.
+-- mapCat is at priority 0 by default; do NOT raise it higher than Allegory.toCategory (~1000)
+-- since that would break the allegory operations (°, ⊑, etc.) which use Allegory.toCategory.
 -- All mapCat hom usage must be annotated with @Cat.Hom _ (mapCat ..) or @HasPullback.mk etc.
 
 -- Subtype equality helper for mapCat homs
@@ -1626,7 +1626,7 @@ theorem mapEffectivenessSplit {a Q : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 :
   underlying ALLEGORY endo `relOf E := colA° ≫ colB : A → A` of `A`.
 
   CONVENTION NOTE.  `MapObj A` is an `abbrev` for `A`, so the `Cat (MapObj A)` instance `mapCat`
-  is NEVER auto-found (Lean unfolds `MapObj A → A` and picks the allegory's `Allegory.toCat`).
+  is NEVER auto-found (Lean unfolds `MapObj A → A` and picks the allegory's `Allegory.toCategory`).
   Every `BinRel (MapObj A)` field projection therefore re-synthesizes the wrong `Cat` instance and
   fails with "synthesized instance not defeq".  The fix used throughout this section is to pass
   `mapCat` EXPLICITLY to each projection — packaged once in the accessors `relColA`/`relColB`
@@ -1648,12 +1648,12 @@ theorem mapEffectivenessSplit {a Q : A} (x : @Cat.Hom (MapObj A) (mapCat (𝒜 :
 
 /-- Underlying allegory leg `colA.val : E.src → a` of a Map(A) relation (instance pinned). -/
 @[reducible] def relColA {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
-    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) a :=
+    @Cat.Hom A Allegory.toCategory (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) a :=
   (@BinRel.colA (MapObj A) (mapCat (𝒜 := A)) a b E).val
 
 /-- Underlying allegory leg `colB.val : E.src → b` of a Map(A) relation (instance pinned). -/
 @[reducible] def relColB {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
-    @Cat.Hom A Allegory.toCat (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) b :=
+    @Cat.Hom A Allegory.toCategory (@BinRel.src (MapObj A) (mapCat (𝒜 := A)) a b E) b :=
   (@BinRel.colB (MapObj A) (mapCat (𝒜 := A)) a b E).val
 
 /-- `relColA E` is a map of `A`. -/
@@ -1668,7 +1668,7 @@ def relColB_map {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) : Ma
     `relOf E = E.colA° ≫ E.colB : a → b` in the allegory `A`.  (`relOf (graph x) = x`, and
     `relOf (E°) = (relOf E)°`.) -/
 def relOf {a b : A} (E : @BinRel (MapObj A) (mapCat (𝒜 := A)) a b) :
-    @Cat.Hom A Allegory.toCat a b :=
+    @Cat.Hom A Allegory.toCategory a b :=
   Allegory.recip (relColA E) ≫ relColB E
 
 /-- **§2.217(2) dictionary (forward, structural)**: a `Map(A)`-containment `E ⊂ F` descends to

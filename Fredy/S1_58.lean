@@ -20,11 +20,11 @@ import Fredy.S1_52
 import Fredy.S1_56
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -34,7 +34,7 @@ namespace Freyd
   has finite limits and colimits. -/
 
 /-- Has coterminator (initial object): dual to HasTerminal. -/
-class HasCoterminator (𝒞 : Type u) [Cat.{v} 𝒞] where
+class HasCoterminator (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] where
   zero  : 𝒞
   init  : (X : 𝒞) → zero ⟶ X
   init_uniq  : ∀ {X : 𝒞} (f g : zero ⟶ X), f = g
@@ -64,14 +64,14 @@ theorem strictCoterminator_hom_unique [HasBinaryProducts 𝒞] {Z : 𝒞}
   obtain ⟨inv, hfi, _hif⟩ := hZ (fst : prod Z A ⟶ Z)
   -- hfi : fst ≫ inv = 1_{Z×A}.  Show every `h` collapses to `inv ≫ snd`.
   have key : ∀ h : Z ⟶ A, h = inv ≫ snd := fun h => by
-    have hpair : pair (Cat.id Z) h = inv :=
-      calc pair (Cat.id Z) h
-          = pair (Cat.id Z) h ≫ Cat.id (prod Z A) := (Cat.comp_id _).symm
-        _ = pair (Cat.id Z) h ≫ (fst ≫ inv) := congrArg (pair (Cat.id Z) h ≫ ·) hfi.symm
-        _ = (pair (Cat.id Z) h ≫ fst) ≫ inv := (Cat.assoc _ _ _).symm
-        _ = Cat.id Z ≫ inv := congrArg (· ≫ inv) (fst_pair (Cat.id Z) h)
-        _ = inv := Cat.id_comp _
-    calc h = pair (Cat.id Z) h ≫ snd := (snd_pair _ _).symm
+    have hpair : pair (𝟙 Z) h = inv :=
+      calc pair (𝟙 Z) h
+          = pair (𝟙 Z) h ≫ 𝟙 (prod Z A) := (CategoryTheory.Category.comp_id _).symm
+        _ = pair (𝟙 Z) h ≫ (fst ≫ inv) := congrArg (pair (𝟙 Z) h ≫ ·) hfi.symm
+        _ = (pair (𝟙 Z) h ≫ fst) ≫ inv := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = 𝟙 Z ≫ inv := congrArg (· ≫ inv) (fst_pair (𝟙 Z) h)
+        _ = inv := CategoryTheory.Category.id_comp _
+    calc h = pair (𝟙 Z) h ≫ snd := (snd_pair _ _).symm
       _ = inv ≫ snd := congrArg (· ≫ snd) hpair
   exact (key f).trans (key g).symm
 
@@ -106,7 +106,7 @@ def coterm : 𝒞 := HasCoterminator.zero
 def zeroMap (X : 𝒞) : coterm ⟶ X := HasCoterminator.init X
 
 /-- Has binary coproducts: dual to HasBinaryProducts. -/
-class HasBinaryCoproducts (𝒞 : Type u) [Cat.{v} 𝒞] where
+class HasBinaryCoproducts (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] where
   coprod : 𝒞 → 𝒞 → 𝒞
   inl    : {A B : 𝒞} → A ⟶ coprod A B
   inr    : {A B : 𝒞} → B ⟶ coprod A B
@@ -127,11 +127,11 @@ class HasCoequalizer {A B : 𝒞} (f g : A ⟶ B) where
     map ≫ m = h → m = desc h h_eq
 
 /-- Has coequalizers: dual to HasEqualizers. -/
-class HasCoequalizers (𝒞 : Type u) [Cat.{v} 𝒞] where
+class HasCoequalizers (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] where
   coeq : ∀ {A B : 𝒞} (f g : A ⟶ B), HasCoequalizer f g
 
 /-- A BICARTESIAN CATEGORY: Cartesian + coCartesian (§1.58). -/
-class BicartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+class BicartesianCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends
     CartesianCategory 𝒞, HasCoterminator 𝒞, HasBinaryCoproducts 𝒞, HasCoequalizers 𝒞
 
 /-! ## Coequalizer maps are covers
@@ -146,25 +146,25 @@ class BicartesianCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     then the universal property of q gives k : C → D with q ≫ k = h;
     then q ≫ (k ≫ m) = q forces k ≫ m = id by uniqueness; and
     (m ≫ k) ≫ m = m with m mono forces m ≫ k = id. -/
-theorem coeq_map_is_cover {𝒟 : Type u} [Cat.{v} 𝒟] {A B : 𝒟} {f g : A ⟶ B}
+theorem coeq_map_is_cover {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] {A B : 𝒟} {f g : A ⟶ B}
     (hcoeq : HasCoequalizer f g) : Cover hcoeq.map := by
   intro D m h hm hfac
   -- From h ≫ m = q and f ≫ q = g ≫ q, deduce f ≫ h = g ≫ h (via m monic).
   have heq : f ≫ h = g ≫ h :=
-    hm _ _ (by rw [Cat.assoc, Cat.assoc, hfac]; exact hcoeq.eq)
+    hm _ _ (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hfac]; exact hcoeq.eq)
   -- The coequalizer universal property gives k : C → D with q ≫ k = h.
   let k := hcoeq.desc h heq
   have hqk : hcoeq.map ≫ k = h := hcoeq.fac h heq
   -- q ≫ (k ≫ m) = h ≫ m = q = q ≫ id_C, so k ≫ m = id_C by coeq uniqueness.
-  have hkm : k ≫ m = Cat.id hcoeq.obj := by
+  have hkm : k ≫ m = 𝟙 hcoeq.obj := by
     have step1 : hcoeq.map ≫ (k ≫ m) = hcoeq.map := by
-      rw [← Cat.assoc, hqk, hfac]
-    have step2 : hcoeq.map ≫ Cat.id hcoeq.obj = hcoeq.map := Cat.comp_id _
+      rw [← CategoryTheory.Category.assoc, hqk, hfac]
+    have step2 : hcoeq.map ≫ 𝟙 hcoeq.obj = hcoeq.map := CategoryTheory.Category.comp_id _
     exact (hcoeq.uniq hcoeq.map hcoeq.eq (k ≫ m) step1).trans
-      (hcoeq.uniq hcoeq.map hcoeq.eq (Cat.id _) step2).symm
+      (hcoeq.uniq hcoeq.map hcoeq.eq (𝟙 _) step2).symm
   -- m ≫ k satisfies (m ≫ k) ≫ m = m = id_D ≫ m, so m ≫ k = id_D by m-monicity.
-  have hmk : m ≫ k = Cat.id D :=
-    hm _ _ (by rw [Cat.assoc, hkm, Cat.comp_id, Cat.id_comp])
+  have hmk : m ≫ k = 𝟙 D :=
+    hm _ _ (by rw [CategoryTheory.Category.assoc, hkm, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp])
   exact ⟨k, hmk, hkm⟩
 
 /-! ## §1.581 Bicartesian representations preserve covers
@@ -177,7 +177,7 @@ theorem coeq_map_is_cover {𝒟 : Type u} [Cat.{v} 𝒟] {A B : 𝒟} {f g : A �
 /-- F PRESERVES COEQUALIZERS: the image of any coequalizer in 𝒜 is a
     coequalizer in ℬ.  Concretely: if q : B → C is the coequalizer of f, g
     in 𝒜, then hF.map q : F B → F C is the coequalizer of hF.map f, hF.map g. -/
-def PreservesCoequalizers {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+def PreservesCoequalizers {𝒜 ℬ : Type u} [CategoryTheory.Category.{v} 𝒜] [CategoryTheory.Category.{v} ℬ]
     (F : 𝒜 → ℬ) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒜} (f g : A ⟶ B) [hcoeq : HasCoequalizer f g],
     hF.map f ≫ hF.map hcoeq.map = hF.map g ≫ hF.map hcoeq.map ∧
@@ -195,7 +195,7 @@ def PreservesCoequalizers {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     (4) F f = F(hce.map) ≫ F(e₁); F(hce.map) is a cover (coeq_map_is_cover)
         and F(e₁) is an iso; cover ≫ iso = cover. -/
 theorem bicart_repr_preserves_covers
-    {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+    {𝒜 ℬ : Type u} [CategoryTheory.Category.{v} 𝒜] [CategoryTheory.Category.{v} ℬ]
     [RegularCategory 𝒜] [HasCoequalizers 𝒜]
     [RegularCategory ℬ] [HasCoequalizers ℬ]
     (F : 𝒜 → ℬ) [hF : Functor F]
@@ -210,15 +210,16 @@ theorem bicart_repr_preserves_covers
   -- e₂ : B → hce.obj: f is a coeq of its kernel pair (§1.566), kp₁ ≫ hce.map = kp₂ ≫ hce.map.
   obtain ⟨e₂, he₂, _⟩ := cover_is_coequalizer_of_level f hf hce.map hce.eq
   -- e₁ ≫ e₂ = id: hce.map ≫ (e₁ ≫ e₂) = f ≫ e₂ = hce.map = hce.map ≫ id.
-  have he₁e₂ : e₁ ≫ e₂ = Cat.id hce.obj :=
-    (hce.uniq hce.map hce.eq (e₁ ≫ e₂) (by rw [← Cat.assoc, he₁, he₂])).trans
-    (hce.uniq hce.map hce.eq (Cat.id _) (Cat.comp_id _)).symm
+  have he₁e₂ : e₁ ≫ e₂ = 𝟙 hce.obj :=
+    (hce.uniq hce.map hce.eq (e₁ ≫ e₂) (by rw [← CategoryTheory.Category.assoc, he₁, he₂])).trans
+    (hce.uniq hce.map hce.eq (𝟙 _) (CategoryTheory.Category.comp_id _)).symm
   -- e₂ ≫ e₁ = id: f ≫ (e₂ ≫ e₁) = hce.map ≫ e₁ = f = f ≫ id; f is epi.
-  have he₂e₁ : e₂ ≫ e₁ = Cat.id B :=
-    cover_epi hf (by rw [← Cat.assoc, he₂, he₁, Cat.comp_id])
+  have he₂e₁ : e₂ ≫ e₁ = 𝟙 B :=
+    cover_epi hf (by rw [← CategoryTheory.Category.assoc, he₂, he₁, CategoryTheory.Category.comp_id])
   -- e₁ is an iso; hence F e₁ is an iso.
   have he₁_iso : IsIso e₁ := ⟨e₂, by exact he₁e₂, he₂e₁⟩
-  have hFe₁_iso : IsIso (hF.map e₁) := functor_preserves_iso e₁ he₁_iso
+  have hFe₁_iso : IsIso (hF.map e₁) :=
+    functor_preserves_iso (bundledFunctor F) e₁ he₁_iso
   -- F(hce.map) is a cover: build HasCoequalizer in ℬ from hpres, apply coeq_map_is_cover.
   obtain ⟨hpeq, hpfac⟩ := hpres (kp₁ (f := f)) (kp₂ (f := f))
   let hceB : HasCoequalizer (hF.map (kp₁ (f := f))) (hF.map (kp₂ (f := f))) :=
@@ -234,55 +235,55 @@ theorem bicart_repr_preserves_covers
   -- m' = m ≫ e₁inv : C → F hce.obj.  g ≫ m' = F hce.map (post-compose hgm with e₁inv).
   let m' : C ⟶ F hce.obj := m ≫ e₁inv
   have hgm'_eq : g ≫ m' = hF.map hce.map :=
-    calc g ≫ m ≫ e₁inv = (g ≫ m) ≫ e₁inv := (Cat.assoc _ _ _).symm
+    calc g ≫ m ≫ e₁inv = (g ≫ m) ≫ e₁inv := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (hF.map hce.map ≫ hF.map e₁) ≫ e₁inv := by rw [hgm]
-      _ = hF.map hce.map ≫ (hF.map e₁ ≫ e₁inv) := Cat.assoc _ _ _
-      _ = hF.map hce.map := by rw [he₁inv_left, Cat.comp_id]
+      _ = hF.map hce.map ≫ (hF.map e₁ ≫ e₁inv) := CategoryTheory.Category.assoc _ _ _
+      _ = hF.map hce.map := by rw [he₁inv_left, CategoryTheory.Category.comp_id]
   -- m' is monic: m is mono, e₁inv is iso hence mono (has right inverse F e₁).
   have hm'_mono : Monic m' := by
     intro W a b hab
     -- hab : a ≫ m' = b ≫ m', i.e. a ≫ m ≫ e₁inv = b ≫ m ≫ e₁inv.
     -- (a ≫ m) ≫ e₁inv = (b ≫ m) ≫ e₁inv (by assoc)
     have hstep : (a ≫ m) ≫ e₁inv = (b ≫ m) ≫ e₁inv :=
-      calc (a ≫ m) ≫ e₁inv = a ≫ m ≫ e₁inv := Cat.assoc _ _ _
+      calc (a ≫ m) ≫ e₁inv = a ≫ m ≫ e₁inv := CategoryTheory.Category.assoc _ _ _
         _ = b ≫ m ≫ e₁inv := hab
-        _ = (b ≫ m) ≫ e₁inv := (Cat.assoc _ _ _).symm
+        _ = (b ≫ m) ≫ e₁inv := (CategoryTheory.Category.assoc _ _ _).symm
     -- Post-compose with F e₁ (right inverse of e₁inv) to cancel e₁inv.
     have heq_m : a ≫ m = b ≫ m :=
-      calc a ≫ m = (a ≫ m) ≫ (e₁inv ≫ hF.map e₁) := by rw [he₁inv_right, Cat.comp_id]
-        _ = ((a ≫ m) ≫ e₁inv) ≫ hF.map e₁ := (Cat.assoc _ _ _).symm
+      calc a ≫ m = (a ≫ m) ≫ (e₁inv ≫ hF.map e₁) := by rw [he₁inv_right, CategoryTheory.Category.comp_id]
+        _ = ((a ≫ m) ≫ e₁inv) ≫ hF.map e₁ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = ((b ≫ m) ≫ e₁inv) ≫ hF.map e₁ := by rw [hstep]
-        _ = (b ≫ m) ≫ (e₁inv ≫ hF.map e₁) := Cat.assoc _ _ _
-        _ = b ≫ m := by rw [he₁inv_right, Cat.comp_id]
+        _ = (b ≫ m) ≫ (e₁inv ≫ hF.map e₁) := CategoryTheory.Category.assoc _ _ _
+        _ = b ≫ m := by rw [he₁inv_right, CategoryTheory.Category.comp_id]
     exact hm _ _ heq_m
   -- F kp₁ ≫ g = F kp₂ ≫ g: from hm'_mono, since (F kp₁ ≫ g) ≫ m' = (F kp₂ ≫ g) ≫ m'
   -- (both equal F kp₁/kp₂ ≫ F hce.map via hgm'_eq and hpeq).
   have hkp_g : hF.map (kp₁ (f := f)) ≫ g = hF.map (kp₂ (f := f)) ≫ g :=
     hm'_mono _ _ (by
-      rw [Cat.assoc, Cat.assoc, hgm'_eq]
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hgm'_eq]
       exact hpeq)
   -- k : F hce.obj → C, the candidate inverse of m'.  hceB.desc g hkp_g : obj ⟶ C.
   let k : F hce.obj ⟶ C := hceB.desc g hkp_g
   have hqk : hceB.map ≫ k = g := hceB.fac g hkp_g
   -- k ≫ m' = id_{F hce.obj}: hceB.map ≫ (k ≫ m') = g ≫ m' = hceB.map, use uniq.
-  have hkm' : k ≫ m' = Cat.id hceB.obj :=
+  have hkm' : k ≫ m' = 𝟙 hceB.obj :=
     (hceB.uniq hceB.map hceB.eq (k ≫ m')
-      (by rw [← Cat.assoc, hqk]; exact hgm'_eq)).trans
-    (hceB.uniq hceB.map hceB.eq (Cat.id _) (Cat.comp_id _)).symm
+      (by rw [← CategoryTheory.Category.assoc, hqk]; exact hgm'_eq)).trans
+    (hceB.uniq hceB.map hceB.eq (𝟙 _) (CategoryTheory.Category.comp_id _)).symm
   -- m' ≫ k = id_C: hm'_mono: (m' ≫ k) ≫ m' = m' ≫ (k ≫ m') = m' = id ≫ m'.
-  have hm'k : m' ≫ k = Cat.id C :=
+  have hm'k : m' ≫ k = 𝟙 C :=
     hm'_mono _ _ (by
       have lhs : (m' ≫ k) ≫ m' = m' := by
-        rw [Cat.assoc, hkm']; exact Cat.comp_id m'
-      rw [lhs, Cat.id_comp])
+        rw [CategoryTheory.Category.assoc, hkm']; exact CategoryTheory.Category.comp_id m'
+      rw [lhs, CategoryTheory.Category.id_comp])
   -- So m' = m ≫ e₁inv is iso.  Then m = m' ≫ F e₁ is a composition of isos, hence iso.
   have hm'_iso : IsIso m' := ⟨k, hm'k, hkm'⟩
   -- m = m' ≫ F e₁ (since e₁inv ≫ F e₁ = id).
   have hm_eq : m = m' ≫ hF.map e₁ := by
-    rw [show m' ≫ hF.map e₁ = m ≫ e₁inv ≫ hF.map e₁ from Cat.assoc _ _ _,
-        he₁inv_right, Cat.comp_id]
+    rw [show m' ≫ hF.map e₁ = m ≫ e₁inv ≫ hF.map e₁ from CategoryTheory.Category.assoc _ _ _,
+        he₁inv_right, CategoryTheory.Category.comp_id]
   rw [hm_eq]
-  exact isIso_comp hm'_iso (functor_preserves_iso e₁ he₁_iso)
+  exact isIso_comp hm'_iso (functor_preserves_iso (bundledFunctor F) e₁ he₁_iso)
 
 /-! ## §1.582 Image via coequalizer
 
@@ -310,9 +311,9 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
   have hkp_e : kp₁ (f := x) ≫ image.lift x = kp₂ (f := x) ≫ image.lift x :=
     hi_mono _ _
       (calc (kp₁ (f:=x) ≫ image.lift x) ≫ (image x).arr
-          = kp₁ (f:=x) ≫ x := by rw [Cat.assoc]; exact congrArg (kp₁ (f:=x) ≫ ·) (image.lift_fac x)
+          = kp₁ (f:=x) ≫ x := by rw [CategoryTheory.Category.assoc]; exact congrArg (kp₁ (f:=x) ≫ ·) (image.lift_fac x)
         _ = kp₂ (f:=x) ≫ x := kp_sq
-        _ = (kp₂ (f:=x) ≫ image.lift x) ≫ (image x).arr := by rw [Cat.assoc]; exact (congrArg (kp₂ (f:=x) ≫ ·) (image.lift_fac x)).symm)
+        _ = (kp₂ (f:=x) ≫ image.lift x) ≫ (image x).arr := by rw [CategoryTheory.Category.assoc]; exact (congrArg (kp₂ (f:=x) ≫ ·) (image.lift_fac x)).symm)
   -- φ : C → I.dom from coeq UMP applied to (image.lift x).
   have hqφ : hcoeq.map ≫ hcoeq.desc (image.lift x) hkp_e = image.lift x :=
     hcoeq.fac (image.lift x) hkp_e
@@ -320,17 +321,17 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
   have hm_eq : hcoeq.desc x kp_sq =
       hcoeq.desc (image.lift x) hkp_e ≫ (image x).arr :=
     cover_epi hq (by
-      rw [hcoeq.fac x kp_sq, ← Cat.assoc, hqφ, image.lift_fac])
+      rw [hcoeq.fac x kp_sq, ← CategoryTheory.Category.assoc, hqφ, image.lift_fac])
   -- kp₁(e) ≫ q = kp₂(e) ≫ q: lift kp_sq(e) into kernelPair(x), then use hcoeq.eq.
   have hkp_eq_q : kp₁ (f := image.lift x) ≫ hcoeq.map = kp₂ (f := image.lift x) ≫ hcoeq.map := by
     -- kp₁(e) ≫ x = kp₂(e) ≫ x via kp_sq(e) and image factorization.
     have hke_x : kp₁ (f := image.lift x) ≫ x = kp₂ (f := image.lift x) ≫ x :=
       calc kp₁ (f:=image.lift x) ≫ x
           = kp₁ (f:=image.lift x) ≫ image.lift x ≫ (image x).arr := by rw [image.lift_fac]
-        _ = (kp₁ (f:=image.lift x) ≫ image.lift x) ≫ (image x).arr := (Cat.assoc _ _ _).symm
+        _ = (kp₁ (f:=image.lift x) ≫ image.lift x) ≫ (image x).arr := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (kp₂ (f:=image.lift x) ≫ image.lift x) ≫ (image x).arr := by
               exact congrArg (· ≫ _) kp_sq
-        _ = kp₂ (f:=image.lift x) ≫ image.lift x ≫ (image x).arr := Cat.assoc _ _ _
+        _ = kp₂ (f:=image.lift x) ≫ image.lift x ≫ (image x).arr := CategoryTheory.Category.assoc _ _ _
         _ = kp₂ (f:=image.lift x) ≫ x := by rw [image.lift_fac]
     -- Lift l : kernelPair(e) → kernelPair(x) via the pullback.
     have hl₁ := kp_lift_p₁ (kp₁ (f:=image.lift x)) (kp₂ (f:=image.lift x)) hke_x
@@ -345,15 +346,15 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
     -- step4: l ≫ (kp₂(x) ≫ q) = (l ≫ kp₂(x)) ≫ q  [assoc.symm]
     -- step5: (l ≫ kp₂(x)) ≫ q = kp₂(e) ≫ q  [from hl₂]
     exact (congrArg (· ≫ hcoeq.map) hl₁.symm).trans
-      ((Cat.assoc l _ _).trans
+      ((CategoryTheory.Category.assoc l _ _).trans
         ((congrArg (l ≫ ·) hcoeq.eq).trans
-          ((Cat.assoc l _ _).symm.trans (congrArg (· ≫ hcoeq.map) hl₂))))
+          ((CategoryTheory.Category.assoc l _ _).symm.trans (congrArg (· ≫ hcoeq.map) hl₂))))
   -- ψ : I.dom → C from cover_is_coequalizer_of_level applied to (image.lift x).
   obtain ⟨ψ, heψ, _⟩ :=
     cover_is_coequalizer_of_level (image.lift x) he_cover hcoeq.map hkp_eq_q
   -- φ ≫ ψ = id_C (cover_epi hq) and ψ ≫ φ = id (cover_epi he_cover).
-  have hφψ : hcoeq.desc (image.lift x) hkp_e ≫ ψ = Cat.id hcoeq.obj :=
-    cover_epi hq (by rw [← Cat.assoc, hqφ, heψ, Cat.comp_id])
+  have hφψ : hcoeq.desc (image.lift x) hkp_e ≫ ψ = 𝟙 hcoeq.obj :=
+    cover_epi hq (by rw [← CategoryTheory.Category.assoc, hqφ, heψ, CategoryTheory.Category.comp_id])
   -- Monic m: given u ≫ m = v ≫ m, rewrite via hm_eq to use φ,I.arr.
   intro W u v huv
   -- First get u ≫ φ ≫ I.arr = v ≫ φ ≫ I.arr from huv via hm_eq.
@@ -362,13 +363,13 @@ theorem image_via_coeq [BicartesianCategory 𝒞] [RegularCategory 𝒞]
     rw [← hm_eq]; exact huv
   -- Cancel I.arr (monic) to get u ≫ φ = v ≫ φ.
   have hφ_eq : u ≫ hcoeq.desc (image.lift x) hkp_e = v ≫ hcoeq.desc (image.lift x) hkp_e :=
-    hi_mono _ _ (by rw [Cat.assoc, Cat.assoc]; exact huv')
+    hi_mono _ _ (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact huv')
   -- Cancel φ using its right-inverse ψ.
-  calc u = u ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := by rw [hφψ, Cat.comp_id]
-    _ = (u ≫ hcoeq.desc (image.lift x) hkp_e) ≫ ψ := (Cat.assoc _ _ _).symm
+  calc u = u ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := by rw [hφψ, CategoryTheory.Category.comp_id]
+    _ = (u ≫ hcoeq.desc (image.lift x) hkp_e) ≫ ψ := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (v ≫ hcoeq.desc (image.lift x) hkp_e) ≫ ψ := by rw [hφ_eq]
-    _ = v ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := Cat.assoc _ _ _
-    _ = v := by rw [hφψ, Cat.comp_id]
+    _ = v ≫ (hcoeq.desc (image.lift x) hkp_e ≫ ψ) := CategoryTheory.Category.assoc _ _ _
+    _ = v := by rw [hφψ, CategoryTheory.Category.comp_id]
 
 /-! ## §1.583 Effectiveness is a Horn sentence
 
@@ -406,35 +407,35 @@ theorem effectiveness_iff_coeq_pullback [BicartesianCategory 𝒞] [RegularCateg
     -- k_inv ≫ l = kp₁(x), k_inv ≫ r = kp₂(x).
     have hkinv_l : k_inv ≫ l = kp₁ (f := x) :=
       calc k_inv ≫ l = k_inv ≫ (k ≫ kp₁ (f := x)) := by rw [hk_p₁]
-        _ = (k_inv ≫ k) ≫ kp₁ (f := x) := (Cat.assoc _ _ _).symm
-        _ = kp₁ (f := x) := by rw [hk_right, Cat.id_comp]
+        _ = (k_inv ≫ k) ≫ kp₁ (f := x) := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = kp₁ (f := x) := by rw [hk_right, CategoryTheory.Category.id_comp]
     have hkinv_r : k_inv ≫ r = kp₂ (f := x) :=
       calc k_inv ≫ r = k_inv ≫ (k ≫ kp₂ (f := x)) := by rw [hk_p₂]
-        _ = (k_inv ≫ k) ≫ kp₂ (f := x) := (Cat.assoc _ _ _).symm
-        _ = kp₂ (f := x) := by rw [hk_right, Cat.id_comp]
+        _ = (k_inv ≫ k) ≫ kp₂ (f := x) := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = kp₂ (f := x) := by rw [hk_right, CategoryTheory.Category.id_comp]
     intro d
     -- d.π₁ ≫ x = d.π₂ ≫ x (from d.w : d.π₁ ≫ q = d.π₂ ≫ q).
     have hdx : d.π₁ ≫ x = d.π₂ ≫ x := by
-      rw [← hqm, ← Cat.assoc, ← Cat.assoc, d.w]
+      rw [← hqm, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, d.w]
     -- kd : d.pt → kernelPair(x) lifting (d.π₁, d.π₂).
     let kd : d.pt ⟶ kernelPair x := (HasPullbacks.has x x).lift ⟨_, d.π₁, d.π₂, hdx⟩
     have hkd₁ : kd ≫ kp₁ (f := x) = d.π₁ := kp_lift_p₁ d.π₁ d.π₂ hdx
     have hkd₂ : kd ≫ kp₂ (f := x) = d.π₂ := kp_lift_p₂ d.π₁ d.π₂ hdx
     refine ⟨kd ≫ k_inv, ⟨?_, ?_⟩, ?_⟩
     · -- (kd ≫ k_inv) ≫ l = kd ≫ kp₁(x) = d.π₁.
-      rw [Cat.assoc, hkinv_l, hkd₁]
-    · rw [Cat.assoc, hkinv_r, hkd₂]
+      rw [CategoryTheory.Category.assoc, hkinv_l, hkd₁]
+    · rw [CategoryTheory.Category.assoc, hkinv_r, hkd₂]
     · -- Uniqueness.
       intro v hv₁ hv₂
       -- v ≫ k = kd by pullback uniqueness on kernelPair(x).
       have hvk : v ≫ k = kd := by
         have e₁ : (v ≫ k) ≫ kp₁ (f := x) = d.π₁ := by
-          rw [Cat.assoc, hk_p₁, hv₁]
+          rw [CategoryTheory.Category.assoc, hk_p₁, hv₁]
         have e₂ : (v ≫ k) ≫ kp₂ (f := x) = d.π₂ := by
-          rw [Cat.assoc, hk_p₂, hv₂]
+          rw [CategoryTheory.Category.assoc, hk_p₂, hv₂]
         exact (kp_lift_uniq d.π₁ d.π₂ hdx (v ≫ k) e₁ e₂)
-      calc v = v ≫ (k ≫ k_inv) := by rw [hk_left, Cat.comp_id]
-        _ = (v ≫ k) ≫ k_inv := (Cat.assoc _ _ _).symm
+      calc v = v ≫ (k ≫ k_inv) := by rw [hk_left, CategoryTheory.Category.comp_id]
+        _ = (v ≫ k) ≫ k_inv := (CategoryTheory.Category.assoc _ _ _).symm
         _ = kd ≫ k_inv := by rw [hvk]
   · -- Backward: coeq square is a pullback ⇒ effective (via x = q).
     intro h_pb
@@ -451,23 +452,23 @@ theorem effectiveness_iff_coeq_pullback [BicartesianCategory 𝒞] [RegularCateg
     · -- k_q ≫ u = id_E.  Use that ⟨E,l,r⟩ is a pullback (h_pb): unique map E→E.
       -- Both id_E and k_q ≫ u send (l,r) to (l,r), so equal by uniqueness in h_pb.
       obtain ⟨w, _, huniq⟩ := h_pb ⟨E, l, r, hcoeq.eq⟩
-      have hid : Cat.id E = w := huniq (Cat.id E) (Cat.id_comp _) (Cat.id_comp _)
+      have hid : 𝟙 E = w := huniq (𝟙 E) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)
       have hcomp : k_q ≫ u = w := by
         refine huniq (k_q ≫ u) ?_ ?_
-        · rw [Cat.assoc, hu₁, hkq₁]
-        · rw [Cat.assoc, hu₂, hkq₂]
+        · rw [CategoryTheory.Category.assoc, hu₁, hkq₁]
+        · rw [CategoryTheory.Category.assoc, hu₂, hkq₂]
       rw [hcomp, ← hid]
     · -- u ≫ k_q = id_{kernelPair(q)}.  By pullback uniqueness on kernelPair(q).
       have e₁ : (u ≫ k_q) ≫ kp₁ (f := q) = kp₁ (f := q) := by
-        rw [Cat.assoc, hkq₁, hu₁]
+        rw [CategoryTheory.Category.assoc, hkq₁, hu₁]
       have e₂ : (u ≫ k_q) ≫ kp₂ (f := q) = kp₂ (f := q) := by
-        rw [Cat.assoc, hkq₂, hu₂]
+        rw [CategoryTheory.Category.assoc, hkq₂, hu₂]
       have hide : (u ≫ k_q) = (HasPullbacks.has q q).lift ⟨_, kp₁ (f := q), kp₂ (f := q), kp_sq⟩ :=
         kp_lift_uniq (kp₁ (f := q)) (kp₂ (f := q)) kp_sq (u ≫ k_q) e₁ e₂
-      have hidk : Cat.id (kernelPair q) =
+      have hidk : 𝟙 (kernelPair q) =
           (HasPullbacks.has q q).lift ⟨_, kp₁ (f := q), kp₂ (f := q), kp_sq⟩ :=
-        kp_lift_uniq (kp₁ (f := q)) (kp₂ (f := q)) kp_sq (Cat.id (kernelPair q))
-          (Cat.id_comp _) (Cat.id_comp _)
+        kp_lift_uniq (kp₁ (f := q)) (kp₂ (f := q)) kp_sq (𝟙 (kernelPair q))
+          (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)
       rw [hide, ← hidk]
       rfl
 

@@ -41,7 +41,7 @@
 -/
 import Fredy.S1_543_CapitalizationLaxColimit
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -159,10 +159,10 @@ theorem reflApp_natural {i : ι} {x y : L.A i} (f : x ⟶ y) :
     `.nat.app` of `projReflIso`, which is `baseChangeIdNatIso` (component `_idBwd = π₁`) transported
     along `P.proj_refl i : P.proj (D.refl i) = Cat.id`; the transport `eqToHom` collapses against the
     chosen pullback's `π₁` by `eqToHom_bc_π₁`, leaving the reflexive pullback's first projection. -/
-theorem reflApp_f_π₁ {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞] {ι : Type u} {D : Directed ι}
+theorem reflApp_f_π₁ {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞] {ι : Type u} {D : Directed ι}
     (P : ProjSystem ι D 𝒞) {i : ι} (x : pcObj P i) :
-    (reflApp (laxOfProjSystem' P) x).f = (_pb (P.proj (D.refl i)) x).cone.π₁ := by
-  show ((projReflIso P i).nat.app x).f = _
+    (reflApp (laxOfProjSystem' P) x).left = (_pb (P.proj (D.refl i)) x).cone.π₁ := by
+  show ((projReflIso P i).nat.app x).left = _
   unfold projReflIso
   simp only [id_eq]
   rw [mpr_natiso_app (P.proj_refl i) baseChangeIdNatIso x]
@@ -181,7 +181,7 @@ end ReflApp
 theorem homInclL_isIso_of_rep (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
     {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
     (f₀ : L.F a.2.1 x ⟶ L.F a.2.2 y) (g₀ : L.F a.2.2 y ⟶ L.F a.2.1 x)
-    (h1 : f₀ ≫ g₀ = Cat.id (L.F a.2.1 x)) (h2 : g₀ ≫ f₀ = Cat.id (L.F a.2.2 y)) :
+    (h1 : f₀ ≫ g₀ = 𝟙 (L.F a.2.1 x)) (h2 : g₀ ≫ f₀ = 𝟙 (L.F a.2.2 y)) :
     @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩
       (homInclL L hL x y a f₀) := by
   letI : Cat (Obj L) := laxColimCat L hL
@@ -192,18 +192,18 @@ theorem homInclL_isIso_of_rep (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
     rw [homCompRawL_eq_compAtL L hL x y x ⟨av, ah1, ah2⟩ f₀ ⟨av, ah2, ah1⟩ g₀ av (D.refl av) (D.refl av)]
     unfold compAtL
     rw [hL.push_refl x y ah1 ah2 f₀, hL.push_refl y x ah2 ah1 g₀, h1]
-    show homInclL L hL x x ⟨av, ah1, ah1⟩ (Cat.id (L.F ah1 x)) = idL L hL ⟨i, x⟩
+    show homInclL L hL x x ⟨av, ah1, ah1⟩ (𝟙 (L.F ah1 x)) = idL L hL ⟨i, x⟩
     rw [show (idL L hL ⟨i, x⟩ : homL L hL ⟨i,x⟩ ⟨i,x⟩) = homIdL L hL x from rfl, homIdL,
         ← pushHom_id L x (D.refl i) ah1]
-    exact homInclL_compat L hL x x (a := ⟨i, D.refl i, D.refl i⟩) (b := ⟨av, ah1, ah1⟩) ah1 (Cat.id _)
+    exact homInclL_compat L hL x x (a := ⟨i, D.refl i, D.refl i⟩) (b := ⟨av, ah1, ah1⟩) ah1 (𝟙 _)
   · show homCompRawL L hL y x y ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ = idL L hL ⟨j, y⟩
     rw [homCompRawL_eq_compAtL L hL y x y ⟨av, ah2, ah1⟩ g₀ ⟨av, ah1, ah2⟩ f₀ av (D.refl av) (D.refl av)]
     unfold compAtL
     rw [hL.push_refl y x ah2 ah1 g₀, hL.push_refl x y ah1 ah2 f₀, h2]
-    show homInclL L hL y y ⟨av, ah2, ah2⟩ (Cat.id (L.F ah2 y)) = idL L hL ⟨j, y⟩
+    show homInclL L hL y y ⟨av, ah2, ah2⟩ (𝟙 (L.F ah2 y)) = idL L hL ⟨j, y⟩
     rw [show (idL L hL ⟨j, y⟩ : homL L hL ⟨j,y⟩ ⟨j,y⟩) = homIdL L hL y from rfl, homIdL,
         ← pushHom_id L y (D.refl j) ah2]
-    exact homInclL_compat L hL y y (a := ⟨j, D.refl j, D.refl j⟩) (b := ⟨av, ah2, ah2⟩) ah2 (Cat.id _)
+    exact homInclL_compat L hL y y (a := ⟨j, D.refl j, D.refl j⟩) (b := ⟨av, ah2, ah2⟩) ah2 (𝟙 _)
 
 /-! ## Interface bundles for the remaining finite limits (products, equalizers, pullbacks, PTC)
 
@@ -293,8 +293,8 @@ noncomputable def prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
 theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
     IsIso (prUnit L p hkm) :=
   isIso_comp (transApp_isIso L (D.refl k) hkm p)
-    (@functor_preserves_iso (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
-      _ _ (reflApp L p) (reflApp_isIso L p))
+    (functor_preserves_iso (bundledFunctor (hF := L.functF hkm) (L.F hkm))
+      (reflApp L p) (reflApp_isIso L p))
 
 /-- Pushing a single-stage projection germ `reflApp p ≫ proj` from `k` to `m` (along `hkm`) equals
     `prUnit ≫ (functF hkm).map proj ≫ isoInv (transApp hik hkm tgt)`.  Unfold `pushHom`, distribute
@@ -308,7 +308,7 @@ theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
   unfold pushHom prUnit
   rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
         _ _ _ (reflApp L p) proj]
-  simp only [Cat.assoc]
+  simp only [CategoryTheory.Category.assoc]
 
 /-- **Existence of the pairing mediator.**  For competitor germs `f : ⟨l,z⟩ ⟶ ⟨i,x⟩`,
     `g : ⟨l,z⟩ ⟶ ⟨j,y⟩`, push both to a common stage `m ≥ k`, convert their targets to
@@ -363,9 +363,9 @@ theorem prPairExists {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
     rw [hL.push_refl z p hlm hkm (r ≫ isoInv (prUnit_isIso L p hkm)),
         pushHom_proj L w p hi'k hkm proj]
     -- cancel `r' ≫ prUnit = r` (by `inv_isoInv_comp`), then apply `hcomp`.
-    rw [Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L p hkm)),
-        inv_isoInv_comp, Cat.id_comp, ← Cat.assoc, hcomp,
-        Cat.assoc, isoInv_comp, Cat.comp_id]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (isoInv (prUnit_isIso L p hkm)),
+        inv_isoInv_comp, CategoryTheory.Category.id_comp, ← CategoryTheory.Category.assoc, hcomp,
+        CategoryTheory.Category.assoc, isoInv_comp, CategoryTheory.Category.comp_id]
     -- absorb the level `aw.1 → m` transition by `homInclL_compat`.
     exact homInclL_compat L hL z w (a := aw)
       (b := ⟨m, D.trans aw.2.1 hawm, D.trans aw.2.2 hawm⟩) hawm wa
@@ -474,19 +474,19 @@ theorem prJointMono {i j : ι} (x : L.A i) (y : L.A j) {l : ι} (z : L.A l)
   have hfst : u₁ ≫ (L.functF hkn).map (data.hp (prK D i j)).fst
       = u₂ ≫ (L.functF hkn).map (data.hp (prK D i j)).fst := by
     have := congrArg (· ≫ transApp L hik hkn x) eqf'
-    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
-    simpa only [u₁, u₂, Cat.assoc] using this
+    simp only [CategoryTheory.Category.assoc, inv_isoInv_comp, CategoryTheory.Category.comp_id] at this
+    simpa only [u₁, u₂, CategoryTheory.Category.assoc] using this
   have hsnd : u₁ ≫ (L.functF hkn).map (data.hp (prK D i j)).snd
       = u₂ ≫ (L.functF hkn).map (data.hp (prK D i j)).snd := by
     have := congrArg (· ≫ transApp L hjk hkn y) eqs'
-    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
-    simpa only [u₁, u₂, Cat.assoc] using this
+    simp only [CategoryTheory.Category.assoc, inv_isoInv_comp, CategoryTheory.Category.comp_id] at this
+    simpa only [u₁, u₂, CategoryTheory.Category.assoc] using this
   -- joint-monic preservation gives `u₁ = u₂`; cancel `prUnit` to get the germ witness.
   have huv : u₁ = u₂ :=
     data.pres hkn (L.F hik x) (L.F hjk y) (L.F (D.trans a₁.2.1 ha₁n) z) u₁ u₂ hfst hsnd
   have hmm : pushHom L z _ a₁.2.1 a₁.2.2 ha₁n m₁ = pushHom L z _ a₂.2.1 a₂.2.2 ha₂n m₂ := by
     have h2 := congrArg (· ≫ isoInv (prUnit_isIso L _ hkn)) huv
-    simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+    simpa only [u₁, u₂, CategoryTheory.Category.assoc, isoInv_comp, CategoryTheory.Category.comp_id] using h2
   exact Quotient.sound ⟨⟨n, D.trans a₁.2.1 ha₁n, hkn⟩, ha₁n, ha₂n, hmm⟩
 
 /-- **§M3b (lax): the lax colimit category has binary products.**  The product of `⟨i,x⟩`, `⟨j,y⟩` is
@@ -566,12 +566,12 @@ theorem eqMono (eqData : LaxEqualizerData L) {i j M : ι} (x : L.A i) (y : L.A j
     pushHom L w _ a₂.2.1 a₂.2.2 ha₂N m₂ ≫ prUnit L _ heN
   have hmap : u₁ ≫ (L.functF heN).map (eqMap fM gM) = u₂ ≫ (L.functF heN).map (eqMap fM gM) := by
     have := congrArg (· ≫ transApp L hiM heN x) ceq
-    simp only [Cat.assoc, inv_isoInv_comp, Cat.comp_id] at this
-    simpa only [u₁, u₂, Cat.assoc] using this
+    simp only [CategoryTheory.Category.assoc, inv_isoInv_comp, CategoryTheory.Category.comp_id] at this
+    simpa only [u₁, u₂, CategoryTheory.Category.assoc] using this
   have huv : u₁ = u₂ := eqData.pres heN fM gM (L.F (D.trans a₁.2.1 ha₁N) w) u₁ u₂ hmap
   have hmm : pushHom L w _ a₁.2.1 a₁.2.2 ha₁N m₁ = pushHom L w _ a₂.2.1 a₂.2.2 ha₂N m₂ := by
     have h2 := congrArg (· ≫ isoInv (prUnit_isIso L _ heN)) huv
-    simpa only [u₁, u₂, Cat.assoc, isoInv_comp, Cat.comp_id] using h2
+    simpa only [u₁, u₂, CategoryTheory.Category.assoc, isoInv_comp, CategoryTheory.Category.comp_id] using h2
   exact Quotient.sound ⟨⟨N, D.trans a₁.2.1 ha₁N, heN⟩, ha₁N, ha₂N, hmm⟩
 
 /-- **§M3c (lax): the lax colimit category has equalizers.**  For each parallel pair `F,G` an
@@ -621,7 +621,7 @@ noncomputable def laxColimHasEqualizers :
             ⟨M, hiM, hjM⟩ r M (D.refl M) (D.refl M)]
       unfold compAtL
       rw [hL.push_refl Eobj x (D.refl M) hiM (reflApp L Eobj ≫ eqMap fM gM),
-          hL.push_refl x y hiM hjM r, Cat.assoc]
+          hL.push_refl x y hiM hjM r, CategoryTheory.Category.assoc]
     refine ⟨⟨M, Eobj⟩, homInclL L hL Eobj x ⟨M, D.refl M, hiM⟩ (reflApp L Eobj ≫ eqMap fM gM),
       ?_, ?_⟩
     · -- equalizing: both sides reduce (via `compRight`) to `reflApp ≫ eqMap ≫ fM|gM`, equal by `eqMap_eq`.
@@ -679,11 +679,11 @@ noncomputable def laxColimHasEqualizers :
             = transApp L hiM hMN x ≫ (L.functF hMN).map r := by
         intro r
         unfold pushHom
-        rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, inv_isoInv_comp, CategoryTheory.Category.comp_id]
       have hcN : cN ≫ (L.functF hMN).map fM = cN ≫ (L.functF hMN).map gM := by
         have h := congrArg (· ≫ transApp L hjM hMN y) qeq
-        simp only [Cat.assoc, pushHom_transApp] at h
-        simpa only [cN, Cat.assoc] using h
+        simp only [CategoryTheory.Category.assoc, pushHom_transApp] at h
+        simpa only [cN, CategoryTheory.Category.assoc] using h
       -- equalizer lift at stage `M`, pushed: `r : F(lW≤N)w ⟶ F hMN Eobj` with `r ≫ map eqMap = cN`.
       obtain ⟨r, hr⟩ := eqData.presLift hMN fM gM (L.F hlWN w) cN hcN
       -- the lift germ and its `lift ≫ m = c` fact (`prUnit`-cancellation, as the product `leg`).
@@ -698,9 +698,9 @@ noncomputable def laxColimHasEqualizers :
         unfold compAtL
         rw [hL.push_refl w Eobj hlWN hMN (r ≫ isoInv (prUnit_isIso L Eobj hMN)),
             pushHom_proj L x Eobj hiM hMN (eqMap fM gM),
-            Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L Eobj hMN)),
-            inv_isoInv_comp, Cat.id_comp, ← Cat.assoc, hr,
-            Cat.assoc, isoInv_comp, Cat.comp_id]
+            CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (isoInv (prUnit_isIso L Eobj hMN)),
+            inv_isoInv_comp, CategoryTheory.Category.id_comp, ← CategoryTheory.Category.assoc, hr,
+            CategoryTheory.Category.assoc, isoInv_comp, CategoryTheory.Category.comp_id]
         exact homInclL_compat L hL w x (a := ac)
           (b := ⟨N, D.trans ac.2.1 hacN, D.trans ac.2.2 hacN⟩) hacN cc
       refine ⟨homInclL L hL w Eobj ⟨N, hlWN, hMN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hMN)),
@@ -744,20 +744,20 @@ noncomputable def laxColimHasPullbacks
 
 /-- Any two pullback cones of the same cospan are connected by a unique compatible iso (generic;
     a local copy of `Colim.pullback_comparison_iso`, which lives in the import-banned strict file). -/
-private theorem pullbackComparisonIso {𝒜 : Type w} [Cat.{w} 𝒜] {A B Z : 𝒜}
+private theorem pullbackComparisonIso {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {A B Z : 𝒜}
     {f : A ⟶ Z} {g : B ⟶ Z} {c c' : Cone f g}
     (hc : c.IsPullback) (hc' : c'.IsPullback) :
     ∃ φ : c.pt ⟶ c'.pt, IsIso φ ∧ φ ≫ c'.π₁ = c.π₁ ∧ φ ≫ c'.π₂ = c.π₂ := by
   obtain ⟨φ, ⟨hφ1, hφ2⟩, _⟩ := hc' c
   obtain ⟨ψ, ⟨hψ1, hψ2⟩, _⟩ := hc c'
   obtain ⟨_, _, huniq⟩ := hc c
-  have hψφ : ψ ≫ φ = Cat.id c'.pt := by
+  have hψφ : ψ ≫ φ = 𝟙 c'.pt := by
     obtain ⟨_, _, huniq'⟩ := hc' c'
-    rw [huniq' (ψ ≫ φ) (by rw [Cat.assoc, hφ1, hψ1]) (by rw [Cat.assoc, hφ2, hψ2]),
-        ← huniq' (Cat.id c'.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
-  have hφψ : φ ≫ ψ = Cat.id c.pt := by
-    rw [huniq (φ ≫ ψ) (by rw [Cat.assoc, hψ1, hφ1]) (by rw [Cat.assoc, hψ2, hφ2]),
-        ← huniq (Cat.id c.pt) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])]
+    rw [huniq' (ψ ≫ φ) (by rw [CategoryTheory.Category.assoc, hφ1, hψ1]) (by rw [CategoryTheory.Category.assoc, hφ2, hψ2]),
+        ← huniq' (𝟙 c'.pt) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])]
+  have hφψ : φ ≫ ψ = 𝟙 c.pt := by
+    rw [huniq (φ ≫ ψ) (by rw [CategoryTheory.Category.assoc, hψ1, hφ1]) (by rw [CategoryTheory.Category.assoc, hψ2, hφ2]),
+        ← huniq (𝟙 c.pt) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])]
   exact ⟨φ, ⟨ψ, hφψ, hψφ⟩, hφ1, hφ2⟩
 
 /-- **§M3d (lax): pullbacks transfer covers**, given the canonical-pullback cover-transfer `hcanon`.

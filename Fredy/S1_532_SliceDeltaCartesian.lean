@@ -21,20 +21,22 @@ universe v u
 
 namespace Freyd
 
+open CategoryTheory
+
 -- `deltaObj`/`deltaMap` (S1_85) are defined under `HasExponentials`, so we inherit that binder
 -- (it `extends HasBinaryProducts`, so the product API still resolves).  §1.532 itself only needs
 -- finite products; generalising `deltaObj` to `HasBinaryProducts` would be a separate S1_85 refactor.
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasExponentials 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasExponentials 𝒞]
 
 /-- `g ≫ ⟨p,q⟩ = ⟨g≫p, g≫q⟩`. -/
 private theorem comp_pair {W X A B : 𝒞} (g : W ⟶ X) (p : X ⟶ A) (q : X ⟶ B) :
     g ≫ pair p q = pair (g ≫ p) (g ≫ q) :=
-  pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+  pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
 
 /-- `Δ`'s underlying map composes as `(h×1) ≫ (k×1) = (h≫k)×1` (in `pair (fst ≫ ·) snd` form). -/
 private theorem pm_comp {X Y Z : 𝒞} (B : 𝒞) (h : X ⟶ Y) (k : Y ⟶ Z) :
     pair (fst ≫ h) (snd : prod X B ⟶ B) ≫ pair (fst ≫ k) snd = pair (fst ≫ (h ≫ k)) snd := by
-  rw [comp_pair, snd_pair, ← Cat.assoc, fst_pair, Cat.assoc]
+  rw [comp_pair, snd_pair, ← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc]
 
 section Pullback
 variable [HasPullbacks 𝒞]
@@ -45,7 +47,7 @@ def deltaCone (B : 𝒞) {Y₁ Y₂ Y₀ : 𝒞} {f : Y₁ ⟶ Y₀} {g : Y₂ �
   pt := deltaObj B c.pt
   π₁ := deltaMap B c.π₁
   π₂ := deltaMap B c.π₂
-  w := OverHom.ext <| by
+  w := CategoryTheory.Over.OverMorphism.ext <| by
     show pair (fst ≫ c.π₁) snd ≫ pair (fst ≫ f) snd
        = pair (fst ≫ c.π₂) snd ≫ pair (fst ≫ g) snd
     rw [pm_comp, pm_comp, c.w]
@@ -56,24 +58,24 @@ theorem forget_deltaCone_isPullback (B : 𝒞) {Y₁ Y₂ Y₀ : 𝒞} {f : Y₁
     (c : Cone f g) (hc : c.IsPullback) : (sliceConeForget (deltaCone B c)).IsPullback := by
   intro d
   have hsnd : d.π₁ ≫ snd = d.π₂ ≫ snd := by
-    simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, snd_pair] using congrArg (· ≫ snd) d.w
+    simpa [deltaMap, deltaCone, sliceConeForget, CategoryTheory.Category.assoc, snd_pair] using congrArg (· ≫ snd) d.w
   have hbw : (d.π₁ ≫ fst) ≫ f = (d.π₂ ≫ fst) ≫ g := by
-    simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, fst_pair] using congrArg (· ≫ fst) d.w
+    simpa [deltaMap, deltaCone, sliceConeForget, CategoryTheory.Category.assoc, fst_pair] using congrArg (· ≫ fst) d.w
   obtain ⟨w, ⟨hw₁, hw₂⟩, hwuniq⟩ := hc ⟨d.pt, d.π₁ ≫ fst, d.π₂ ≫ fst, hbw⟩
   refine ⟨pair w (d.π₁ ≫ snd), ⟨?_, ?_⟩, ?_⟩
   · show pair w (d.π₁ ≫ snd) ≫ pair (fst ≫ c.π₁) snd = d.π₁
-    rw [comp_pair, snd_pair, ← Cat.assoc, fst_pair, hw₁]
+    rw [comp_pair, snd_pair, ← CategoryTheory.Category.assoc, fst_pair, hw₁]
     exact (pair_uniq _ _ d.π₁ rfl rfl).symm
   · show pair w (d.π₁ ≫ snd) ≫ pair (fst ≫ c.π₂) snd = d.π₂
-    rw [comp_pair, snd_pair, hsnd, ← Cat.assoc, fst_pair, hw₂]
+    rw [comp_pair, snd_pair, hsnd, ← CategoryTheory.Category.assoc, fst_pair, hw₂]
     exact (pair_uniq _ _ d.π₂ rfl rfl).symm
   · intro v hv₁ hv₂
     have hvsnd : v ≫ snd = d.π₁ ≫ snd := by
-      simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, snd_pair] using congrArg (· ≫ snd) hv₁
+      simpa [deltaMap, deltaCone, sliceConeForget, CategoryTheory.Category.assoc, snd_pair] using congrArg (· ≫ snd) hv₁
     have hvfst : v ≫ fst = w := by
       apply hwuniq
-      · simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, fst_pair] using congrArg (· ≫ fst) hv₁
-      · simpa [deltaMap, deltaCone, sliceConeForget, Cat.assoc, fst_pair] using congrArg (· ≫ fst) hv₂
+      · simpa [deltaMap, deltaCone, sliceConeForget, CategoryTheory.Category.assoc, fst_pair] using congrArg (· ≫ fst) hv₁
+      · simpa [deltaMap, deltaCone, sliceConeForget, CategoryTheory.Category.assoc, fst_pair] using congrArg (· ≫ fst) hv₂
     rw [pair_uniq _ _ v rfl rfl, hvfst, hvsnd]
 
 /-- **§1.532 — `Δ` preserves pullbacks.**  The [1.442] cancellation in diagram order: `ΔΣ = (−×B)`
@@ -86,30 +88,34 @@ theorem Δ_preserves_pullback (B : 𝒞) {Y₁ Y₂ Y₀ : 𝒞} {f : Y₁ ⟶ Y
     (c : Cone f g) (hc : c.IsPullback) : (deltaCone B c).IsPullback := by
   intro d
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := forget_deltaCone_isPullback B c hc (sliceConeForget d)
-  have hu₁' : u ≫ (deltaCone B c).π₁.f = d.π₁.f := hu₁
-  have hu₂' : u ≫ (deltaCone B c).π₂.f = d.π₂.f := hu₂
+  have hu₁' : u ≫ (deltaCone B c).π₁.left = d.π₁.left := hu₁
+  have hu₂' : u ≫ (deltaCone B c).π₂.left = d.π₂.left := hu₂
   have uw : u ≫ (deltaCone B c).pt.hom = d.pt.hom := by
-    have h1 : u ≫ ((deltaCone B c).π₁.f ≫ (deltaObj B Y₁).hom) = d.π₁.f ≫ (deltaObj B Y₁).hom := by
-      rw [← Cat.assoc, hu₁']
-    rwa [(deltaCone B c).π₁.w, d.π₁.w] at h1
-  exact ⟨⟨u, uw⟩, ⟨OverHom.ext hu₁', OverHom.ext hu₂'⟩,
-    fun v hv₁ hv₂ => OverHom.ext (huniq v.f (congrArg OverHom.f hv₁) (congrArg OverHom.f hv₂))⟩
+    have h1 : u ≫ ((deltaCone B c).π₁.left ≫ (deltaObj B Y₁).hom) = d.π₁.left ≫ (deltaObj B Y₁).hom := by
+      rw [← CategoryTheory.Category.assoc, hu₁']
+    rw [CategoryTheory.Over.w (deltaCone B c).π₁,
+      CategoryTheory.Over.w d.π₁] at h1
+    exact h1
+  exact ⟨CategoryTheory.Over.homMk u uw,
+    ⟨CategoryTheory.Over.OverMorphism.ext hu₁', CategoryTheory.Over.OverMorphism.ext hu₂'⟩,
+    fun v hv₁ hv₂ => CategoryTheory.Over.OverMorphism.ext
+      (huniq v.left (congrArg CommaMorphism.left hv₁) (congrArg CommaMorphism.left hv₂))⟩
 
 end Pullback
 
 /-- The `Δ`-image of the terminator, as an over-map onto the slice terminator `B →[1] B`. -/
 def deltaTerminalHom [HasTerminal 𝒞] (B : 𝒞) : OverHom (deltaObj B (one : 𝒞)) (overTerm B) :=
-  ⟨snd, by simp [overTerm, deltaObj, Cat.comp_id]⟩
+  CategoryTheory.Over.homMk snd (by simp [overTerm, deltaObj])
 
 /-- **§1.532 — `Δ` preserves the terminator.**  `Δ 1 = ⟨1×B, snd⟩ ≅ (B →[1] B)`, the distinguished
     terminator of `Over B`; the witnessing iso is `snd : 1×B → B` (inverse `⟨!, 1_B⟩`). -/
 theorem Δ_preserves_terminal [HasTerminal 𝒞] (B : 𝒞) : OverIso (deltaTerminalHom B) := by
   apply overIso_of_underlying
   show IsIso (snd : prod (one : 𝒞) B ⟶ B)
-  refine ⟨pair (term B) (Cat.id B), ?_, snd_pair _ _⟩
-  calc snd ≫ pair (term B) (Cat.id B)
-      = pair (snd ≫ term B) (snd ≫ Cat.id B) := comp_pair _ _ _
-    _ = pair fst snd := by rw [Cat.comp_id, term_uniq (snd ≫ term B) fst]
-    _ = Cat.id (prod (one : 𝒞) B) := pair_fst_snd
+  refine ⟨pair (term B) (𝟙 B), ?_, snd_pair _ _⟩
+  calc snd ≫ pair (term B) (𝟙 B)
+      = pair (snd ≫ term B) (snd ≫ 𝟙 B) := comp_pair _ _ _
+    _ = pair fst snd := by rw [CategoryTheory.Category.comp_id, term_uniq (snd ≫ term B) fst]
+    _ = 𝟙 (prod (one : 𝒞) B) := pair_fst_snd
 
 end Freyd

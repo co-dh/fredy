@@ -14,7 +14,7 @@ import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_543_DirectedColimit
 
-open Freyd
+open CategoryTheory Freyd
 
 namespace Freyd.Colim
 
@@ -95,50 +95,50 @@ def upperDirected (D : Directed ι) (i j : ι) : Directed (UpperBound D i j) whe
   which is exactly what the colimit laws need to cancel the casts. -/
 
 /-- Transport a morphism `m : X ⟶ Y` to `X' ⟶ Y'` along object equalities. -/
-def castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
+def castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
     (m : X ⟶ Y) : X' ⟶ Y' := hX ▸ hY ▸ m
 
-@[simp] theorem castHom_rfl {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} (m : X ⟶ Y) :
+@[simp] theorem castHom_rfl {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y : 𝒜} (m : X ⟶ Y) :
     castHom rfl rfl m = m := rfl
 
 /-- A morphism heterogeneously equal to `g` transports (along the matching object
     equalities) exactly to `g`. -/
-theorem castHom_of_heq {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
+theorem castHom_of_heq {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜}
     (hX : X = X') (hY : Y = Y') {m : X ⟶ Y} {g : X' ⟶ Y'} (h : HEq m g) :
     castHom hX hY m = g := by
   subst hX; subst hY; simpa [castHom] using h
 
 /-- Transports compose. -/
-theorem castHom_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' X'' Y'' : 𝒜}
+theorem castHom_castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' X'' Y'' : 𝒜}
     (h1X : X = X') (h1Y : Y = Y') (h2X : X' = X'') (h2Y : Y' = Y'') (m : X ⟶ Y) :
     castHom h2X h2Y (castHom h1X h1Y m) = castHom (h1X.trans h2X) (h1Y.trans h2Y) m := by
   subst h1X; subst h1Y; subst h2X; subst h2Y; rfl
 
 /-- Transport distributes over composition. -/
-theorem castHom_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Z X' Y' Z' : 𝒜}
+theorem castHom_comp {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y Z X' Y' Z' : 𝒜}
     (hX : X = X') (hY : Y = Y') (hZ : Z = Z') (m : X ⟶ Y) (n : Y ⟶ Z) :
     castHom hX hY m ≫ castHom hY hZ n = castHom hX hZ (m ≫ n) := by
   subst hX; subst hY; subst hZ; rfl
 
 /-- Transport preserves identity. -/
-theorem castHom_id {𝒜 : Type w} [Cat.{w} 𝒜] {X X' : 𝒜} (hX : X = X') :
-    castHom hX hX (Cat.id X) = Cat.id X' := by subst hX; rfl
+theorem castHom_id {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X X' : 𝒜} (hX : X = X') :
+    castHom hX hX (𝟙 X) = 𝟙 X' := by subst hX; rfl
 
 /-- A functor commutes with transport: mapping a transported morphism equals
     transporting the mapped morphism (along the image object-equalities). -/
-theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : 𝒜 → 𝒝) [hT : Functor T]
+theorem map_castHom {𝒜 𝒝 : Type w} [CategoryTheory.Category.{w} 𝒜] [CategoryTheory.Category.{w} 𝒝] (T : 𝒜 → 𝒝) [hT : Functor T]
     {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) :
     hT.map (castHom hX hY m) = castHom (congrArg T hX) (congrArg T hY) (hT.map m) := by
   subst hX; subst hY; rfl
 
 /-- A transport is heterogeneously equal to the morphism it transports. -/
-theorem heq_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
+theorem heq_castHom {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
     (m : X ⟶ Y) : HEq (castHom hX hY m) m := by
   subst hX; subst hY; exact HEq.rfl
 
 /-- Two transports of heterogeneously-equal morphisms onto the *same* objects are
     equal.  This is the cancellation the hom-colimit's `tr_trans` needs. -/
-theorem castHom_heq_congr {𝒜 : Type w} [Cat.{w} 𝒜] {X1 Y1 X2 Y2 X' Y' : 𝒜}
+theorem castHom_heq_congr {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X1 Y1 X2 Y2 X' Y' : 𝒜}
     (h1X : X1 = X') (h1Y : Y1 = Y') (h2X : X2 = X') (h2Y : Y2 = Y')
     {m1 : X1 ⟶ Y1} {m2 : X2 ⟶ Y2} (h : HEq m1 m2) :
     castHom h1X h1Y m1 = castHom h2X h2Y m2 :=
@@ -192,7 +192,7 @@ def homIncl (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C
 
 /-- The identity germ at `x : C.A i`: `id` included at the trivial upper bound. -/
 def homClassId (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i) : HomColim C hC x x :=
-  homIncl C hC x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (C.F (D.refl i) x))
+  homIncl C hC x x ⟨i, D.refl i, D.refl i⟩ (𝟙 (C.F (D.refl i) x))
 
 /-- Including a germ pushed to a higher level equals including it at the lower
     level: the hom-colimit absorbs the transition (`incl_compat` for `homSystem`).
@@ -272,7 +272,7 @@ theorem homTr_comp (C : CatSystem ι D) {ip iq ir : ι}
     `map_id`, then `castHom_id`). -/
 theorem homTr_id (C : CatSystem ι D) {i : ι} (x : C.A i)
     (a b : UpperBound D i i) (hab : D.le a.1 b.1) :
-    homTr C x x a b hab (Cat.id (C.F a.2.1 x)) = Cat.id (C.F b.2.1 x) := by
+    homTr C x x a b hab (𝟙 (C.F a.2.1 x)) = 𝟙 (C.F b.2.1 x) := by
   unfold homTr
   rw [(C.functF hab).map_id]
   exact castHom_id _
@@ -428,20 +428,20 @@ noncomputable def colimComp (C : CatSystem ι D) (hC : C.Coherent) {p q r : C.Ob
 
 theorem homCompRaw_id_left (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
     (xp : C.A ip) (xq : C.A iq) (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq) :
-    homCompRaw C hC xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (C.F (D.refl ip) xp)) a f
+    homCompRaw C hC xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (𝟙 (C.F (D.refl ip) xp)) a f
       = homIncl C hC xp xq a f := by
   rw [homCompRaw_eq_compAt C hC xp xp xq ⟨ip, D.refl ip, D.refl ip⟩
-        (Cat.id (C.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
+        (𝟙 (C.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
   unfold compAt
   have hid : homTr C xp xp ⟨ip, D.refl ip, D.refl ip⟩
       ⟨a.1, D.trans (D.refl ip) a.2.1, D.trans (D.refl ip) a.2.1⟩ a.2.1
-      (Cat.id (C.F (D.refl ip) xp))
-    = Cat.id (C.F (D.trans (D.refl ip) a.2.1) xp) :=
+      (𝟙 (C.F (D.refl ip) xp))
+    = 𝟙 (C.F (D.trans (D.refl ip) a.2.1) xp) :=
     homTr_id C xp ⟨ip, D.refl ip, D.refl ip⟩
       ⟨a.1, D.trans (D.refl ip) a.2.1, D.trans (D.refl ip) a.2.1⟩ a.2.1
   have hf : homTr C xp xq a ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ (D.refl a.1) f = f := by
     simpa using homTr_refl C hC xp xq ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ f
-  rw [hid, hf, Cat.id_comp]
+  rw [hid, hf, CategoryTheory.Category.id_comp]
   unfold homIncl
   apply Quotient.sound
   refine ⟨a, D.refl a.1, D.refl a.1, ?_⟩
@@ -452,20 +452,20 @@ theorem homCompRaw_id_left (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
 
 theorem homCompRaw_id_right (C : CatSystem ι D) (hC : C.Coherent) {ip iq : ι}
     (xp : C.A ip) (xq : C.A iq) (a : UpperBound D ip iq) (f : C.F a.2.1 xp ⟶ C.F a.2.2 xq) :
-    homCompRaw C hC xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (Cat.id (C.F (D.refl iq) xq))
+    homCompRaw C hC xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (𝟙 (C.F (D.refl iq) xq))
       = homIncl C hC xp xq a f := by
   rw [homCompRaw_eq_compAt C hC xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩
-        (Cat.id (C.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
+        (𝟙 (C.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
   unfold compAt
   have hf : homTr C xp xq a ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ (D.refl a.1) f = f := by
     simpa using homTr_refl C hC xp xq ⟨a.1, D.trans a.2.1 (D.refl a.1), D.trans a.2.2 (D.refl a.1)⟩ f
   have hid : homTr C xq xq ⟨iq, D.refl iq, D.refl iq⟩
       ⟨a.1, D.trans (D.refl iq) a.2.2, D.trans (D.refl iq) a.2.2⟩ a.2.2
-      (Cat.id (C.F (D.refl iq) xq))
-    = Cat.id (C.F (D.trans (D.refl iq) a.2.2) xq) :=
+      (𝟙 (C.F (D.refl iq) xq))
+    = 𝟙 (C.F (D.trans (D.refl iq) a.2.2) xq) :=
     homTr_id C xq ⟨iq, D.refl iq, D.refl iq⟩
       ⟨a.1, D.trans (D.refl iq) a.2.2, D.trans (D.refl iq) a.2.2⟩ a.2.2
-  rw [hf, hid, Cat.comp_id]
+  rw [hf, hid, CategoryTheory.Category.comp_id]
   unfold homIncl
   apply Quotient.sound
   refine ⟨a, D.refl a.1, D.refl a.1, ?_⟩
@@ -559,7 +559,7 @@ theorem colimComp_assoc (C : CatSystem ι D) (hC : C.Coherent) {p q r s : C.Obj}
     _ = homCompRaw C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h := h_outerL
     _ = compAt C hC xp xr xs ub_pr_M (F_M ≫ G_M) c h M (D.refl M) hcM := h_compAtL
     _ = homIncl C hC xp xs ub_ps_M ((F_M ≫ G_M) ≫ H_M) := h_simpL
-    _ = homIncl C hC xp xs ub_ps_M (F_M ≫ (G_M ≫ H_M)) := by rw [Cat.assoc F_M G_M H_M]
+    _ = homIncl C hC xp xs ub_ps_M (F_M ≫ (G_M ≫ H_M)) := by rw [CategoryTheory.Category.assoc F_M G_M H_M]
     _ = compAt C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) M haM (D.refl M) := by rw [h_simpR]
     _ = homCompRaw C hC xp xq xs a f ub_qs_M (G_M ≫ H_M) := by rw [h_compAtR]
     _ = colimComp C hC (Quotient.mk _ ⟨a, f⟩) (compAt C hC xq xr xs b g c h M hbM hcM) := by rw [h_outerR]

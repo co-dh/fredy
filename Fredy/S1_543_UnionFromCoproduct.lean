@@ -13,7 +13,9 @@ import Fredy.S1_61
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasImages 𝒞] [HasBinaryCoproducts 𝒞]
+open CategoryTheory
+
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasImages 𝒞] [HasBinaryCoproducts 𝒞]
 
 /-- **Unions from coproducts + images.**  `S ∪ T := image (case S.arr T.arr)`.  `union_left`/
     `union_right` factor `S.arr`/`T.arr` through the image via `inl`/`inr`; `union_min` copairs the
@@ -22,17 +24,17 @@ def hasSubobjectUnions_of_coproducts_images : HasSubobjectUnions 𝒞 where
   union {_} S T := image (HasBinaryCoproducts.case S.arr T.arr)
   union_left {_} S T :=
     ⟨HasBinaryCoproducts.inl ≫ image.lift (HasBinaryCoproducts.case S.arr T.arr), by
-      rw [Cat.assoc, image.lift_fac]; exact HasBinaryCoproducts.case_inl S.arr T.arr⟩
+      rw [CategoryTheory.Category.assoc, image.lift_fac]; exact HasBinaryCoproducts.case_inl S.arr T.arr⟩
   union_right {_} S T :=
     ⟨HasBinaryCoproducts.inr ≫ image.lift (HasBinaryCoproducts.case S.arr T.arr), by
-      rw [Cat.assoc, image.lift_fac]; exact HasBinaryCoproducts.case_inr S.arr T.arr⟩
+      rw [CategoryTheory.Category.assoc, image.lift_fac]; exact HasBinaryCoproducts.case_inr S.arr T.arr⟩
   union_min {_} S T U hSU hTU := by
     obtain ⟨s, hs⟩ := hSU
     obtain ⟨t, ht⟩ := hTU
     refine image_min (HasBinaryCoproducts.case S.arr T.arr) U
       ⟨HasBinaryCoproducts.case s t, ?_⟩
     refine HasBinaryCoproducts.case_uniq S.arr T.arr (HasBinaryCoproducts.case s t ≫ U.arr) ?_ ?_
-    · rw [← Cat.assoc, HasBinaryCoproducts.case_inl]; exact hs
-    · rw [← Cat.assoc, HasBinaryCoproducts.case_inr]; exact ht
+    · rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inl]; exact hs
+    · rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inr]; exact ht
 
 end Freyd

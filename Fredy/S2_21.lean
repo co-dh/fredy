@@ -27,7 +27,7 @@ universe u w
 
 namespace Freyd
 
-open Cat RelFunctor
+open CategoryTheory Cat RelFunctor
 
 /-! ## §2.218  `Rel(homRep 𝒞)` is faithful for a capital regular category
 

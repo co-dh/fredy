@@ -20,11 +20,11 @@
 import Fredy.S1_56
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -32,7 +32,7 @@ namespace Freyd
 
 /-- A candidate QUOTIENT-OBJECT of `A`: a cover with source `A`
     (codomain `cod`, cover `arr : A ⟶ cod`).  The dual side to `Subobject`. -/
-structure QuotObj (𝒞 : Type u) [Cat.{v} 𝒞] (A : 𝒞) where
+structure QuotObj (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] (A : 𝒞) where
   cod   : 𝒞
   arr   : A ⟶ cod
   cover : Cover arr
@@ -44,14 +44,14 @@ def QuotObj.le {A : 𝒞} (f g : QuotObj 𝒞 A) : Prop :=
   ∃ h : g.cod ⟶ f.cod, g.arr ≫ h = f.arr
 
 @[refl] theorem QuotObj.le_refl {A : 𝒞} (f : QuotObj 𝒞 A) : f.le f :=
-  ⟨Cat.id f.cod, Cat.comp_id f.arr⟩
+  ⟨𝟙 f.cod, CategoryTheory.Category.comp_id f.arr⟩
 
 theorem QuotObj.le_trans {A : 𝒞} {X Y Z : QuotObj 𝒞 A}
     (h₁ : X.le Y) (h₂ : Y.le Z) : X.le Z :=
   let ⟨f, hf⟩ := h₁; let ⟨g, hg⟩ := h₂
   -- X factors through Y (`Y.arr ≫ f = X.arr`), Y through Z (`Z.arr ≫ g = Y.arr`),
   -- so X factors through Z via `g ≫ f`.
-  ⟨g ≫ f, by rw [← Cat.assoc, hg, hf]⟩
+  ⟨g ≫ f, by rw [← CategoryTheory.Category.assoc, hg, hf]⟩
 
 instance {A : 𝒞} : Trans (@QuotObj.le 𝒞 _ A) (@QuotObj.le 𝒞 _ A) (@QuotObj.le 𝒞 _ A) :=
   ⟨QuotObj.le_trans⟩
@@ -66,11 +66,11 @@ theorem QuotObj.le_antisymm_iso [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
   obtain ⟨h, hh⟩ := hfg   -- h : g.cod ⟶ f.cod, g.arr ≫ h = f.arr
   obtain ⟨k, hk⟩ := hgf   -- k : f.cod ⟶ g.cod, f.arr ≫ k = g.arr
   -- `h ≫ k = id` on `g.cod`: cancel the cover `g.arr` (epic).
-  have hhk : h ≫ k = Cat.id g.cod :=
-    cover_epi g.cover (by rw [← Cat.assoc, hh, hk, Cat.comp_id])
+  have hhk : h ≫ k = 𝟙 g.cod :=
+    cover_epi g.cover (by rw [← CategoryTheory.Category.assoc, hh, hk, CategoryTheory.Category.comp_id])
   -- `k ≫ h = id` on `f.cod`: cancel the cover `f.arr` (epic).
-  have hkh : k ≫ h = Cat.id f.cod :=
-    cover_epi f.cover (by rw [← Cat.assoc, hk, hh, Cat.comp_id])
+  have hkh : k ≫ h = 𝟙 f.cod :=
+    cover_epi f.cover (by rw [← CategoryTheory.Category.assoc, hk, hh, CategoryTheory.Category.comp_id])
   exact ⟨h, ⟨k, hhk, hkh⟩, hh⟩
 
 /-! ## §1.568  The faithful order-reversing functor `Quot(A) → EquivRel(A)`
@@ -102,7 +102,7 @@ theorem QuotObj.ker_antitone {A : 𝒞} {f g : QuotObj 𝒞 A}
   obtain ⟨h, hh⟩ := hfg   -- g.arr ≫ h = f.arr
   -- The two legs of `g`'s kernel pair agree after `f.arr`.
   have heq : kp₁ (f := g.arr) ≫ f.arr = kp₂ (f := g.arr) ≫ f.arr := by
-    rw [← hh, ← Cat.assoc, kp_sq, Cat.assoc]
+    rw [← hh, ← CategoryTheory.Category.assoc, kp_sq, CategoryTheory.Category.assoc]
   -- Lift them into the kernel pair of `f`.
   let k := (HasPullbacks.has f.arr f.arr).lift ⟨_, kp₁ (f := g.arr), kp₂ (f := g.arr), heq⟩
   exact ⟨k, kp_lift_p₁ _ _ heq, kp_lift_p₂ _ _ heq⟩
@@ -119,7 +119,7 @@ theorem QuotObj.le_of_ker_le [RegularCategory 𝒞] {A : 𝒞} {f g : QuotObj �
   simp only [QuotObj.ker, kernelPairRel] at hk₁ hk₂
   -- `f.arr` equalizes the kernel pair of `g`.
   have hg_eq : kp₁ (f := g.arr) ≫ f.arr = kp₂ (f := g.arr) ≫ f.arr := by
-    rw [← hk₁, ← hk₂, Cat.assoc, Cat.assoc, kp_sq]
+    rw [← hk₁, ← hk₂, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, kp_sq]
   -- `g` is the coequalizer of its kernel pair, so `f.arr` factors through `g.arr`.
   obtain ⟨h, hh, _⟩ := cover_is_coequalizer_of_level g.arr g.cover f.arr hg_eq
   exact ⟨h, hh⟩

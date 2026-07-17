@@ -16,7 +16,7 @@ import Fredy.S1_543_LaxColimitImages
 import Fredy.S1_543_RatCapStagePTC
 import Fredy.S1_65_SlicePreTopos
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -24,7 +24,7 @@ namespace Freyd.LaxColim
 
 universe u
 
-variable {ι : Type u} {D : Directed ι} {𝒞 : Type u} [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasImages 𝒞]
+variable {ι : Type u} {D : Directed ι} {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] [HasImages 𝒞]
 
 -- INSTANCE-DIAMOND PIN (§1.543) — see `UniformCapStep.lean`/`FibreDensityProof.lean`.  `laxOfProjSystem'`
 -- resolves its `[HasPullbacks 𝒞]` to either `PreRegularCategory.toHasPullbacks` or the global
@@ -41,8 +41,8 @@ noncomputable def ratCapHasImages [Nonempty ι] (P : ProjSystem ι D 𝒞)
     @HasImages (Obj (laxOfProjSystem' P)) (ratCapCat P) := by
   -- transition mono- and cover-preservation (as `Preserves…` props), shared by `himgpres`.
   have hmono : ∀ {i j : ι} (hij : D.le i j),
-      @PreservesMono _ ((laxOfProjSystem' P).catA i) _ ((laxOfProjSystem' P).catA j)
-        ((laxOfProjSystem' P).F hij) ((laxOfProjSystem' P).functF hij) :=
+      PreservesMono (bundledFunctor (hF := (laxOfProjSystem' P).functF hij)
+        ((laxOfProjSystem' P).F hij)) :=
     fun {i j} hij {X Y} {f} hf => projStage_preservesMono P hij f hf
   have hcovpres : ∀ {i j : ι} (hij : D.le i j),
       @PreservesCovers _ _ ((laxOfProjSystem' P).catA i) ((laxOfProjSystem' P).catA j)

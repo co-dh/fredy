@@ -29,7 +29,7 @@ universe u
 
 namespace Freyd.PreLogosHorn.Stalk
 
-open Cat SetRegular RelFunctor
+open CategoryTheory Cat SetRegular RelFunctor
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞]
 
@@ -337,7 +337,7 @@ theorem TF_preserves_covers_of_projective (ℱ : Subobject 𝒞 one → Prop)
     rw [Cat.id_comp, Cat.id_comp]; exact hsq⟩
 
 theorem TF_preserves_mono (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ) :
-    PreservesMono (TF ℱ) := by
+    PreservesMono (bundledFunctor (TF ℱ)) := by
   intro X Y m hm
   -- `TF.map m` injective ⟹ monic in `Type u` (`set_monic_iff_injective`)
   refine (set_monic_iff_injective (TF.map ℱ m)).2 ?_
@@ -354,7 +354,7 @@ theorem TF_preserves_mono (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilte
 
 theorem TF_preserves_images (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ)
     (hproj : ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom) :
-    PreservesImages (TF ℱ) (TF_preserves_mono ℱ hℱ) := by
+    PreservesImages (bundledFunctor (TF ℱ)) (TF_preserves_mono ℱ hℱ) := by
   intro A B f I hI
   obtain ⟨ℓ, hℓ⟩ := hI.1
   -- `ℓ : A → I.dom`, `ℓ ≫ I.arr = f`; `ℓ` is a cover (image lift, transported across `image f ≅ I`).

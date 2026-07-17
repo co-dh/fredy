@@ -37,6 +37,7 @@ import Fredy.S1_621_ColimitPositive
 open Freyd
 open Freyd.Colim
 open Freyd.LaxColim
+open CategoryTheory
 
 namespace Freyd.LaxColim
 
@@ -69,7 +70,7 @@ noncomputable def laxColimPreLogos (L : LaxCatSystem.{w, w} ι D) (hL : Coherent
           = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
         @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := L.functF hij) (L.F hij)) (hmono hij)
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory (Obj L) (laxColimCat L hL)]
     [hUn : @HasSubobjectUnions (Obj L) (laxColimCat L hL) hReg.toHasImages] :
@@ -126,7 +127,7 @@ noncomputable def laxColimPositive (L : LaxCatSystem.{w, w} ι D) (hL : Coherent
           = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
         @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := L.functF hij) (L.F hij)) (hmono hij)
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory (Obj L) (laxColimCat L hL)]
     [hUn : @HasSubobjectUnions (Obj L) (laxColimCat L hL) hReg.toHasImages] :

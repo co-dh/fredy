@@ -29,7 +29,7 @@
 
 import Fredy.S1_31
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 

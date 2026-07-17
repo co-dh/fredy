@@ -30,9 +30,9 @@ universe u
 
 namespace Freyd.PreLogosHorn.Stalk
 
-open Cat SetRegular RelFunctor
+open CategoryTheory Cat SetRegular RelFunctor
 
-variable {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [PreLogos 𝒞]
 
 /-! ## §1.526 — the global-points functor `Γ = Hom(1,-)` reflects isos when every object is
     well-pointed.
@@ -60,11 +60,11 @@ theorem points_faithful_of_wellPointed {Z W : 𝒞} (hZ : WellPointed Z)
   · -- `E ≅ Z`, so `a = b` via the iso section.
     obtain ⟨e, he₁, he₂⟩ := hiso
     have : e ≫ (eqMap a b ≫ a) = e ≫ (eqMap a b ≫ b) := by rw [eqMap_eq]
-    calc a = (e ≫ eqMap a b) ≫ a := by rw [he₂, Cat.id_comp]
-      _ = e ≫ (eqMap a b ≫ a) := Cat.assoc _ _ _
+    calc a = (e ≫ eqMap a b) ≫ a := by rw [he₂, CategoryTheory.Category.id_comp]
+      _ = e ≫ (eqMap a b ≫ a) := CategoryTheory.Category.assoc _ _ _
       _ = e ≫ (eqMap a b ≫ b) := this
-      _ = (e ≫ eqMap a b) ≫ b := (Cat.assoc _ _ _).symm
-      _ = b := by rw [he₂, Cat.id_comp]
+      _ = (e ≫ eqMap a b) ≫ b := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = b := by rw [he₂, CategoryTheory.Category.id_comp]
   · -- Proper monic `E ↣ Z`: well-pointedness gives a point of `Z` not through `E`, contradicting `h`.
     exfalso
     obtain ⟨x, hx⟩ := hZ (eqMap a b) hEm hiso
@@ -82,7 +82,7 @@ theorem cover_of_points_surjective {X Y : 𝒞} (f : X ⟶ Y) (hY : WellPointed 
   refine Classical.byContradiction (fun hmiso => ?_)
   obtain ⟨y, hy⟩ := hY m hm hmiso
   obtain ⟨x, hx⟩ := hsurj y
-  exact hy ⟨x ≫ g, by rw [Cat.assoc, hgm, hx]⟩
+  exact hy ⟨x ≫ g, by rw [CategoryTheory.Category.assoc, hgm, hx]⟩
 
 /-- **§1.526 (monos from points).**  If `Γ(f)` is injective on points (`x ≫ f = x' ≫ f → x = x'`
     for all `x, x' : 1 → X`) and the KERNEL PAIR of `f` is well-pointed, then `f` is MONIC.
@@ -99,9 +99,9 @@ theorem monic_of_points_injective {X Y : 𝒞} (f : X ⟶ Y)
   have hk : kp₁ (f := f) = kp₂ (f := f) := by
     refine points_faithful_of_wellPointed hK (fun p => ?_)
     refine hinj (p ≫ kp₁ (f := f)) (p ≫ kp₂ (f := f)) ?_
-    calc (p ≫ kp₁ (f := f)) ≫ f = p ≫ (kp₁ (f := f) ≫ f) := Cat.assoc _ _ _
+    calc (p ≫ kp₁ (f := f)) ≫ f = p ≫ (kp₁ (f := f) ≫ f) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (kp₂ (f := f) ≫ f) := by rw [hsq]
-      _ = (p ≫ kp₂ (f := f)) ≫ f := (Cat.assoc _ _ _).symm
+      _ = (p ≫ kp₂ (f := f)) ≫ f := (CategoryTheory.Category.assoc _ _ _).symm
   -- `k₁ = k₂` ⟹ `f` monic: two maps equalized by `f` both lift to `K`, and the lifts coincide.
   intro W u v huv
   have hu : (HasPullbacks.has f f).lift ⟨W, u, v, huv⟩ ≫ kp₁ (f := f) = u := kp_lift_p₁ u v huv
@@ -132,13 +132,13 @@ theorem isIso_of_points_bijective (hwp : ∀ A : 𝒞, WellPointed A) {X Y : �
 abbrev Top1 : Subobject 𝒞 one := Subobject.entire one
 
 @[simp] theorem Top1_dom : (Top1 (𝒞 := 𝒞)).dom = one := rfl
-@[simp] theorem Top1_arr : (Top1 (𝒞 := 𝒞)).arr = Cat.id one := rfl
+@[simp] theorem Top1_arr : (Top1 (𝒞 := 𝒞)).arr = 𝟙 one := rfl
 
 /-- A FILTER (up-closed pre-filter) contains the TOP subterminator: any member `U ≤ 1` is pushed up
     to `1`.  This is the membership the `1`-stage bridge needs. -/
 theorem filter_mem_top {ℱ : Subobject 𝒞 one → Prop} (hℱ : IsFilter ℱ) : ℱ (Top1 (𝒞 := 𝒞)) := by
   obtain ⟨U, hU⟩ := hℱ.1.1
-  exact hℱ.2 U Top1 hU ⟨U.arr, Cat.comp_id _⟩
+  exact hℱ.2 U Top1 hU ⟨U.arr, CategoryTheory.Category.comp_id _⟩
 
 /-- The `1`-stage map `Hom(1,A) → T_F̂(A)`: send a global point `x : 1 → A` to the class of its name
     `(1, x)` over the top subterminator (using `ht : ℱ 1`). -/
@@ -168,7 +168,7 @@ def principalTop : Subobject 𝒞 one → Prop := fun U => Subobject.IsEntire U
 
 theorem principalTop_mem_top : principalTop (Top1 (𝒞 := 𝒞)) := by
   show IsIso (Top1 (𝒞 := 𝒞)).arr
-  rw [Top1_arr]; exact ⟨Cat.id one, Cat.id_comp _, Cat.id_comp _⟩
+  rw [Top1_arr]; exact ⟨𝟙 one, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩
 
 /-- Any entire member `U` has a canonical point `pt U : 1 → U.dom` (inverse of `U.arr`), and every
     name `(U, g)` over it restricts to the global point `pt U ≫ g`. -/
@@ -178,10 +178,10 @@ noncomputable def entityPoint {U : Subobject 𝒞 one} (hU : principalTop U) : o
 /-- `IsEntire U = IsIso U.arr = ∃ g, U.arr ≫ g = id ∧ g ≫ U.arr = id`, so `entityPoint = g` with
     `entityPoint ≫ U.arr = id one`. -/
 theorem entityPoint_arr {U : Subobject 𝒞 one} (hU : principalTop U) :
-    entityPoint hU ≫ U.arr = Cat.id one := hU.choose_spec.2
+    entityPoint hU ≫ U.arr = 𝟙 one := hU.choose_spec.2
 
 theorem arr_entityPoint {U : Subobject 𝒞 one} (hU : principalTop U) :
-    U.arr ≫ entityPoint hU = Cat.id U.dom := hU.choose_spec.1
+    U.arr ≫ entityPoint hU = 𝟙 U.dom := hU.choose_spec.1
 
 theorem principalTop_isPreFilter : IsPreFilter (principalTop (𝒞 := 𝒞)) := by
   refine ⟨⟨Top1, principalTop_mem_top⟩, ?_⟩
@@ -200,12 +200,12 @@ theorem globalToStalk_principal_injective {A : 𝒞} :
   obtain ⟨W, hW, a, b, ha, hb, hab⟩ :=
     PrefRel_of_TF_eq principalTop principalTop_isPreFilter hxx'
   -- `a, b : W.dom → 1`, `a ≫ id = W.arr`, `b ≫ id = W.arr`, `a ≫ x = b ≫ x'`.
-  have ha' : a = W.arr := by simpa [Top1_arr, Cat.comp_id] using ha
-  have hb' : b = W.arr := by simpa [Top1_arr, Cat.comp_id] using hb
+  have ha' : a = W.arr := by simpa [Top1_arr, CategoryTheory.Category.comp_id] using ha
+  have hb' : b = W.arr := by simpa [Top1_arr, CategoryTheory.Category.comp_id] using hb
   rw [ha', hb'] at hab
   -- Pre-compose with the entityPoint of `W` to cancel `W.arr`.
   have := congrArg (fun m => entityPoint hW ≫ m) hab
-  simpa [← Cat.assoc, entityPoint_arr, Cat.id_comp] using this
+  simpa [← CategoryTheory.Category.assoc, entityPoint_arr, CategoryTheory.Category.id_comp] using this
 
 /-- On `principalTop`, the `1`-stage map is SURJECTIVE: every name `(U, g)` (U entire) is `PrefRel`
     to the global point `entityPoint U ≫ g` named over the top. -/
@@ -218,8 +218,8 @@ theorem globalToStalk_principal_surjective {A : 𝒞} :
   refine Quot.sound ?_
   -- `PrefRel (Top1, ep≫g) (U, g)`: refine by `Top1`, witnesses `id : 1→1` and `ep : 1→U.dom`.
   -- goal1 `id ≫ Top1.arr = Top1.arr`; goal2 `ep ≫ U.arr = Top1.arr (= id)`; goal3 `id ≫ (ep≫g) = ep ≫ g`.
-  exact ⟨Top1, principalTop_mem_top, Cat.id one, entityPoint p.hU,
-    Cat.id_comp _, entityPoint_arr p.hU, Cat.id_comp _⟩
+  exact ⟨Top1, principalTop_mem_top, 𝟙 one, entityPoint p.hU,
+    CategoryTheory.Category.id_comp _, entityPoint_arr p.hU, CategoryTheory.Category.id_comp _⟩
 
 /-- `T_principalTop(f)` IS the global-points action `Γ(f) = (· ≫ f)` transported across the
     bijection `globalToStalk`.  We use this to transfer iso-reflection from `Γ` to the stalk. -/
@@ -241,20 +241,20 @@ theorem projective_of_iso {C D : 𝒞} (φ : C ⟶ D) (hφ : IsIso φ) (hD : Pro
   obtain ⟨s, hs⟩ := hD (e ≫ φ) (cover_comp_iso e φ he hφ)
   -- `hs : s ≫ (e ≫ φ) = id D`.  The section of `e` is `t = φ ≫ s`.
   refine ⟨φ ≫ s, ?_⟩
-  have hse : s ≫ (e ≫ φ) = Cat.id D := hs
+  have hse : s ≫ (e ≫ φ) = 𝟙 D := hs
   -- cancel the monic `φ`: `((φ≫s)≫e) ≫ φ = φ = (id C) ≫ φ`.
   have hφm : Monic φ := by
     intro Z u v huv
-    calc u = u ≫ (φ ≫ ψ) := by rw [hφψ, Cat.comp_id]
-      _ = (u ≫ φ) ≫ ψ := (Cat.assoc _ _ _).symm
+    calc u = u ≫ (φ ≫ ψ) := by rw [hφψ, CategoryTheory.Category.comp_id]
+      _ = (u ≫ φ) ≫ ψ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (v ≫ φ) ≫ ψ := by rw [huv]
-      _ = v ≫ (φ ≫ ψ) := Cat.assoc _ _ _
-      _ = v := by rw [hφψ, Cat.comp_id]
+      _ = v ≫ (φ ≫ ψ) := CategoryTheory.Category.assoc _ _ _
+      _ = v := by rw [hφψ, CategoryTheory.Category.comp_id]
   refine hφm _ _ ?_
-  calc ((φ ≫ s) ≫ e) ≫ φ = φ ≫ (s ≫ (e ≫ φ)) := by simp only [Cat.assoc]
-    _ = φ ≫ Cat.id D := by rw [hse]
-    _ = φ := Cat.comp_id _
-    _ = Cat.id C ≫ φ := (Cat.id_comp _).symm
+  calc ((φ ≫ s) ≫ e) ≫ φ = φ ≫ (s ≫ (e ≫ φ)) := by simp only [CategoryTheory.Category.assoc]
+    _ = φ ≫ 𝟙 D := by rw [hse]
+    _ = φ := CategoryTheory.Category.comp_id _
+    _ = 𝟙 C ≫ φ := (CategoryTheory.Category.id_comp _).symm
 
 /-- The members of `principalTop` are PROJECTIVE once the TERMINATOR `1` is projective (which holds
     in a CAPITAL pre-logos, §1.525): each member is `≅ 1`, so transfer projectivity along `U.arr`.
@@ -345,7 +345,7 @@ theorem relStalk_faithful_of_wellPointed
   `hwp` hypothesis, alongside `[PreLogos Ā]` and the bridge `cap`. -/
 theorem repr_in_set_of_tabular_wellPointed
     {𝒜 : Type u} [Alg.TabularUnitaryDistributiveAllegory 𝒜]
-    {Ā : Type u} [Cat.{u} Ā] [PreLogos Ā]
+    {Ā : Type u} [CategoryTheory.Category.{u} Ā] [PreLogos Ā]
     (hwp : ∀ A : Ā, WellPointed A) (hone : Projective (one : Ā))
     (cap : @Alg.AllegoryFunctor (RelObj (Alg.MapObj 𝒜)) (RelObj Ā)
         (@relAllegory (Alg.MapObj 𝒜) Alg.mapCat Alg.mapRegularCategory) (relAllegory))

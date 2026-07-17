@@ -12,6 +12,7 @@ import Fredy.S1_1
 import Fredy.S1_18
 import Fredy.S1_51_Order  -- §1.51 IsClosureOp (poset closure operations, §1.815)
 
+open CategoryTheory
 
 universe v u u₁ u₂
 

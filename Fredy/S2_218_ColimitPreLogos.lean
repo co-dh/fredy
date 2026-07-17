@@ -36,7 +36,7 @@ import Fredy.S1_63_ColimitInvImageUnion
   §2.218 regular tower already supplies.
 -/
 
-open Freyd
+open CategoryTheory Freyd
 
 namespace Freyd.Colim
 
@@ -191,7 +191,7 @@ noncomputable def colimitPreLogos (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := C.functF hij) (C.F hij)) (hmono hij)
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory C.Obj (colimitCat C hC)]
     [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :

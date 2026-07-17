@@ -27,7 +27,7 @@ import Fredy.S1_61
 import Fredy.S1_543_WellOrdering
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -595,14 +595,14 @@ theorem pushout_over_initial_is_coproduct [HasBinaryCoproducts 𝒟]
       rw [← Cat.assoc, hφ₂, hψ₂]
     -- both φ≫ψ and id are the desc of po.cocone (as a cocone over itself).
     rw [po.uniq po.cocone (φ ≫ ψ) h1 h2,
-        po.uniq po.cocone (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+        po.uniq po.cocone (𝟙 _) (Cat.comp_id _) (Cat.comp_id _)]
   · -- ψ ≫ φ = id_{A+B}  by coproduct uniqueness (both legs land back on inl, inr).
     have h1 : HasBinaryCoproducts.inl ≫ (ψ ≫ φ) = HasBinaryCoproducts.inl := by
       rw [← Cat.assoc, hψ₁, hφ₁]
     have h2 : HasBinaryCoproducts.inr ≫ (ψ ≫ φ) = HasBinaryCoproducts.inr := by
       rw [← Cat.assoc, hψ₂, hφ₂]
     rw [HasBinaryCoproducts.case_uniq _ _ (ψ ≫ φ) h1 h2,
-        HasBinaryCoproducts.case_uniq _ _ (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)]
+        HasBinaryCoproducts.case_uniq _ _ (𝟙 _) (Cat.comp_id _) (Cat.comp_id _)]
 
 end DisjointProjections
 
@@ -2808,7 +2808,15 @@ theorem capital_iff_complemented_subterminators :
       -- `e` is NOT iso:  an iso `e` would force `f = g` (cancel the iso, `e≫f = e≫g`).
       have heproper : ¬ IsIso e := by
         rintro ⟨einv, _, hinv2⟩
-        exact hfg (by rw [← Cat.id_comp f, ← Cat.id_comp g, ← hinv2, Cat.assoc, Cat.assoc, hef])
+        apply hfg
+        calc
+          f = (𝟙 A) ≫ f := (CategoryTheory.Category.id_comp f).symm
+          _ = (einv ≫ e) ≫ f := by rw [hinv2]
+          _ = einv ≫ (e ≫ f) := CategoryTheory.Category.assoc _ _ _
+          _ = einv ≫ (e ≫ g) := by rw [hef]
+          _ = (einv ≫ e) ≫ g := (CategoryTheory.Category.assoc _ _ _).symm
+          _ = (𝟙 A) ≫ g := by rw [hinv2]
+          _ = g := CategoryTheory.Category.id_comp g
       -- proper-monic clause gives `G`, `ℱ G`, `x : G → A` not factoring through `e`.
       obtain ⟨G, hGℱ, x, hx⟩ := hpm e hemono heproper
       -- but `x ≫ f = x ≫ g` (separation, since `ℱ G`), so `x` factors through `e` — contra.
@@ -3556,7 +3564,7 @@ theorem homRep_preserves_covers
     and is minimal, because the cover `homRep (image.lift f)` is onto it. -/
 theorem homRep_preserves_images
     (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
-    PreservesImages (homRep 𝒞) (homRep_preserves_mono 𝒞) := by
+    PreservesImages (bundledFunctor (homRep 𝒞)) (homRep_preserves_mono 𝒞) := by
   intro A B f I hI
   -- `Subobject.map (homRep 𝒞) _ I` has arrow `homRep (I.arr)` (a mono) and allows `homRep f`.
   -- We show it is the image of `homRep f`.  Strategy: `homRep` preserves the cover `image.lift`.
@@ -4187,14 +4195,14 @@ theorem pushPow_preserves_image (hproj : Capital 𝒞) (ρ : Env 𝒞 nObj) {a b
   -- push the subobject; `homRep` preserves images.
   have hpres := homRep_preserves_images (𝒞 := 𝒞) hproj _ _ hI
   -- `Subobject.map (homRep 𝒞) _ (mk ..)` has arrow `homRep em`; rewrite to `morAs (pushPow ρ) em`.
-  have harr : (Subobject.map (homRep 𝒞) (homRep_preserves_mono 𝒞)
+  have harr : (Subobject.map (bundledFunctor (homRep 𝒞)) (homRep_preserves_mono 𝒞)
       (Subobject.mk _ (morAs ρ em hem_src hem_tgt) h.1)).arr
         = morAs (pushPow ρ) em hem_src hem_tgt := by
     rw [morAs_pushPow]; rfl
   have := isImageObj_of_isImage hpres
   rw [harr] at this
   -- the `f` side: `homRep f = morAs (pushPow ρ) fm`.
-  have hffix : (homRepFunctor 𝒞).map (morAs ρ fm hf_src hf_tgt)
+  have hffix : (bundledFunctor (homRep 𝒞)).map (morAs ρ fm hf_src hf_tgt)
       = morAs (pushPow ρ) fm hf_src hf_tgt := (morAs_pushPow ρ fm hf_src hf_tgt).symm
   rwa [hffix] at this
 
@@ -4355,19 +4363,20 @@ theorem exists_ultrafilter_excluding (V : Subobject 𝒞 one) (hVcomp : IsComple
     refine Subobject.le_trans hVcov ?_
     exact HasSubobjectUnions.union_min _ _ _ (Subobject.le_refl V)
       (Subobject.le_trans hVc0 (PreLogos.bottom_min V))
-  let 𝒫 : (Subobject 𝒞 one) → Prop := fun W => IsComplementedSub W ∧ Subobject.le Vc W
-  have h𝒫pre : IsPreFilter 𝒫 := by
+  let Pfilter : (Subobject 𝒞 one) → Prop := fun W => IsComplementedSub W ∧ Subobject.le Vc W
+  have hPpre : IsPreFilter Pfilter := by
     refine ⟨⟨Vc, hVcComp, Subobject.le_refl Vc⟩, ?_⟩
     rintro W₁ W₂ ⟨hW₁c, hVcW₁⟩ ⟨hW₂c, hVcW₂⟩
     exact ⟨Subobject.inter W₁ W₂, ⟨inter_complemented hW₁c hW₂c,
       Subobject.le_inter hVcW₁ hVcW₂⟩,
       Subobject.inter_le_left _ _, Subobject.inter_le_right _ _⟩
-  have h𝒫proper : IsProperFilter 𝒫 := by
-    refine ⟨h𝒫pre, ?_⟩
+  have hPproper : IsProperFilter Pfilter := by
+    refine ⟨hPpre, ?_⟩
     rintro ⟨W, ⟨_, hVcW⟩, hW0⟩
     exact hVcNotZero (Subobject.le_trans hVcW hW0)
-  have h𝒫comp : ∀ W, 𝒫 W → IsComplementedSub W := fun W hW => hW.1
-  obtain ⟨Fhat, hUF, hext⟩ := exists_ultrafilter_extending 𝒫 h𝒫proper h𝒫comp
+  have hPcomp : ∀ W, Pfilter W → IsComplementedSub W := fun W hW => hW.1
+  obtain ⟨Fhat, hUF, hext⟩ :=
+    exists_ultrafilter_extending Pfilter hPproper hPcomp
   refine ⟨Fhat, hUF, ?_⟩
   have hVcF : Fhat Vc := hext Vc ⟨hVcComp, Subobject.le_refl Vc⟩
   intro hVF

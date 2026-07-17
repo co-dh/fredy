@@ -7,22 +7,22 @@
   an iso in `Over D`.
 
   Equivalently, on subobjects: a subobject `m : S ↣ Y` whose pullback along a cover
-  `g : C ↠ Y.dom` is iso is itself iso.
+  `g : C ↠ Y.left` is iso is itself iso.
 
   The proof is elementary and uses ONLY `PreRegularCategory` data (no images, no
   effective descent):
 
     * Covers are pullback-stable (`PullbacksTransferCovers`), so the projection
-      `π₁ : Y ×_D C → Y.dom` of the base-change pullback of `Y` along `g` is a cover
+      `π₁ : Y ×_D C → Y.left` of the base-change pullback of `Y` along `g` is a cover
       (`coverProj_of_cover`, the `fst`-oriented transfer derived from the
       `snd`-oriented class field via a cone swap).
 
-    * The base-change square gives `(g* m).f ≫ π₁ʸ = π₁ˣ ≫ m.f`.  With `g* m` iso,
-      `s := (g* m)⁻¹.f ≫ π₁ˣ` satisfies `s ≫ m.f = π₁ʸ`, i.e. the cover `π₁ʸ` factors
-      through the mono `m.f`.  A cover factoring through a mono forces that mono iso
-      (the `Cover` definition applied to `m.f`).
+    * The base-change square gives `(g* m).left ≫ π₁ʸ = π₁ˣ ≫ m.left`.  With `g* m` iso,
+      `s := (g* m)⁻¹.left ≫ π₁ˣ` satisfies `s ≫ m.left = π₁ʸ`, i.e. the cover `π₁ʸ` factors
+      through the mono `m.left`.  A cover factoring through a mono forces that mono iso
+      (the `Cover` definition applied to `m.left`).
 
-    * Hence `m.f` is iso, so `m` is iso in `Over D` (`overIso_of_underlying`).
+    * Hence `m.left` is iso, so `m` is iso in `Over D` (`overIso_of_underlying`).
 
   Mathlib-free; imports only existing repo files (`Fredy.SliceRegular` transitively
   brings in `Over`/`baseChangeMap`/`Cover`/`PreRegularCategory`/`sigma_preserves_mono`).
@@ -32,9 +32,11 @@ import Fredy.S1_53_SliceRegular
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
+
+open CategoryTheory
 
 /-! ## `fst`-oriented cover transfer
 
@@ -71,37 +73,37 @@ theorem coverProj_of_cover [PullbacksTransferCovers 𝒞] {A B C : 𝒞} {f : A 
   iso in `Over D`.
 
   (Subobject form: a subobject `m : S ↣ Y` whose pullback along the cover
-  `g : C ↠ Y.dom` is iso is itself iso.) -/
+  `g : C ↠ Y.left` is iso is itself iso.) -/
 theorem isIso_of_baseChange_isIso_of_cover {C D : 𝒞} [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞] (g : C ⟶ D) (hg : Cover g)
     {X Y : Over D} (m : OverHom X Y) (hm : OverMono m)
     (hbc : OverIso (baseChangeMap g m)) : OverIso m := by
-  -- It suffices to show the underlying arrow `m.f` is iso (`overIso_of_underlying`).
+  -- It suffices to show the underlying arrow `m.left` is iso (`overIso_of_underlying`).
   refine overIso_of_underlying m ?_
-  -- `m.f` is mono in `𝒞` (Σ preserves monos).
-  have hmf : Monic m.f := sigma_preserves_mono m hm
+  -- `m.left` is mono in `𝒞` (Σ preserves monos).
+  have hmf : Monic m.left := sigma_preserves_mono m hm
   -- The chosen base-change pullbacks for `X` and `Y` along `g` (kept as `let` so the
   -- `baseChangeMap`/`baseChangeObj` defs unfold to them definitionally).
   let PX := HasPullbacks.has X.hom g
   let PY := HasPullbacks.has Y.hom g
-  -- `π₁ʸ : Y ×_D C → Y.dom` is a cover: it is `fst` in the pullback of `g` along `Y.hom`.
+  -- `π₁ʸ : Y ×_D C → Y.left` is a cover: it is `fst` in the pullback of `g` along `Y.hom`.
   have hπ₁Y_cover : Cover PY.cone.π₁ := coverProj_of_cover PY.cone_isPullback hg
-  -- The base-change square: `(g* m).f ≫ π₁ʸ = π₁ˣ ≫ m.f`  (`lift_fst` of the lift).
-  have hsq : (baseChangeMap g m).f ≫ PY.cone.π₁ = PX.cone.π₁ ≫ m.f :=
+  -- The base-change square: `(g* m).left ≫ π₁ʸ = π₁ˣ ≫ m.left`  (`lift_fst` of the lift).
+  have hsq : (baseChangeMap g m).left ≫ PY.cone.π₁ = PX.cone.π₁ ≫ m.left :=
     PY.lift_fst (baseChangeCone g m)
-  -- `g* m` iso gives an inverse arrow `inv` with `inv ≫ (g* m).f = id`.
+  -- `g* m` iso gives an inverse arrow `inv` with `inv ≫ (g* m).left = id`.
   obtain ⟨inv, _hinv₁, hinv₂⟩ := overIso_underlying hbc
-  -- `s := inv ≫ π₁ˣ` factors the cover `π₁ʸ` through the mono `m.f`:
-  --   `s ≫ m.f = inv ≫ (π₁ˣ ≫ m.f) = inv ≫ ((g* m).f ≫ π₁ʸ)
-  --           = (inv ≫ (g* m).f) ≫ π₁ʸ = π₁ʸ`.
-  have hfactor : (inv ≫ PX.cone.π₁) ≫ m.f = PY.cone.π₁ := by
-    calc (inv ≫ PX.cone.π₁) ≫ m.f
-        = inv ≫ (PX.cone.π₁ ≫ m.f) := Cat.assoc _ _ _
-      _ = inv ≫ ((baseChangeMap g m).f ≫ PY.cone.π₁) := by rw [hsq]
-      _ = (inv ≫ (baseChangeMap g m).f) ≫ PY.cone.π₁ := (Cat.assoc _ _ _).symm
-      _ = PY.cone.π₁ := by rw [hinv₂, Cat.id_comp]
-  -- A cover (`π₁ʸ`) factoring through a mono (`m.f`) forces the mono iso.
-  exact hπ₁Y_cover m.f (inv ≫ PX.cone.π₁) hmf hfactor
+  -- `s := inv ≫ π₁ˣ` factors the cover `π₁ʸ` through the mono `m.left`:
+  --   `s ≫ m.left = inv ≫ (π₁ˣ ≫ m.left) = inv ≫ ((g* m).left ≫ π₁ʸ)
+  --           = (inv ≫ (g* m).left) ≫ π₁ʸ = π₁ʸ`.
+  have hfactor : (inv ≫ PX.cone.π₁) ≫ m.left = PY.cone.π₁ := by
+    calc (inv ≫ PX.cone.π₁) ≫ m.left
+        = inv ≫ (PX.cone.π₁ ≫ m.left) := CategoryTheory.Category.assoc _ _ _
+      _ = inv ≫ ((baseChangeMap g m).left ≫ PY.cone.π₁) := by rw [hsq]
+      _ = (inv ≫ (baseChangeMap g m).left) ≫ PY.cone.π₁ := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = PY.cone.π₁ := by rw [hinv₂, CategoryTheory.Category.id_comp]
+  -- A cover (`π₁ʸ`) factoring through a mono (`m.left`) forces the mono iso.
+  exact hπ₁Y_cover m.left (inv ≫ PX.cone.π₁) hmf hfactor
 
 /-- Specialized to a `PreRegularCategory`: base-change along a cover reflects isos
     among monos.  (`HasPullbacks`/`PullbacksTransferCovers` come from

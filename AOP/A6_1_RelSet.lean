@@ -250,5 +250,33 @@ def rprodMap {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
     (⟨a.carrier × b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier × b'.carrier⟩ :=
   fun p q => R p.1 q.1 ∧ S p.2 q.2
 
+/-- Converse acts componentwise on the product action: `(R × S)° = R° × S°`. -/
+theorem rprodMap_recip {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
+    (rprodMap R S)° = rprodMap R° S° := rfl
+
+/-- The sum type `a ⊕ b` with the injection graphs satisfies the five coproduct equations of
+    §2.214 — Rel(Set)'s concrete coproducts, feeding the `junc`/`sumMap` calculus of `A5_3`. -/
+def sumCop (a b : RelSet.{u}) : Coproduct (⟨a.carrier ⊕ b.carrier⟩ : RelSet.{u}) a b where
+  u₁ := graph Sum.inl
+  u₂ := graph Sum.inr
+  u₁_self_comp_recip := hom_ext fun x x' =>
+    ⟨fun ⟨_, h1, h2⟩ => Sum.inl.inj (h1.symm.trans h2),
+     fun h => ⟨Sum.inl x, rfl, congrArg Sum.inl h⟩⟩
+  u₁_u₂_recip := hom_ext fun x y =>
+    ⟨fun ⟨_, h1, h2⟩ => (nomatch h1.symm.trans h2), False.elim⟩
+  u₂_u₁_recip := hom_ext fun y x =>
+    ⟨fun ⟨_, h1, h2⟩ => (nomatch h1.symm.trans h2), False.elim⟩
+  u₂_self_comp_recip := hom_ext fun y y' =>
+    ⟨fun ⟨_, h1, h2⟩ => Sum.inr.inj (h1.symm.trans h2),
+     fun h => ⟨Sum.inr y, rfl, congrArg Sum.inr h⟩⟩
+  recip_union_eq_id := hom_ext fun s s' =>
+    ⟨fun h => h.elim (fun ⟨x, h1, h2⟩ => h1.trans h2.symm) (fun ⟨y, h1, h2⟩ => h1.trans h2.symm),
+     fun h => by
+      have h' : s = s' := h
+      subst h'
+      cases s with
+      | inl x => exact Or.inl ⟨x, rfl, rfl⟩
+      | inr y => exact Or.inr ⟨y, rfl, rfl⟩⟩
+
 end RelSet
 end Freyd.Alg

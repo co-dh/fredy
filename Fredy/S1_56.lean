@@ -21,11 +21,11 @@ import Fredy.S1_51
 import Fredy.S1_52
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -36,7 +36,7 @@ namespace Freyd
   representatives. -/
 
 /-- A binary relation: jointly-monic pair a: T→A, b: T→B. -/
-structure BinRel (𝒞 : Type u) [Cat.{v} 𝒞] (A B : 𝒞) where
+structure BinRel (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] (A B : 𝒞) where
   src  : 𝒞
   colA : src ⟶ A
   colB : src ⟶ B
@@ -71,16 +71,16 @@ theorem RelHom_monic {A B : 𝒞} {R S : BinRel 𝒞 A B}
   have hcolA_eq : f ≫ R.colA = g ≫ R.colA := by
     calc
       f ≫ R.colA = f ≫ (z ≫ S.colA) := by rw [hA]
-      _ = (f ≫ z) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = (f ≫ z) ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (g ≫ z) ≫ S.colA := by rw [heq]
-      _ = g ≫ (z ≫ S.colA) := Cat.assoc _ _ _
+      _ = g ≫ (z ≫ S.colA) := CategoryTheory.Category.assoc _ _ _
       _ = g ≫ R.colA := by rw [hA]
   have hcolB_eq : f ≫ R.colB = g ≫ R.colB := by
     calc
       f ≫ R.colB = f ≫ (z ≫ S.colB) := by rw [hB]
-      _ = (f ≫ z) ≫ S.colB := (Cat.assoc _ _ _).symm
+      _ = (f ≫ z) ≫ S.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (g ≫ z) ≫ S.colB := by rw [heq]
-      _ = g ≫ (z ≫ S.colB) := Cat.assoc _ _ _
+      _ = g ≫ (z ≫ S.colB) := CategoryTheory.Category.assoc _ _ _
       _ = g ≫ R.colB := by rw [hB]
   exact R.isMonicPair f g hcolA_eq hcolB_eq
 
@@ -88,11 +88,11 @@ theorem RelHom_monic {A B : 𝒞} {R S : BinRel 𝒞 A B}
 
 def graph {A B : 𝒞} (x : A ⟶ B) : BinRel 𝒞 A B where
   src  := A
-  colA := Cat.id A
+  colA := 𝟙 A
   colB := x
   isMonicPair := λ {_W} f g hA _ => by
     -- hA: f ≫ id = g ≫ id  →  f = g
-    simpa [Cat.id_comp, Cat.comp_id] using hA
+    simpa [CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id] using hA
 
 /-- A map *is* a relation (Freyd): a morphism `x : A ⟶ B` silently embeds into the
     relational calculus as its graph `↑x = graph x`.  This lets §1.62 read in book
@@ -131,12 +131,12 @@ theorem monicPair_of_monic_pair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
   apply h f g
   have hf : f ≫ pair a b = pair (f ≫ a) (f ≫ b) :=
     pair_uniq (f ≫ a) (f ≫ b) (f ≫ pair a b)
-      (by rw [Cat.assoc, fst_pair a b])
-      (by rw [Cat.assoc, snd_pair a b])
+      (by rw [CategoryTheory.Category.assoc, fst_pair a b])
+      (by rw [CategoryTheory.Category.assoc, snd_pair a b])
   have hg : g ≫ pair a b = pair (f ≫ a) (f ≫ b) :=
     pair_uniq (f ≫ a) (f ≫ b) (g ≫ pair a b)
-      (by rw [Cat.assoc, fst_pair a b, ha])
-      (by rw [Cat.assoc, snd_pair a b, hb])
+      (by rw [CategoryTheory.Category.assoc, fst_pair a b, ha])
+      (by rw [CategoryTheory.Category.assoc, snd_pair a b, hb])
   rw [hf, hg]
 
 /-- A jointly-monic pair gives a monic into the product. -/
@@ -144,12 +144,12 @@ theorem monic_pair_of_monicPair {T A B : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp :
     Monic (pair a b) := by
   intro W f g h
   apply hp f g
-  · calc f ≫ a = (f ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
+  · calc f ≫ a = (f ≫ pair a b) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair a b]
     _ = (g ≫ pair a b) ≫ fst := by rw [h]
-    _ = g ≫ a := by rw [Cat.assoc, fst_pair a b]
-  · calc f ≫ b = (f ≫ pair a b) ≫ snd := by rw [Cat.assoc, snd_pair a b]
+    _ = g ≫ a := by rw [CategoryTheory.Category.assoc, fst_pair a b]
+  · calc f ≫ b = (f ≫ pair a b) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair a b]
     _ = (g ≫ pair a b) ≫ snd := by rw [h]
-    _ = g ≫ b := by rw [Cat.assoc, snd_pair a b]
+    _ = g ≫ b := by rw [CategoryTheory.Category.assoc, snd_pair a b]
 
 /-- Intersection (meet) of two relations R, S : A → B.
     §1.562: Pullback of the subobject embeddings `pair colA colB` into A×B. -/
@@ -161,9 +161,9 @@ def intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
     isMonicPair := by
       intro W f g hA hB
       have h_colA : (f ≫ pb.cone.π₁) ≫ R.colA = (g ≫ pb.cone.π₁) ≫ R.colA := by
-        simpa [Cat.assoc] using hA
+        simpa [CategoryTheory.Category.assoc] using hA
       have h_colB : (f ≫ pb.cone.π₁) ≫ R.colB = (g ≫ pb.cone.π₁) ≫ R.colB := by
-        simpa [Cat.assoc] using hB
+        simpa [CategoryTheory.Category.assoc] using hB
       have h_p1 : f ≫ pb.cone.π₁ = g ≫ pb.cone.π₁ :=
         R.isMonicPair (f ≫ pb.cone.π₁) (g ≫ pb.cone.π₁) h_colA h_colB
       let eR := pair R.colA R.colB
@@ -172,22 +172,22 @@ def intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) : BinRel 𝒞 A B :=
       have h_p2 : f ≫ pb.cone.π₂ = g ≫ pb.cone.π₂ := by
         apply hmono_eS (f ≫ pb.cone.π₂) (g ≫ pb.cone.π₂)
         calc
-          (f ≫ pb.cone.π₂) ≫ eS = f ≫ (pb.cone.π₂ ≫ eS) := by rw [Cat.assoc]
+          (f ≫ pb.cone.π₂) ≫ eS = f ≫ (pb.cone.π₂ ≫ eS) := by rw [CategoryTheory.Category.assoc]
           _ = f ≫ (pb.cone.π₁ ≫ eR) := by rw [pb.cone.w.symm]
-          _ = (f ≫ pb.cone.π₁) ≫ eR := by rw [Cat.assoc]
+          _ = (f ≫ pb.cone.π₁) ≫ eR := by rw [CategoryTheory.Category.assoc]
           _ = (g ≫ pb.cone.π₁) ≫ eR := by rw [h_p1]
-          _ = g ≫ (pb.cone.π₁ ≫ eR) := by rw [← Cat.assoc]
+          _ = g ≫ (pb.cone.π₁ ≫ eR) := by rw [← CategoryTheory.Category.assoc]
           _ = g ≫ (pb.cone.π₂ ≫ eS) := by rw [pb.cone.w]
-          _ = (g ≫ pb.cone.π₂) ≫ eS := by rw [Cat.assoc]
+          _ = (g ≫ pb.cone.π₂) ≫ eS := by rw [CategoryTheory.Category.assoc]
       let c : Cone eR eS :=
         { pt := W
           π₁ := f ≫ pb.cone.π₁
           π₂ := f ≫ pb.cone.π₂
           w := by
             calc
-              (f ≫ pb.cone.π₁) ≫ eR = f ≫ (pb.cone.π₁ ≫ eR) := by rw [Cat.assoc]
+              (f ≫ pb.cone.π₁) ≫ eR = f ≫ (pb.cone.π₁ ≫ eR) := by rw [CategoryTheory.Category.assoc]
               _ = f ≫ (pb.cone.π₂ ≫ eS) := by rw [pb.cone.w]
-              _ = (f ≫ pb.cone.π₂) ≫ eS := by rw [← Cat.assoc] }
+              _ = (f ≫ pb.cone.π₂) ≫ eS := by rw [← CategoryTheory.Category.assoc] }
       have hu_f : f = pb.lift c := pb.lift_uniq c f rfl rfl
       have hu_g : g = pb.lift c := pb.lift_uniq c g h_p1.symm h_p2.symm
       rw [hu_f, hu_g]
@@ -199,7 +199,7 @@ infixl:70 " ⊓ " => intersect
 /-- Reflexivity of relational containment. -/
 @[refl]
 theorem rel_le_refl {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R R :=
-  ⟨⟨Cat.id R.src, Cat.id_comp _, Cat.id_comp _⟩⟩
+  ⟨⟨𝟙 R.src, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩⟩
 
 /-- Transitivity of relational containment. -/
 theorem rel_le_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B} (hRS : RelLe R S) (hST : RelLe S T) :
@@ -207,17 +207,17 @@ theorem rel_le_trans {A B : 𝒞} {R S T : BinRel 𝒞 A B} (hRS : RelLe R S) (h
   rcases hRS with ⟨⟨f, hfA, hfB⟩⟩
   rcases hST with ⟨⟨g, hgA, hgB⟩⟩
   refine ⟨⟨f ≫ g, ?_, ?_⟩⟩
-  · calc (f ≫ g) ≫ T.colA = f ≫ (g ≫ T.colA) := by rw [Cat.assoc]
+  · calc (f ≫ g) ≫ T.colA = f ≫ (g ≫ T.colA) := by rw [CategoryTheory.Category.assoc]
     _ = f ≫ S.colA := by rw [hgA]
     _ = R.colA := hfA
-  · calc (f ≫ g) ≫ T.colB = f ≫ (g ≫ T.colB) := by rw [Cat.assoc]
+  · calc (f ≫ g) ≫ T.colB = f ≫ (g ≫ T.colB) := by rw [CategoryTheory.Category.assoc]
     _ = f ≫ S.colB := by rw [hgB]
     _ = R.colB := hfB
 
 /-- `Trans` instance for relational containment `⊂`, so the book's pointfree proofs can
     be written as `calc R ⊂ … ⊂ … ⊂ S` chains (Freyd's calculus-of-relations style)
     instead of nested `rel_le_trans`.  Pure Ch1 — no allegory axiom. -/
-instance relLeTrans {𝒟 : Type u} [Cat.{v} 𝒟] [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] {A B : 𝒟} :
+instance relLeTrans {𝒟 : Type u} [CategoryTheory.Category.{v} 𝒟] [HasBinaryProducts 𝒟] [HasPullbacks 𝒟] {A B : 𝒟} :
     Trans (@RelLe 𝒟 _ A B) (@RelLe 𝒟 _ A B) (@RelLe 𝒟 _ A B) :=
   ⟨rel_le_trans⟩
 
@@ -234,18 +234,18 @@ theorem intersect_le_right {A B : 𝒞} (R S : BinRel 𝒞 A B) : RelLe (R ⊓ S
     calc
       pb.cone.π₂ ≫ S.colA = pb.cone.π₂ ≫ (pair S.colA S.colB ≫ fst) :=
         congrArg (pb.cone.π₂ ≫ ·) (fst_pair S.colA S.colB).symm
-      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ fst := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ fst := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (pb.cone.π₁ ≫ pair R.colA R.colB) ≫ fst := by rw [h_sq]
-      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ fst) := Cat.assoc _ _ _
+      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ fst) := CategoryTheory.Category.assoc _ _ _
       _ = pb.cone.π₁ ≫ R.colA := congrArg (pb.cone.π₁ ≫ ·) (fst_pair R.colA R.colB)
       _ = (R ⊓ S).colA := rfl
   have h_colB : pb.cone.π₂ ≫ S.colB = (R ⊓ S).colB := by
     calc
       pb.cone.π₂ ≫ S.colB = pb.cone.π₂ ≫ (pair S.colA S.colB ≫ snd) :=
         congrArg (pb.cone.π₂ ≫ ·) (snd_pair S.colA S.colB).symm
-      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ snd := (Cat.assoc _ _ _).symm
+      _ = (pb.cone.π₂ ≫ pair S.colA S.colB) ≫ snd := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (pb.cone.π₁ ≫ pair R.colA R.colB) ≫ snd := by rw [h_sq]
-      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ snd) := Cat.assoc _ _ _
+      _ = pb.cone.π₁ ≫ (pair R.colA R.colB ≫ snd) := CategoryTheory.Category.assoc _ _ _
       _ = pb.cone.π₁ ≫ R.colB := congrArg (pb.cone.π₁ ≫ ·) (snd_pair R.colA R.colB)
       _ = (R ⊓ S).colB := rfl
   exact ⟨⟨pb.cone.π₂, h_colA, h_colB⟩⟩
@@ -262,23 +262,23 @@ theorem le_intersect {A B : 𝒞} {T R S : BinRel 𝒞 A B} (hTR : RelLe T R) (h
     calc
       f ≫ eR = pair (f ≫ R.colA) (f ≫ R.colB) :=
         pair_uniq (f ≫ R.colA) (f ≫ R.colB) (f ≫ eR)
-          (by rw [Cat.assoc, fst_pair R.colA R.colB])
-          (by rw [Cat.assoc, snd_pair R.colA R.colB])
+          (by rw [CategoryTheory.Category.assoc, fst_pair R.colA R.colB])
+          (by rw [CategoryTheory.Category.assoc, snd_pair R.colA R.colB])
       _ = pair T.colA T.colB := by rw [hfA, hfB]
       _ = pair (g ≫ S.colA) (g ≫ S.colB) := by rw [hgA, hgB]
       _ = g ≫ eS :=
         (pair_uniq (g ≫ S.colA) (g ≫ S.colB) (g ≫ eS)
-          (by rw [Cat.assoc, fst_pair S.colA S.colB])
-          (by rw [Cat.assoc, snd_pair S.colA S.colB])).symm
+          (by rw [CategoryTheory.Category.assoc, fst_pair S.colA S.colB])
+          (by rw [CategoryTheory.Category.assoc, snd_pair S.colA S.colB])).symm
   let c : Cone eR eS := { pt := T.src, π₁ := f, π₂ := g, w := h_cone_w }
   let h := pb.lift c
   have h_hA : h ≫ (R ⊓ S).colA = T.colA := by
     dsimp [h, intersect]
-    rw [← Cat.assoc, pb.lift_fst c]
+    rw [← CategoryTheory.Category.assoc, pb.lift_fst c]
     exact hfA
   have h_hB : h ≫ (R ⊓ S).colB = T.colB := by
     dsimp [h, intersect]
-    rw [← Cat.assoc, pb.lift_fst c]
+    rw [← CategoryTheory.Category.assoc, pb.lift_fst c]
     exact hfB
   exact ⟨⟨h, h_hA, h_hB⟩⟩
 
@@ -332,9 +332,9 @@ def compose {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞 B C) : BinRel 
       -- hB: f ≫ I.arr ≫ snd = g ≫ I.arr ≫ snd
       -- Rewrite with associativity
       have h_fst : (f ≫ I.arr) ≫ fst = (g ≫ I.arr) ≫ fst := by
-        simpa [Cat.assoc] using hA
+        simpa [CategoryTheory.Category.assoc] using hA
       have h_snd : (f ≫ I.arr) ≫ snd = (g ≫ I.arr) ≫ snd := by
-        simpa [Cat.assoc] using hB
+        simpa [CategoryTheory.Category.assoc] using hB
       -- By the product universal property, f ≫ I.arr = g ≫ I.arr
       have h_prod : f ≫ I.arr = g ≫ I.arr := by
         let a := (f ≫ I.arr) ≫ fst
@@ -360,12 +360,12 @@ infixr:80 (name := relCompose) " ⊚ " => compose
 /-- **§1.564**: R : A → B is ENTIRE if 1_A ≤ RR° — the identity relation
     on A is contained in R ⊚ R° : A → A. -/
 def Entire {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  RelLe (graph (Cat.id A)) (R ⊚ R°)
+  RelLe (graph (𝟙 A)) (R ⊚ R°)
 
 /-- **§1.564**: R is SIMPLE if R°R ≤ 1_B — R° ⊚ R : B → B
     is contained in the identity on B. -/
 def Simple {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
-  RelLe (R° ⊚ R) (graph (Cat.id B))
+  RelLe (R° ⊚ R) (graph (𝟙 B))
 
 /-- R is a MAP if it is entire and simple.  Maps are exactly graphs (§1.564). -/
 def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
@@ -375,8 +375,8 @@ def Map {A B : 𝒞} (R : BinRel 𝒞 A B) : Prop :=
     the pair of itself.  Used throughout the entire/simple proofs. -/
 theorem pair_diag_eq {X B : 𝒞} (x : X ⟶ B) : pair x x = x ≫ diag B :=
   (pair_uniq x x (x ≫ diag B)
-    (by rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id])
-    (by rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id])).symm
+    (by rw [CategoryTheory.Category.assoc, show diag B ≫ fst = 𝟙 B from fst_pair _ _, CategoryTheory.Category.comp_id])
+    (by rw [CategoryTheory.Category.assoc, show diag B ≫ snd = 𝟙 B from snd_pair _ _, CategoryTheory.Category.comp_id])).symm
 
 /-- **§1.564**: a relation tabulated by ⟨T; x, y⟩ is ENTIRE iff `x` is a cover.
 
@@ -412,7 +412,7 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
        image minimality gives e : I.dom → C×C with e ≫ mm = i, hence
        1 = h ≫ (i ≫ fst) = ((h ≫ e) ≫ fst) ≫ m :  m is a split epi, hence iso.  -/
     rintro ⟨⟨h, h₁, -⟩⟩
-    have h₁' : h ≫ (i ≫ fst) = Cat.id A := h₁
+    have h₁' : h ≫ (i ≫ fst) = 𝟙 A := h₁
     intro C m g hm hgm
     -- mm := m × m is monic
     let mm : prod C C ⟶ prod A A := pair (fst ≫ m) (snd ≫ m)
@@ -421,17 +421,17 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     have hmm : Monic mm := by
       intro W u v huv
       have hufst : u ≫ fst = v ≫ fst := hm _ _ (by
-        calc (u ≫ fst) ≫ m = u ≫ (mm ≫ fst) := by rw [hmm₁, Cat.assoc]
-          _ = (u ≫ mm) ≫ fst := (Cat.assoc _ _ _).symm
+        calc (u ≫ fst) ≫ m = u ≫ (mm ≫ fst) := by rw [hmm₁, CategoryTheory.Category.assoc]
+          _ = (u ≫ mm) ≫ fst := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (v ≫ mm) ≫ fst := by rw [huv]
-          _ = v ≫ (mm ≫ fst) := Cat.assoc _ _ _
-          _ = (v ≫ fst) ≫ m := by rw [hmm₁, Cat.assoc])
+          _ = v ≫ (mm ≫ fst) := CategoryTheory.Category.assoc _ _ _
+          _ = (v ≫ fst) ≫ m := by rw [hmm₁, CategoryTheory.Category.assoc])
       have husnd : u ≫ snd = v ≫ snd := hm _ _ (by
-        calc (u ≫ snd) ≫ m = u ≫ (mm ≫ snd) := by rw [hmm₂, Cat.assoc]
-          _ = (u ≫ mm) ≫ snd := (Cat.assoc _ _ _).symm
+        calc (u ≫ snd) ≫ m = u ≫ (mm ≫ snd) := by rw [hmm₂, CategoryTheory.Category.assoc]
+          _ = (u ≫ mm) ≫ snd := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (v ≫ mm) ≫ snd := by rw [huv]
-          _ = v ≫ (mm ≫ snd) := Cat.assoc _ _ _
-          _ = (v ≫ snd) ≫ m := by rw [hmm₂, Cat.assoc])
+          _ = v ≫ (mm ≫ snd) := CategoryTheory.Category.assoc _ _ _
+          _ = (v ≫ snd) ≫ m := by rw [hmm₂, CategoryTheory.Category.assoc])
       rw [pair_uniq (u ≫ fst) (u ≫ snd) u rfl rfl,
         pair_uniq (u ≫ fst) (u ≫ snd) v hufst.symm husnd.symm]
     -- the span factors through mm via w (uses g ≫ m = x)
@@ -440,30 +440,30 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     have hw₂ : w ≫ snd = r ≫ g := snd_pair _ _
     have hthrough : w ≫ mm = sp :=
       pair_uniq _ _ _
-        (by calc (w ≫ mm) ≫ fst = w ≫ (mm ≫ fst) := Cat.assoc _ _ _
+        (by calc (w ≫ mm) ≫ fst = w ≫ (mm ≫ fst) := CategoryTheory.Category.assoc _ _ _
               _ = w ≫ (fst ≫ m) := by rw [hmm₁]
-              _ = (w ≫ fst) ≫ m := (Cat.assoc _ _ _).symm
+              _ = (w ≫ fst) ≫ m := (CategoryTheory.Category.assoc _ _ _).symm
               _ = (l ≫ g) ≫ m := by rw [hw₁]
-              _ = l ≫ x := by rw [Cat.assoc, hgm])
-        (by calc (w ≫ mm) ≫ snd = w ≫ (mm ≫ snd) := Cat.assoc _ _ _
+              _ = l ≫ x := by rw [CategoryTheory.Category.assoc, hgm])
+        (by calc (w ≫ mm) ≫ snd = w ≫ (mm ≫ snd) := CategoryTheory.Category.assoc _ _ _
               _ = w ≫ (snd ≫ m) := by rw [hmm₂]
-              _ = (w ≫ snd) ≫ m := (Cat.assoc _ _ _).symm
+              _ = (w ≫ snd) ≫ m := (CategoryTheory.Category.assoc _ _ _).symm
               _ = (r ≫ g) ≫ m := by rw [hw₂]
-              _ = r ≫ x := by rw [Cat.assoc, hgm])
+              _ = r ≫ x := by rw [CategoryTheory.Category.assoc, hgm])
     -- image minimality: e with e ≫ mm = i
     obtain ⟨e, he⟩ := image_min sp ⟨prod C C, mm, hmm⟩ ⟨w, hthrough⟩
     have he' : e ≫ mm = i := he
     -- 1 factors through m: m is a split epi
-    have hsm : ((h ≫ e) ≫ fst) ≫ m = Cat.id A := by
-      calc ((h ≫ e) ≫ fst) ≫ m = (h ≫ e) ≫ (fst ≫ m) := Cat.assoc _ _ _
+    have hsm : ((h ≫ e) ≫ fst) ≫ m = 𝟙 A := by
+      calc ((h ≫ e) ≫ fst) ≫ m = (h ≫ e) ≫ (fst ≫ m) := CategoryTheory.Category.assoc _ _ _
         _ = (h ≫ e) ≫ (mm ≫ fst) := by rw [hmm₁]
-        _ = ((h ≫ e) ≫ mm) ≫ fst := (Cat.assoc _ _ _).symm
-        _ = (h ≫ (e ≫ mm)) ≫ fst := congrArg (· ≫ fst) (Cat.assoc h e mm)
+        _ = ((h ≫ e) ≫ mm) ≫ fst := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = (h ≫ (e ≫ mm)) ≫ fst := congrArg (· ≫ fst) (CategoryTheory.Category.assoc h e mm)
         _ = (h ≫ i) ≫ fst := by rw [he']
-        _ = h ≫ (i ≫ fst) := Cat.assoc _ _ _
-        _ = Cat.id A := h₁'
+        _ = h ≫ (i ≫ fst) := CategoryTheory.Category.assoc _ _ _
+        _ = 𝟙 A := h₁'
     -- a monic split epi is an iso
-    exact ⟨(h ≫ e) ≫ fst, hm _ _ (by rw [Cat.assoc, hsm, Cat.comp_id, Cat.id_comp]), hsm⟩
+    exact ⟨(h ≫ e) ≫ fst, hm _ _ (by rw [CategoryTheory.Category.assoc, hsm, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]), hsm⟩
   · /- COVER ⇒ ENTIRE (three panels in `cover_to_entire.svg`).
 
        Panel 0 — d : T → P lifts from pullback of (y,y) (§1.42):
@@ -486,9 +486,9 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
            h ≫ (i ≫ fst) = 1  and  h ≫ (i ≫ snd) = 1,
            so  graph(1) ⊑ RR°  and R is ENTIRE.                        -/
     intro hcov
-    let d : T ⟶ pb.cone.pt := pb.lift ⟨T, Cat.id T, Cat.id T, rfl⟩
-    have hd₁ : d ≫ l = Cat.id T := pb.lift_fst _
-    have hd₂ : d ≫ r = Cat.id T := pb.lift_snd _
+    let d : T ⟶ pb.cone.pt := pb.lift ⟨T, 𝟙 T, 𝟙 T, rfl⟩
+    have hd₁ : d ≫ l = 𝟙 T := pb.lift_fst _
+    have hd₂ : d ≫ r = 𝟙 T := pb.lift_snd _
     obtain ⟨c, hc⟩ := image_allows sp
     have hc' : c ≫ i = sp := hc
     -- hdl: both routes T → A×A are the pair ⟨x, x⟩
@@ -496,9 +496,9 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
       have hdx : x ≫ diag A = pair x x := (pair_diag_eq x).symm
       have hds : d ≫ sp = pair x x :=
         pair_uniq x x _
-          (by rw [Cat.assoc, hsp₁, ← Cat.assoc, hd₁, Cat.id_comp])
-          (by rw [Cat.assoc, hsp₂, ← Cat.assoc, hd₂, Cat.id_comp])
-      rw [Cat.assoc, hc', hds, hdx]
+          (by rw [CategoryTheory.Category.assoc, hsp₁, ← CategoryTheory.Category.assoc, hd₁, CategoryTheory.Category.id_comp])
+          (by rw [CategoryTheory.Category.assoc, hsp₂, ← CategoryTheory.Category.assoc, hd₂, CategoryTheory.Category.id_comp])
+      rw [CategoryTheory.Category.assoc, hc', hds, hdx]
     -- J: the image pulled back along the diagonal; k is monic
     let pbJ := HasPullbacks.has (diag A) i
     let k : pbJ.cone.pt ⟶ A := pbJ.cone.π₁
@@ -508,15 +508,15 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
       intro W f g hfg
       have hj : f ≫ j = g ≫ j := by
         refine I.monic _ _ ?_
-        calc (f ≫ j) ≫ i = f ≫ (j ≫ i) := Cat.assoc _ _ _
+        calc (f ≫ j) ≫ i = f ≫ (j ≫ i) := CategoryTheory.Category.assoc _ _ _
           _ = f ≫ (k ≫ diag A) := by rw [hkj]
-          _ = (f ≫ k) ≫ diag A := (Cat.assoc _ _ _).symm
+          _ = (f ≫ k) ≫ diag A := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (g ≫ k) ≫ diag A := by rw [hfg]
-          _ = g ≫ (k ≫ diag A) := Cat.assoc _ _ _
+          _ = g ≫ (k ≫ diag A) := CategoryTheory.Category.assoc _ _ _
           _ = g ≫ (j ≫ i) := by rw [hkj]
-          _ = (g ≫ j) ≫ i := (Cat.assoc _ _ _).symm
+          _ = (g ≫ j) ≫ i := (CategoryTheory.Category.assoc _ _ _).symm
       have hwc : (f ≫ k) ≫ diag A = (f ≫ j) ≫ i := by
-        rw [Cat.assoc, Cat.assoc, hkj]
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hkj]
       rw [pbJ.lift_uniq ⟨W, f ≫ k, f ≫ j, hwc⟩ f rfl rfl,
         pbJ.lift_uniq ⟨W, f ≫ k, f ≫ j, hwc⟩ g hfg.symm hj.symm]
     -- t: x factors through k; x is a cover, so k is iso with inverse k⁻¹
@@ -524,41 +524,41 @@ theorem tabulated_is_entire_iff_left_cover {A B T : 𝒞} (x : T ⟶ A) (y : T �
     have ht : t ≫ k = x := pbJ.lift_fst _
     obtain ⟨k_inv, -, hk_inv_k⟩ := hcov k t hk ht
     -- h := k⁻¹ ≫ j is the containment 1 ≤ RR°
-    have pf₁ : (k_inv ≫ j) ≫ (i ≫ fst) = Cat.id A := by
-      calc (k_inv ≫ j) ≫ (i ≫ fst) = k_inv ≫ (j ≫ (i ≫ fst)) := Cat.assoc _ _ _
-        _ = k_inv ≫ ((j ≫ i) ≫ fst) := by rw [Cat.assoc]
+    have pf₁ : (k_inv ≫ j) ≫ (i ≫ fst) = 𝟙 A := by
+      calc (k_inv ≫ j) ≫ (i ≫ fst) = k_inv ≫ (j ≫ (i ≫ fst)) := CategoryTheory.Category.assoc _ _ _
+        _ = k_inv ≫ ((j ≫ i) ≫ fst) := by rw [CategoryTheory.Category.assoc]
         _ = k_inv ≫ ((k ≫ diag A) ≫ fst) := by rw [hkj]
-        _ = k_inv ≫ (k ≫ (diag A ≫ fst)) := by rw [Cat.assoc]
-        _ = k_inv ≫ (k ≫ Cat.id A) := by
-              rw [show diag A ≫ fst = Cat.id A from fst_pair _ _]
-        _ = k_inv ≫ k := by rw [Cat.comp_id]
-        _ = Cat.id A := hk_inv_k
-    have pf₂ : (k_inv ≫ j) ≫ (i ≫ snd) = Cat.id A := by
-      calc (k_inv ≫ j) ≫ (i ≫ snd) = k_inv ≫ (j ≫ (i ≫ snd)) := Cat.assoc _ _ _
-        _ = k_inv ≫ ((j ≫ i) ≫ snd) := by rw [Cat.assoc]
+        _ = k_inv ≫ (k ≫ (diag A ≫ fst)) := by rw [CategoryTheory.Category.assoc]
+        _ = k_inv ≫ (k ≫ 𝟙 A) := by
+              rw [show diag A ≫ fst = 𝟙 A from fst_pair _ _]
+        _ = k_inv ≫ k := by rw [CategoryTheory.Category.comp_id]
+        _ = 𝟙 A := hk_inv_k
+    have pf₂ : (k_inv ≫ j) ≫ (i ≫ snd) = 𝟙 A := by
+      calc (k_inv ≫ j) ≫ (i ≫ snd) = k_inv ≫ (j ≫ (i ≫ snd)) := CategoryTheory.Category.assoc _ _ _
+        _ = k_inv ≫ ((j ≫ i) ≫ snd) := by rw [CategoryTheory.Category.assoc]
         _ = k_inv ≫ ((k ≫ diag A) ≫ snd) := by rw [hkj]
-        _ = k_inv ≫ (k ≫ (diag A ≫ snd)) := by rw [Cat.assoc]
-        _ = k_inv ≫ (k ≫ Cat.id A) := by
-              rw [show diag A ≫ snd = Cat.id A from snd_pair _ _]
-        _ = k_inv ≫ k := by rw [Cat.comp_id]
-        _ = Cat.id A := hk_inv_k
+        _ = k_inv ≫ (k ≫ (diag A ≫ snd)) := by rw [CategoryTheory.Category.assoc]
+        _ = k_inv ≫ (k ≫ 𝟙 A) := by
+              rw [show diag A ≫ snd = 𝟙 A from snd_pair _ _]
+        _ = k_inv ≫ k := by rw [CategoryTheory.Category.comp_id]
+        _ = 𝟙 A := hk_inv_k
     exact ⟨⟨k_inv ≫ j, pf₁, pf₂⟩⟩
 
 /-- A SPLIT EPI is a cover: if `s ≫ k = 1`, then any monic `m` with `k = g ≫ m`
     is a split epi (`(s ≫ g) ≫ m = 1`), hence — being monic — an iso. -/
-theorem split_epi_cover {X Y : 𝒞} {k : X ⟶ Y} {s : Y ⟶ X} (hsk : s ≫ k = Cat.id Y) :
+theorem split_epi_cover {X Y : 𝒞} {k : X ⟶ Y} {s : Y ⟶ X} (hsk : s ≫ k = 𝟙 Y) :
     Cover k := by
   intro C m g hm hgm
   -- `s ≫ g` is a right inverse of `m`: (s≫g)≫m = s≫(g≫m) = s≫k = id_Y
-  have hright : (s ≫ g) ≫ m = Cat.id Y := by
-    rw [Cat.assoc, hgm, hsk]
+  have hright : (s ≫ g) ≫ m = 𝟙 Y := by
+    rw [CategoryTheory.Category.assoc, hgm, hsk]
   -- mono `m` with a right inverse ⟹ it's a (two-sided) iso, inverse `s ≫ g`
-  have hleft : m ≫ (s ≫ g) = Cat.id C := by
+  have hleft : m ≫ (s ≫ g) = 𝟙 C := by
     apply hm
-    calc (m ≫ (s ≫ g)) ≫ m = m ≫ ((s ≫ g) ≫ m) := Cat.assoc _ _ _
-      _ = m ≫ Cat.id Y := by rw [hright]
-      _ = m := Cat.comp_id _
-      _ = Cat.id C ≫ m := (Cat.id_comp _).symm
+    calc (m ≫ (s ≫ g)) ≫ m = m ≫ ((s ≫ g) ≫ m) := CategoryTheory.Category.assoc _ _ _
+      _ = m ≫ 𝟙 Y := by rw [hright]
+      _ = m := CategoryTheory.Category.comp_id _
+      _ = 𝟙 C ≫ m := (CategoryTheory.Category.id_comp _).symm
   exact ⟨s ≫ g, hleft, hright⟩
 
 /-- An isomorphism is a cover (§1.512). -/
@@ -585,9 +585,9 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
     rcases h_simple with ⟨⟨h, h1, h2⟩⟩
     -- h1 : h ≫ id B = (image sp).arr ≫ fst,  h2 : h ≫ id B = (image sp).arr ≫ snd
     have h_simple_eq : (image sp).arr ≫ fst = (image sp).arr ≫ snd := by
-      calc (image sp).arr ≫ fst = h ≫ Cat.id B := by simpa using h1.symm
-        _ = h := Cat.comp_id _
-        _ = h ≫ Cat.id B := (Cat.comp_id _).symm
+      calc (image sp).arr ≫ fst = h ≫ 𝟙 B := by simpa using h1.symm
+        _ = h := CategoryTheory.Category.comp_id _
+        _ = h ≫ 𝟙 B := (CategoryTheory.Category.comp_id _).symm
         _ = (image sp).arr ≫ snd := by simpa using h2
     intro W f g hfa
     let coneA : Cone a a := ⟨W, f, g, hfa⟩
@@ -603,19 +603,19 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
       have h2' : u ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) = u ≫ (sp ≫ snd) :=
         congrArg (fun t => u ≫ (t ≫ snd)) h_img
       calc f ≫ b = (u ≫ l) ≫ b := by rw [hu1]
-        _ = u ≫ (l ≫ b) := Cat.assoc _ _ _
-        _ = (u ≫ pair (l ≫ b) (r ≫ b)) ≫ fst := by rw [Cat.assoc, fst_pair]
+        _ = u ≫ (l ≫ b) := CategoryTheory.Category.assoc _ _ _
+        _ = (u ≫ pair (l ≫ b) (r ≫ b)) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair]
         _ = (u ≫ sp) ≫ fst := rfl
-        _ = u ≫ (sp ≫ fst) := Cat.assoc u sp fst
+        _ = u ≫ (sp ≫ fst) := CategoryTheory.Category.assoc u sp fst
         _ = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ fst) := by rw [h1']
-        _ = u ≫ image.lift sp ≫ ((image sp).arr ≫ fst) := by simp [Cat.assoc]
+        _ = u ≫ image.lift sp ≫ ((image sp).arr ≫ fst) := by simp [CategoryTheory.Category.assoc]
         _ = u ≫ image.lift sp ≫ ((image sp).arr ≫ snd) := by rw [h_simple_eq]
-        _ = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [Cat.assoc]
+        _ = u ≫ ((image.lift sp ≫ (image sp).arr) ≫ snd) := by simp [CategoryTheory.Category.assoc]
         _ = u ≫ (sp ≫ snd) := by rw [h2']
-        _ = (u ≫ sp) ≫ snd := (Cat.assoc u sp snd).symm
+        _ = (u ≫ sp) ≫ snd := (CategoryTheory.Category.assoc u sp snd).symm
         _ = (u ≫ pair (l ≫ b) (r ≫ b)) ≫ snd := rfl
-        _ = u ≫ (r ≫ b) := by rw [Cat.assoc, snd_pair]
-        _ = (u ≫ r) ≫ b := (Cat.assoc _ _ _).symm
+        _ = u ≫ (r ≫ b) := by rw [CategoryTheory.Category.assoc, snd_pair]
+        _ = (u ≫ r) ≫ b := (CategoryTheory.Category.assoc _ _ _).symm
         _ = g ≫ b := by rw [hu2]
     exact hp f g hfa h_fb
   · /- Monic a → Simple.
@@ -633,18 +633,18 @@ theorem tabulated_is_simple_iff_left_monic {A B T : 𝒞} (a : T ⟶ A) (b : T �
     -- hk : k ≫ diag B = (image sp).arr
     have h_fst_eq_k : (image sp).arr ≫ fst = k := by
       calc (image sp).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
-        _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
-        _ = k ≫ Cat.id B := by rw [show diag B ≫ fst = Cat.id B from fst_pair _ _]
-        _ = k := Cat.comp_id _
+        _ = k ≫ (diag B ≫ fst) := CategoryTheory.Category.assoc _ _ _
+        _ = k ≫ 𝟙 B := by rw [show diag B ≫ fst = 𝟙 B from fst_pair _ _]
+        _ = k := CategoryTheory.Category.comp_id _
     have h_k_eq_snd : k = (image sp).arr ≫ snd := by
-      calc k = k ≫ Cat.id B := (Cat.comp_id _).symm
-        _ = k ≫ (diag B ≫ snd) := by rw [show diag B ≫ snd = Cat.id B from snd_pair _ _]
-        _ = (k ≫ diag B) ≫ snd := (Cat.assoc _ _ _).symm
+      calc k = k ≫ 𝟙 B := (CategoryTheory.Category.comp_id _).symm
+        _ = k ≫ (diag B ≫ snd) := by rw [show diag B ≫ snd = 𝟙 B from snd_pair _ _]
+        _ = (k ≫ diag B) ≫ snd := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (image sp).arr ≫ snd := by rw [hk]
-    have h_colA : k ≫ (graph (Cat.id B)).colA = (image sp).arr ≫ fst := by
-      dsimp [graph]; rw [Cat.comp_id, h_fst_eq_k]
-    have h_colB : k ≫ (graph (Cat.id B)).colB = (image sp).arr ≫ snd := by
-      dsimp [graph]; rw [Cat.comp_id, h_k_eq_snd]
+    have h_colA : k ≫ (graph (𝟙 B)).colA = (image sp).arr ≫ fst := by
+      dsimp [graph]; rw [CategoryTheory.Category.comp_id, h_fst_eq_k]
+    have h_colB : k ≫ (graph (𝟙 B)).colB = (image sp).arr ≫ snd := by
+      dsimp [graph]; rw [CategoryTheory.Category.comp_id, h_k_eq_snd]
     -- The RelHom witnesses R° ⊚ R ≤ graph(id_B)
     simpa [compose, reciprocal, BinRel.mk] using ⟨k, h_colA, h_colB⟩
 
@@ -665,17 +665,17 @@ theorem tabulated_is_map_iff_left_iso {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B)
     of `a⁻¹ ≫ b` (mutual `⊂`).  Together with `tabulated_is_map_iff_left_iso`,
     every map IS the graph of a morphism. -/
 theorem tabulated_left_iso_eq_graph {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (hp : MonicPair a b)
-    (ainv : A ⟶ T) (ha_ainv : a ≫ ainv = Cat.id T) (hainv_a : ainv ≫ a = Cat.id A) :
+    (ainv : A ⟶ T) (ha_ainv : a ≫ ainv = 𝟙 T) (hainv_a : ainv ≫ a = 𝟙 A) :
     RelLe (BinRel.mk T a b hp) (graph (ainv ≫ b)) ∧ RelLe (graph (ainv ≫ b)) (BinRel.mk T a b hp) := by
   let R := BinRel.mk T a b hp
   let G := graph (ainv ≫ b)
   constructor
   · -- R ≤ G: use a : T → A as the RelHom; check a ≫ id = a and a ≫ (ainv ≫ b) = b
     refine ⟨⟨a, ?_, ?_⟩⟩
-    · dsimp [G, graph]; rw [Cat.comp_id]
-    · dsimp [G, graph]; calc a ≫ (ainv ≫ b) = (a ≫ ainv) ≫ b := (Cat.assoc a ainv b).symm
-      _ = Cat.id T ≫ b := by rw [ha_ainv]
-      _ = b := Cat.id_comp _
+    · dsimp [G, graph]; rw [CategoryTheory.Category.comp_id]
+    · dsimp [G, graph]; calc a ≫ (ainv ≫ b) = (a ≫ ainv) ≫ b := (CategoryTheory.Category.assoc a ainv b).symm
+      _ = 𝟙 T ≫ b := by rw [ha_ainv]
+      _ = b := CategoryTheory.Category.id_comp _
   · -- G ≤ R: use ainv : A → T as the RelHom; check ainv ≫ a = id and ainv ≫ b = ainv ≫ b
     refine ⟨⟨ainv, ?_, ?_⟩⟩
     · dsimp [R, G, graph]; rw [hainv_a]
@@ -686,15 +686,15 @@ theorem tabulated_left_iso_eq_graph {A B T : 𝒞} (a : T ⟶ A) (b : T ⟶ B) (
     and monic.  This is the key fact that lets us reflect maps back to morphisms. -/
 theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞] (g : A ⟶ B) :
     Map (graph g) := by
-  have hp : MonicPair (Cat.id A : A ⟶ A) g := by
+  have hp : MonicPair (𝟙 A : A ⟶ A) g := by
     intro W f g' h _hg
-    simpa [Cat.comp_id] using h
+    simpa [CategoryTheory.Category.comp_id] using h
   have h_entire : Entire (graph g) :=
-    (tabulated_is_entire_iff_left_cover (Cat.id A) g hp).mpr
-      (iso_cover (Cat.id A) ⟨Cat.id A, Cat.comp_id _, Cat.id_comp _⟩)
+    (tabulated_is_entire_iff_left_cover (𝟙 A) g hp).mpr
+      (iso_cover (𝟙 A) ⟨𝟙 A, CategoryTheory.Category.comp_id _, CategoryTheory.Category.id_comp _⟩)
   have h_simple : Simple (graph g) :=
-    (tabulated_is_simple_iff_left_monic (Cat.id A) g hp).mpr
-      (mono_of_retraction (Cat.id A) (Cat.id A) (Cat.comp_id _))
+    (tabulated_is_simple_iff_left_monic (𝟙 A) g hp).mpr
+      (mono_of_retraction (𝟙 A) (𝟙 A) (CategoryTheory.Category.comp_id _))
   exact And.intro h_entire h_simple
 
 /-! §1.564: If `R : A ⇸ B` is a relation in a regular category `A` such that for
@@ -718,7 +718,7 @@ theorem graph_is_map {A B : 𝒞} [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [
     contains a map.  Tabulate the relation, use projectivity to split the
     (cover) left leg, compose the section with the right leg. -/
 theorem projective_entire_contains_map {A : 𝒞}
-    (hproj : ∀ {C : 𝒞} (f : C ⟶ A), Cover f → ∃ (s : A ⟶ C), s ≫ f = Cat.id A)
+    (hproj : ∀ {C : 𝒞} (f : C ⟶ A), Cover f → ∃ (s : A ⟶ C), s ≫ f = 𝟙 A)
     {B : 𝒞} (R : BinRel 𝒞 A B) (hent : Entire R) : ∃ (f : A ⟶ B), RelLe (graph f) R := by
   let x := R.colA
   let y := R.colB
@@ -736,7 +736,7 @@ theorem projective_entire_contains_map {A : 𝒞}
 theorem entire_contains_map_projective {A : 𝒞}
     (h : ∀ {B : 𝒞} (R : BinRel 𝒞 A B), Entire R →
       ∃ (f : A ⟶ B), RelLe (graph f) R) :
-    ∀ {C : 𝒞} (c : C ⟶ A), Cover c → ∃ (s : A ⟶ C), s ≫ c = Cat.id A := by
+    ∀ {C : 𝒞} (c : C ⟶ A), Cover c → ∃ (s : A ⟶ C), s ≫ c = 𝟙 A := by
   intro C c hcov
   let gc := graph c
   let gR := gc°
@@ -833,10 +833,10 @@ end
     the syntactic induction over Horn formulas (§1.55 / §1.551) and is recorded as
     MISSING in the tracker, NOT asserted here as a Sorry. -/
 def HornSentence : Type (max (u+1) (v+1)) :=
-  (𝒟 : Type u) → [Cat.{v} 𝒟] → Prop
+  (𝒟 : Type u) → [CategoryTheory.Category.{v} 𝒟] → Prop
 
 /-- `H` HOLDS IN the category `𝒟` — the genuine satisfaction relation `𝒟 ⊨ H`. -/
-def HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop := H 𝒟
+def HoldsIn (H : HornSentence) (𝒟 : Type u) [CategoryTheory.Category.{v} 𝒟] : Prop := H 𝒟
 
 /-- `H` is REFLECTED BY a functor `F : 𝒜 → ℬ` when its truth downstairs forces its
     truth upstairs.  Freyd's §1.563 metatheorem is the assertion that every Horn
@@ -844,7 +844,7 @@ def HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop := H 𝒟
     structure; capturing that uniformly requires the syntactic induction (MISSING,
     see tracker).  We make the dependence on a *named hypothesis* explicit so the
     reflection theorem has genuine content and needs no Sorry. -/
-def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : 𝒜 → ℬ) : Prop :=
+def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [CategoryTheory.Category.{v} 𝒜] [CategoryTheory.Category.{v} ℬ] (_F : 𝒜 → ℬ) : Prop :=
   HoldsIn H ℬ → HoldsIn H 𝒜
 
 /-- **§1.563**: If A and B are Cartesian with images and F : A → B is a faithful
@@ -856,12 +856,13 @@ def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} �
     bearing residue: faithfulness + structure-preservation lets a reflected sentence
     pass upward.  `hrefl` is exactly the per-sentence reflection datum the induction
     would supply. -/
-theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
+theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [CategoryTheory.Category.{v} 𝒜] [CategoryTheory.Category.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
     (F : 𝒜 → ℬ) [Functor F] (_hfaithful : Faithful F)
     (_h_pres_term : PreservesTerminal F) (_h_pres_prod : PreservesBinaryProducts F)
     (_h_pres_eq : PreservesEqualizers F)
-    (_h_pres_mono : PreservesMono F) (_h_pres_images : PreservesImages F _h_pres_mono)
+    (_h_pres_mono : PreservesMono (bundledFunctor F))
+    (_h_pres_images : PreservesImages (bundledFunctor F) _h_pres_mono)
     (H : HornSentence) (hrefl : ReflectedBy H F) (hH : HoldsIn H ℬ) : HoldsIn H 𝒜 :=
   hrefl hH
 
@@ -879,8 +880,8 @@ theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [
     concrete `Type u`, which is a `Type (u+1)` and so cannot be tested by the same
     `HornSentence` as the small `A : Type u` — avoids a spurious universe bump and
     matches `horn_sentence_reflected_by_faithful`. -/
-theorem horn_sentence_reflected_from_Set (A : Type u) [Cat.{v} A] [RegularCategory A]
-    (𝒮 : Type u) [Cat.{v} 𝒮] [RegularCategory 𝒮] (H : HornSentence)
+theorem horn_sentence_reflected_from_Set (A : Type u) [CategoryTheory.Category.{v} A] [RegularCategory A]
+    (𝒮 : Type u) [CategoryTheory.Category.{v} 𝒮] [RegularCategory 𝒮] (H : HornSentence)
     (hrefl_from_Set : HoldsIn H 𝒮 → HoldsIn H A)
     (hH : HoldsIn H 𝒮) : HoldsIn H A :=
   hrefl_from_Set hH
@@ -999,25 +1000,25 @@ theorem image_lift_cover {A B : 𝒞} (f : A ⟶ B) [HasImages 𝒞] : Cover (im
   have hmono_comp : Monic (m ≫ (image f).arr) := by
     intro W u v huv
     have h1 : u ≫ m = v ≫ m := (image f).monic _ _ (by
-      simpa [Cat.assoc] using huv)
+      simpa [CategoryTheory.Category.assoc] using huv)
     exact hm _ _ h1
   have h_allows : Allows ⟨D, m ≫ (image f).arr, hmono_comp⟩ f := by
     refine ⟨g, ?_⟩
-    calc g ≫ (m ≫ (image f).arr) = (g ≫ m) ≫ (image f).arr := (Cat.assoc _ _ _).symm
+    calc g ≫ (m ≫ (image f).arr) = (g ≫ m) ≫ (image f).arr := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (image.lift f) ≫ (image f).arr := by rw [hfac]
       _ = f := image.lift_fac f
   have h_le : (image f).le ⟨D, m ≫ (image f).arr, hmono_comp⟩ := image_min f _ h_allows
   rcases h_le with ⟨h, hh⟩
   -- hh: h ≫ (m ≫ (image f).arr) = (image f).arr
-  have hhm : h ≫ m = Cat.id (image f).dom := (image f).monic (h ≫ m) (Cat.id _) (by
-    calc (h ≫ m) ≫ (image f).arr = h ≫ (m ≫ (image f).arr) := Cat.assoc _ _ _
+  have hhm : h ≫ m = 𝟙 (image f).dom := (image f).monic (h ≫ m) (𝟙 _) (by
+    calc (h ≫ m) ≫ (image f).arr = h ≫ (m ≫ (image f).arr) := CategoryTheory.Category.assoc _ _ _
       _ = (image f).arr := hh
-      _ = Cat.id (image f).dom ≫ (image f).arr := (Cat.id_comp _).symm)
-  have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
-    calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
-      _ = m ≫ Cat.id (image f).dom := by rw [hhm]
-      _ = m := Cat.comp_id _
-      _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
+      _ = 𝟙 (image f).dom ≫ (image f).arr := (CategoryTheory.Category.id_comp _).symm)
+  have hmh : m ≫ h = 𝟙 D := hm (m ≫ h) (𝟙 D) (by
+    calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := CategoryTheory.Category.assoc _ _ _
+      _ = m ≫ 𝟙 (image f).dom := by rw [hhm]
+      _ = m := CategoryTheory.Category.comp_id _
+      _ = 𝟙 D ≫ m := (CategoryTheory.Category.id_comp _).symm)
   exact ⟨h, hmh, hhm⟩
 
 /-! ## §1.566 Every cover is a coequalizer
@@ -1042,9 +1043,9 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
   let xg := pair x g
   let I := image xg
   have hx_fac : image.lift xg ≫ (I.arr ≫ fst) = x := by
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hq : image.lift xg ≫ (I.arr ≫ snd) = g := by
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   -- The image relation `{(x a, g a)}` is FUNCTIONAL: its first leg is monic.
   -- Take `u, v` agreeing after the first leg; pull the cover `image.lift xg`
   -- back along `u`, then along that pullback composed with `v`, giving a single
@@ -1063,44 +1064,44 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
     let au := pb2.cone.π₂ ≫ pb1.cone.π₁
     let av := pb2.cone.π₁
     have hau_e : au ≫ image.lift xg = c ≫ u := by
-      dsimp only [au, c]; rw [Cat.assoc, pb1.cone.w, ← Cat.assoc]
+      dsimp only [au, c]; rw [CategoryTheory.Category.assoc, pb1.cone.w, ← CategoryTheory.Category.assoc]
     have hav_e : av ≫ image.lift xg = c ≫ v := by
-      dsimp only [av, c]; rw [pb2.cone.w, ← Cat.assoc]
+      dsimp only [av, c]; rw [pb2.cone.w, ← CategoryTheory.Category.assoc]
     have hax : au ≫ x = av ≫ x := by
-      calc au ≫ x = (au ≫ image.lift xg) ≫ (I.arr ≫ fst) := by rw [← hx_fac]; exact (Cat.assoc _ _ _).symm
+      calc au ≫ x = (au ≫ image.lift xg) ≫ (I.arr ≫ fst) := by rw [← hx_fac]; exact (CategoryTheory.Category.assoc _ _ _).symm
         _ = (c ≫ u) ≫ (I.arr ≫ fst) := by rw [hau_e]
-        _ = c ≫ (u ≫ (I.arr ≫ fst)) := Cat.assoc _ _ _
+        _ = c ≫ (u ≫ (I.arr ≫ fst)) := CategoryTheory.Category.assoc _ _ _
         _ = c ≫ (v ≫ (I.arr ≫ fst)) := by rw [huv]
-        _ = (c ≫ v) ≫ (I.arr ≫ fst) := (Cat.assoc _ _ _).symm
+        _ = (c ≫ v) ≫ (I.arr ≫ fst) := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (av ≫ image.lift xg) ≫ (I.arr ≫ fst) := by rw [hav_e]
-        _ = av ≫ x := by rw [← hx_fac]; exact Cat.assoc _ _ _
+        _ = av ≫ x := by rw [← hx_fac]; exact CategoryTheory.Category.assoc _ _ _
     let l := (HasPullbacks.has x x).lift ⟨_, au, av, hax⟩
     have hl₁ : l ≫ kp₁ (f := x) = au := kp_lift_p₁ au av hax
     have hl₂ : l ≫ kp₂ (f := x) = av := kp_lift_p₂ au av hax
     have hag : au ≫ g = av ≫ g := by
       calc au ≫ g = (l ≫ kp₁ (f := x)) ≫ g := by rw [hl₁]
-        _ = l ≫ (kp₁ (f := x) ≫ g) := Cat.assoc _ _ _
+        _ = l ≫ (kp₁ (f := x) ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = l ≫ (kp₂ (f := x) ≫ g) := by rw [hg]
-        _ = (l ≫ kp₂ (f := x)) ≫ g := (Cat.assoc _ _ _).symm
+        _ = (l ≫ kp₂ (f := x)) ≫ g := (CategoryTheory.Category.assoc _ _ _).symm
         _ = av ≫ g := by rw [hl₂]
     have hagc : c ≫ (u ≫ (I.arr ≫ snd)) = c ≫ (v ≫ (I.arr ≫ snd)) := by
-      calc c ≫ (u ≫ (I.arr ≫ snd)) = (c ≫ u) ≫ (I.arr ≫ snd) := (Cat.assoc _ _ _).symm
+      calc c ≫ (u ≫ (I.arr ≫ snd)) = (c ≫ u) ≫ (I.arr ≫ snd) := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (au ≫ image.lift xg) ≫ (I.arr ≫ snd) := by rw [hau_e]
-        _ = au ≫ (image.lift xg ≫ (I.arr ≫ snd)) := Cat.assoc _ _ _
+        _ = au ≫ (image.lift xg ≫ (I.arr ≫ snd)) := CategoryTheory.Category.assoc _ _ _
         _ = au ≫ g := by rw [hq]
         _ = av ≫ g := hag
         _ = av ≫ (image.lift xg ≫ (I.arr ≫ snd)) := by rw [hq]
-        _ = (av ≫ image.lift xg) ≫ (I.arr ≫ snd) := (Cat.assoc _ _ _).symm
+        _ = (av ≫ image.lift xg) ≫ (I.arr ≫ snd) := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (c ≫ v) ≫ (I.arr ≫ snd) := by rw [hav_e]
-        _ = c ≫ (v ≫ (I.arr ≫ snd)) := Cat.assoc _ _ _
+        _ = c ≫ (v ≫ (I.arr ≫ snd)) := CategoryTheory.Category.assoc _ _ _
     have huvq : u ≫ (I.arr ≫ snd) = v ≫ (I.arr ≫ snd) := by
       apply cover_epi hπ₂u_cover
       apply cover_epi hρ_cover
-      rw [← Cat.assoc pb2.cone.π₂ pb1.cone.π₂, ← Cat.assoc pb2.cone.π₂ pb1.cone.π₂]
+      rw [← CategoryTheory.Category.assoc pb2.cone.π₂ pb1.cone.π₂, ← CategoryTheory.Category.assoc pb2.cone.π₂ pb1.cone.π₂]
       exact hagc
     -- `u ≫ I.arr` and `v ≫ I.arr` agree on both projections, so are equal.
-    have he1 : (u ≫ I.arr) ≫ fst = (v ≫ I.arr) ≫ fst := by rw [Cat.assoc, Cat.assoc]; exact huv
-    have he2 : (u ≫ I.arr) ≫ snd = (v ≫ I.arr) ≫ snd := by rw [Cat.assoc, Cat.assoc]; exact huvq
+    have he1 : (u ≫ I.arr) ≫ fst = (v ≫ I.arr) ≫ fst := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact huv
+    have he2 : (u ≫ I.arr) ≫ snd = (v ≫ I.arr) ≫ snd := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact huvq
     have hext : u ≫ I.arr = v ≫ I.arr := by
       rw [pair_uniq ((v ≫ I.arr) ≫ fst) ((v ≫ I.arr) ≫ snd) (u ≫ I.arr) he1 he2]
       exact (pair_uniq ((v ≫ I.arr) ≫ fst) ((v ≫ I.arr) ≫ snd) (v ≫ I.arr) rfl rfl).symm
@@ -1108,9 +1109,9 @@ theorem cover_is_coequalizer_of_level {A B : 𝒞} (x : A ⟶ B) [RegularCategor
   have hp_iso : IsIso (I.arr ≫ fst) := hx (I.arr ≫ fst) (image.lift xg) hp_mono hx_fac
   obtain ⟨pinv, hpi1, hpi2⟩ := hp_iso
   have hxpinv : x ≫ pinv = image.lift xg := by
-    rw [← hx_fac, Cat.assoc, hpi1, Cat.comp_id]
+    rw [← hx_fac, CategoryTheory.Category.assoc, hpi1, CategoryTheory.Category.comp_id]
   have hxh : x ≫ (pinv ≫ (I.arr ≫ snd)) = g := by
-    rw [← Cat.assoc, hxpinv, ← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, hxpinv, ← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   exact ⟨pinv ≫ (I.arr ≫ snd), hxh, fun h' hh' => cover_epi hx (hh'.trans hxh.symm)⟩
 
 /-- **§1.566 (corollary)**: Two covers with the same kernel pair differ by an
@@ -1127,15 +1128,15 @@ theorem covers_same_kernelPair_iso {A B B' : 𝒞} [RegularCategory 𝒞]
   obtain ⟨ψ, hψ, _⟩ := cover_is_coequalizer_of_level y hy x hyx
   refine ⟨φ, ⟨ψ, ?_, ?_⟩, hφ⟩
   · apply cover_epi hx
-    calc x ≫ (φ ≫ ψ) = (x ≫ φ) ≫ ψ := (Cat.assoc _ _ _).symm
+    calc x ≫ (φ ≫ ψ) = (x ≫ φ) ≫ ψ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = y ≫ ψ := by rw [hφ]
       _ = x := hψ
-      _ = x ≫ Cat.id B := (Cat.comp_id _).symm
+      _ = x ≫ 𝟙 B := (CategoryTheory.Category.comp_id _).symm
   · apply cover_epi hy
-    calc y ≫ (ψ ≫ φ) = (y ≫ ψ) ≫ φ := (Cat.assoc _ _ _).symm
+    calc y ≫ (ψ ≫ φ) = (y ≫ ψ) ≫ φ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = x ≫ φ := by rw [hψ]
       _ = y := hφ
-      _ = y ≫ Cat.id B' := (Cat.comp_id _).symm
+      _ = y ≫ 𝟙 B' := (CategoryTheory.Category.comp_id _).symm
 
 /-- **§1.565 (crux, constructive in 𝒞)**: if `(P; p₁, p₂)` is a pullback of the
     covers `x : A ↠ B`, `y : C ↠ B`, then any cocone leg `u : A ⟶ Q` over the
@@ -1159,27 +1160,27 @@ theorem cocone_equalizes_kernelPair {A B C P Q : 𝒞} [RegularCategory 𝒞]
   have hπ_cover : Cover pby.cone.π₂ := cover_pullback (k₁ ≫ x) hy
   -- pby.cone.w : π₁ ≫ y = π₂ ≫ (k₁ ≫ x).  Cone over (x,y) using (π₂ ≫ k₁, π₁).
   have hw₁ : (pby.cone.π₂ ≫ k₁) ≫ x = pby.cone.π₁ ≫ y :=
-    (Cat.assoc _ _ _).trans pby.cone.w.symm
+    (CategoryTheory.Category.assoc _ _ _).trans pby.cone.w.symm
   obtain ⟨z₁, ⟨hz₁a, hz₁b⟩, _⟩ := h_isPb ⟨pby.cone.pt, pby.cone.π₂ ≫ k₁, pby.cone.π₁, hw₁⟩
   -- Same with k₂: (π₂ ≫ k₂) ≫ x = π₂ ≫ (k₁ ≫ x) = π₁ ≫ y.
   have hw₂ : (pby.cone.π₂ ≫ k₂) ≫ x = pby.cone.π₁ ≫ y := by
-    rw [Cat.assoc, ← hkx]; exact pby.cone.w.symm
+    rw [CategoryTheory.Category.assoc, ← hkx]; exact pby.cone.w.symm
   obtain ⟨z₂, ⟨hz₂a, hz₂b⟩, _⟩ := h_isPb ⟨pby.cone.pt, pby.cone.π₂ ≫ k₂, pby.cone.π₁, hw₂⟩
   -- hz₁a : z₁ ≫ p₁ = π₂ ≫ k₁,  hz₁b : z₁ ≫ p₂ = π₁;  similarly z₂.
   have key : pby.cone.π₂ ≫ (k₁ ≫ u) = pby.cone.π₂ ≫ (k₂ ≫ u) := by
     calc pby.cone.π₂ ≫ (k₁ ≫ u)
-        = (pby.cone.π₂ ≫ k₁) ≫ u := (Cat.assoc _ _ _).symm
+        = (pby.cone.π₂ ≫ k₁) ≫ u := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (z₁ ≫ p₁) ≫ u := by rw [hz₁a]
-      _ = z₁ ≫ (p₁ ≫ u) := Cat.assoc _ _ _
+      _ = z₁ ≫ (p₁ ≫ u) := CategoryTheory.Category.assoc _ _ _
       _ = z₁ ≫ (p₂ ≫ v) := by rw [hcocone]
-      _ = (z₁ ≫ p₂) ≫ v := (Cat.assoc _ _ _).symm
+      _ = (z₁ ≫ p₂) ≫ v := (CategoryTheory.Category.assoc _ _ _).symm
       _ = pby.cone.π₁ ≫ v := by rw [hz₁b]
       _ = (z₂ ≫ p₂) ≫ v := by rw [hz₂b]
-      _ = z₂ ≫ (p₂ ≫ v) := Cat.assoc _ _ _
+      _ = z₂ ≫ (p₂ ≫ v) := CategoryTheory.Category.assoc _ _ _
       _ = z₂ ≫ (p₁ ≫ u) := by rw [hcocone]
-      _ = (z₂ ≫ p₁) ≫ u := (Cat.assoc _ _ _).symm
+      _ = (z₂ ≫ p₁) ≫ u := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (pby.cone.π₂ ≫ k₂) ≫ u := by rw [hz₂a]
-      _ = pby.cone.π₂ ≫ (k₂ ≫ u) := Cat.assoc _ _ _
+      _ = pby.cone.π₂ ≫ (k₂ ≫ u) := CategoryTheory.Category.assoc _ _ _
   exact cover_epi hπ_cover key
 
 /-- **§1.565** (general case): In a regular category, a pullback of covers is a
@@ -1221,9 +1222,9 @@ noncomputable def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (
         (⟨P, p₁, p₂, h_sq⟩ : Cone x y) h_isPb h_cover_x
     apply cover_epi hp₂_cover
     show p₂ ≫ (y ≫ _) = p₂ ≫ c.ι₂
-    calc p₂ ≫ (y ≫ _) = (p₂ ≫ y) ≫ _ := (Cat.assoc _ _ _).symm
+    calc p₂ ≫ (y ≫ _) = (p₂ ≫ y) ≫ _ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (p₁ ≫ x) ≫ _ := by rw [h_sq]
-      _ = p₁ ≫ (x ≫ _) := Cat.assoc _ _ _
+      _ = p₁ ≫ (x ≫ _) := CategoryTheory.Category.assoc _ _ _
       _ = p₁ ≫ c.ι₁ := by rw [hxh]
       _ = p₂ ≫ c.ι₂ := c.w
   uniq c h hι₁ _ :=
@@ -1238,7 +1239,7 @@ noncomputable def pullback_of_covers_is_pushout {A B C P : 𝒞} (x : A ⟶ B) (
 
 def EquivalenceRelation [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
     {A : 𝒞} (E : BinRel 𝒞 A A) : Prop :=
-  (∃ (h : A ⟶ E.src), h ≫ E.colA = Cat.id A ∧ h ≫ E.colB = Cat.id A) ∧
+  (∃ (h : A ⟶ E.src), h ≫ E.colA = 𝟙 A ∧ h ≫ E.colB = 𝟙 A) ∧
   Nonempty (RelHom E (reciprocal E)) ∧
   Nonempty (RelHom (E ⊚ E) E)
 
@@ -1252,7 +1253,7 @@ def kernelPairRel [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞
   isMonicPair := by
     intro W f g h1 h2
     have hfw : (f ≫ kp₁ (f := x)) ≫ x = (f ≫ kp₂ (f := x)) ≫ x := by
-      rw [Cat.assoc, kp_sq, ← Cat.assoc]
+      rw [CategoryTheory.Category.assoc, kp_sq, ← CategoryTheory.Category.assoc]
     exact (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw f rfl rfl).trans
           (kp_lift_uniq (f ≫ kp₁) (f ≫ kp₂) hfw g h1.symm h2.symm).symm
 
@@ -1272,22 +1273,22 @@ theorem kernelPair_transitive [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPu
   have hwx : (pb.cone.π₁ ≫ kp₁ (f := x)) ≫ x = (pb.cone.π₂ ≫ kp₂ (f := x)) ≫ x := by
     have hmid : pb.cone.π₁ ≫ kp₂ (f := x) = pb.cone.π₂ ≫ kp₁ (f := x) := pb.cone.w
     calc (pb.cone.π₁ ≫ kp₁ (f := x)) ≫ x
-        = (pb.cone.π₁ ≫ kp₂ (f := x)) ≫ x := by rw [Cat.assoc, kp_sq, ← Cat.assoc]
+        = (pb.cone.π₁ ≫ kp₂ (f := x)) ≫ x := by rw [CategoryTheory.Category.assoc, kp_sq, ← CategoryTheory.Category.assoc]
       _ = (pb.cone.π₂ ≫ kp₁ (f := x)) ≫ x := by rw [hmid]
-      _ = (pb.cone.π₂ ≫ kp₂ (f := x)) ≫ x := by rw [Cat.assoc, kp_sq, ← Cat.assoc]
+      _ = (pb.cone.π₂ ≫ kp₂ (f := x)) ≫ x := by rw [CategoryTheory.Category.assoc, kp_sq, ← CategoryTheory.Category.assoc]
   let w := (HasPullbacks.has x x).lift
     ⟨_, pb.cone.π₁ ≫ kp₁ (f := x), pb.cone.π₂ ≫ kp₂ (f := x), hwx⟩
   have hspan : w ≫ pair (kp₁ (f := x)) (kp₂ (f := x)) = span :=
     pair_uniq _ _ _
-      (by rw [Cat.assoc, fst_pair]; exact kp_lift_p₁ _ _ hwx)
-      (by rw [Cat.assoc, snd_pair]; exact kp_lift_p₂ _ _ hwx)
+      (by rw [CategoryTheory.Category.assoc, fst_pair]; exact kp_lift_p₁ _ _ hwx)
+      (by rw [CategoryTheory.Category.assoc, snd_pair]; exact kp_lift_p₂ _ _ hwx)
   obtain ⟨k, hk⟩ := image_min span S ⟨w, hspan⟩
   refine ⟨⟨k, ?_, ?_⟩⟩
   · calc k ≫ kp₁ (f := x) = (k ≫ pair (kp₁ (f := x)) (kp₂ (f := x))) ≫ fst := by
-            rw [Cat.assoc, fst_pair]
+            rw [CategoryTheory.Category.assoc, fst_pair]
       _ = (image span).arr ≫ fst := by rw [hk]
   · calc k ≫ kp₂ (f := x) = (k ≫ pair (kp₁ (f := x)) (kp₂ (f := x))) ≫ snd := by
-            rw [Cat.assoc, snd_pair]
+            rw [CategoryTheory.Category.assoc, snd_pair]
       _ = (image span).arr ≫ snd := by rw [hk]
 
 /-- **§1.567**: The level (kernel pair) of any morphism is an equivalence
@@ -1341,21 +1342,21 @@ theorem level_legs_comp {B Q : 𝒞} (q : B ⟶ Q) :
   -- LHS leg: image.lift span ≫ ((image span).arr ≫ fst) ≫ q = span ≫ fst ≫ q = π₁ ≫ q.
   have hA : image.lift span ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = pb.cone.π₁ ≫ q := by
     show image.lift span ≫ (((image span).arr ≫ fst) ≫ q) = _
-    rw [show ((image span).arr ≫ fst) ≫ q = (image span).arr ≫ (fst ≫ q) from Cat.assoc _ _ _,
-        ← Cat.assoc, image.lift_fac]
+    rw [show ((image span).arr ≫ fst) ≫ q = (image span).arr ≫ (fst ≫ q) from CategoryTheory.Category.assoc _ _ _,
+        ← CategoryTheory.Category.assoc, image.lift_fac]
     show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (fst ≫ q)
        = pb.cone.π₁ ≫ q
-    rw [← Cat.assoc, fst_pair]
-    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₁)
+    rw [← CategoryTheory.Category.assoc, fst_pair]
+    exact congrArg (· ≫ q) (CategoryTheory.Category.comp_id pb.cone.π₁)
   -- RHS leg.
   have hB : image.lift span ≫ ((graph q ⊚ (graph q)°).colB ≫ q) = pb.cone.π₂ ≫ q := by
     show image.lift span ≫ (((image span).arr ≫ snd) ≫ q) = _
-    rw [show ((image span).arr ≫ snd) ≫ q = (image span).arr ≫ (snd ≫ q) from Cat.assoc _ _ _,
-        ← Cat.assoc, image.lift_fac]
+    rw [show ((image span).arr ≫ snd) ≫ q = (image span).arr ≫ (snd ≫ q) from CategoryTheory.Category.assoc _ _ _,
+        ← CategoryTheory.Category.assoc, image.lift_fac]
     show (pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)) ≫ (snd ≫ q)
        = pb.cone.π₂ ≫ q
-    rw [← Cat.assoc, snd_pair]
-    exact congrArg (· ≫ q) (Cat.comp_id pb.cone.π₂)
+    rw [← CategoryTheory.Category.assoc, snd_pair]
+    exact congrArg (· ≫ q) (CategoryTheory.Category.comp_id pb.cone.π₂)
   exact cover_epi hcov (by rw [hA, hB, hpbw])
 
 /-- **§1.569**: The reciprocal-composition `(graph x)° ⊚ (graph x)` is always
@@ -1363,13 +1364,13 @@ theorem level_legs_comp {B Q : 𝒞} (q : B ⟶ Q) :
     The proof: the span `⟨x, x⟩ = x ≫ diag B` factors through the diagonal,
     so its image has equal fst/snd legs. -/
 theorem reciprocal_comp_self_le_one {A B : 𝒞} (x : A ⟶ B) :
-    RelLe ((graph x)° ⊚ (graph x)) (graph (Cat.id B)) := by
+    RelLe ((graph x)° ⊚ (graph x)) (graph (𝟙 B)) := by
   -- The kernel pair span, unpacked from the compose definition
   let pb := HasPullbacks.has ((graph x)°).colB (graph x).colA
   have hπ_eq : pb.cone.π₁ = pb.cone.π₂ := by
     -- pb.cone.w : π₁ ≫ ((graph x)°).colB = π₂ ≫ (graph x).colA
     -- Both ((graph x)°).colB and (graph x).colA reduce to id_A
-    simpa [graph, reciprocal, Cat.comp_id] using pb.cone.w
+    simpa [graph, reciprocal, CategoryTheory.Category.comp_id] using pb.cone.w
   let s : pb.cone.pt ⟶ prod B B := pair (pb.cone.π₁ ≫ x) (pb.cone.π₂ ≫ x)
   have hsp_fac : s = (pb.cone.π₁ ≫ x) ≫ diag B := by
     dsimp [s]; rw [← hπ_eq, pair_diag_eq (pb.cone.π₁ ≫ x)]
@@ -1380,36 +1381,36 @@ theorem reciprocal_comp_self_le_one {A B : 𝒞} (x : A ⟶ B) :
   -- hk : k ≫ diag B = (image s).arr
   have h_fst : (image s).arr ≫ fst = k := by
     calc (image s).arr ≫ fst = (k ≫ diag B) ≫ fst := by rw [hk]
-      _ = k ≫ (diag B ≫ fst) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id B := by rw [show diag B ≫ fst = Cat.id B from fst_pair _ _]
-      _ = k := Cat.comp_id _
+      _ = k ≫ (diag B ≫ fst) := CategoryTheory.Category.assoc _ _ _
+      _ = k ≫ 𝟙 B := by rw [show diag B ≫ fst = 𝟙 B from fst_pair _ _]
+      _ = k := CategoryTheory.Category.comp_id _
   have h_snd : (image s).arr ≫ snd = k := by
     calc (image s).arr ≫ snd = (k ≫ diag B) ≫ snd := by rw [hk]
-      _ = k ≫ (diag B ≫ snd) := Cat.assoc _ _ _
-      _ = k ≫ Cat.id B := by rw [show diag B ≫ snd = Cat.id B from snd_pair _ _]
-      _ = k := Cat.comp_id _
+      _ = k ≫ (diag B ≫ snd) := CategoryTheory.Category.assoc _ _ _
+      _ = k ≫ 𝟙 B := by rw [show diag B ≫ snd = 𝟙 B from snd_pair _ _]
+      _ = k := CategoryTheory.Category.comp_id _
   -- Build the RelHom: src = (image s).dom, colA = (image s).arr≫fst, colB = (image s).arr≫snd
   -- graph(id B): src = B, colA = id B, colB = id B
   unfold compose; dsimp
   refine ⟨⟨k, ?_, ?_⟩⟩
-  · dsimp [graph]; rw [Cat.comp_id]; exact h_fst.symm
-  · dsimp [graph]; rw [Cat.comp_id]; exact h_snd.symm
+  · dsimp [graph]; rw [CategoryTheory.Category.comp_id]; exact h_fst.symm
+  · dsimp [graph]; rw [CategoryTheory.Category.comp_id]; exact h_snd.symm
 
 /-- **§1.569**: relational characterization of covers.
     `x : A → B` is a cover iff `1_B ≤ (graph x)° ⊚ (graph x)` — the identity on B
     is contained in the reciprocal-then-graph composition.  In the book's notation:
     x is a cover iff `1_B ⊂ x°x`. -/
 theorem cover_iff_one_le_reciprocal_comp_self {A B : 𝒞} (x : A ⟶ B) :
-    Cover x ↔ RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x)) := by
-  have hp : MonicPair (x : A ⟶ B) (Cat.id A : A ⟶ A) := by
+    Cover x ↔ RelLe (graph (𝟙 B)) ((graph x)° ⊚ (graph x)) := by
+  have hp : MonicPair (x : A ⟶ B) (𝟙 A : A ⟶ A) := by
     intro W f g _ hid
-    simpa [Cat.comp_id] using hid
-  have h := tabulated_is_entire_iff_left_cover (x : A ⟶ B) (Cat.id A) hp
+    simpa [CategoryTheory.Category.comp_id] using hid
+  have h := tabulated_is_entire_iff_left_cover (x : A ⟶ B) (𝟙 A) hp
   -- h : Entire (BinRel.mk A x id_A hp) ↔ Cover x
   -- BinRel.mk A x id_A hp = (graph x)°
   -- Entire ((graph x)°) = 1_B ≤ (graph x)° ⊚ (graph x)
-  have h_rel : BinRel.mk A (x : A ⟶ B) (Cat.id A : A ⟶ A) hp = (graph x)° := rfl
-  have h_entire : Entire ((graph x)°) ↔ RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x)) := by
+  have h_rel : BinRel.mk A (x : A ⟶ B) (𝟙 A : A ⟶ A) hp = (graph x)° := rfl
+  have h_entire : Entire ((graph x)°) ↔ RelLe (graph (𝟙 B)) ((graph x)° ⊚ (graph x)) := by
     simp [Entire, graph, reciprocal]
   simpa [h_rel, h_entire] using h.symm
 
@@ -1417,8 +1418,8 @@ theorem cover_iff_one_le_reciprocal_comp_self {A B : 𝒞} (x : A ⟶ B) :
     composition equals the identity relation on B.  Combine the always-true
     `x°x ≤ 1_B` with the equivalence `1_B ≤ x°x ↔ Cover x`. -/
 theorem cover_iff_reciprocal_comp_self_eq_one {A B : 𝒞} (x : A ⟶ B) :
-    Cover x ↔ (RelLe ((graph x)° ⊚ (graph x)) (graph (Cat.id B)) ∧
-               RelLe (graph (Cat.id B)) ((graph x)° ⊚ (graph x))) := by
+    Cover x ↔ (RelLe ((graph x)° ⊚ (graph x)) (graph (𝟙 B)) ∧
+               RelLe (graph (𝟙 B)) ((graph x)° ⊚ (graph x))) := by
   constructor
   · intro hc
     exact ⟨reciprocal_comp_self_le_one x, (cover_iff_one_le_reciprocal_comp_self x).mp hc⟩
@@ -1435,9 +1436,9 @@ theorem image_lift_iso_of_mono {A B : 𝒞} (f : A ⟶ B) (hf : Monic f) :
     intro W u v huv
     apply hf
     calc u ≫ f = u ≫ (image.lift f ≫ (image f).arr) := by rw [image.lift_fac]
-      _ = (u ≫ image.lift f) ≫ (image f).arr := (Cat.assoc _ _ _).symm
+      _ = (u ≫ image.lift f) ≫ (image f).arr := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (v ≫ image.lift f) ≫ (image f).arr := by rw [huv]
-      _ = v ≫ (image.lift f ≫ (image f).arr) := Cat.assoc _ _ _
+      _ = v ≫ (image.lift f ≫ (image f).arr) := CategoryTheory.Category.assoc _ _ _
       _ = v ≫ f := by rw [image.lift_fac]
   exact monic_cover_iso _ (image_lift_cover f) hmono
 
@@ -1464,23 +1465,23 @@ variable [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
 /-- **§1.56**: `graph(id_A)` is a left identity for `⊚`.  The pullback of
     id_A and R.colA is trivial, and the span equals R.colA, R.colB composed
     with the right projection.  Image minimality yields the RelHom. -/
-theorem graph_id_comp {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe ((graph (Cat.id A)) ⊚ R) R := by
+theorem graph_id_comp {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe ((graph (𝟙 A)) ⊚ R) R := by
   let T := R.src; let a := R.colA; let b := R.colB
   have h_monic : Monic (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
   -- Pullback of id_A and a over A
-  let pb := HasPullbacks.has (Cat.id A) a
+  let pb := HasPullbacks.has (𝟙 A) a
   -- Pullback square: pb.cone.w : pb.cone.π₁ ≫ id_A = pb.cone.π₂ ≫ a
-  -- So pb.cone.π₁ = pb.cone.π₂ ≫ a  (by Cat.comp_id)
+  -- So pb.cone.π₁ = pb.cone.π₂ ≫ a  (by CategoryTheory.Category.comp_id)
   have h_pb_w : pb.cone.π₁ = pb.cone.π₂ ≫ a := by
-    simpa [Cat.comp_id] using pb.cone.w
+    simpa [CategoryTheory.Category.comp_id] using pb.cone.w
   -- The span for the composition: pair(π₁ ≫ id_A, π₂ ≫ b) = pair(π₁, π₂ ≫ b)
-  let span := pair (pb.cone.π₁ ≫ (Cat.id A)) (pb.cone.π₂ ≫ b)
+  let span := pair (pb.cone.π₁ ≫ (𝟙 A)) (pb.cone.π₂ ≫ b)
   have h_span_eq : span = pb.cone.π₂ ≫ pair a b := by
     dsimp [span]
-    rw [Cat.comp_id, h_pb_w]
+    rw [CategoryTheory.Category.comp_id, h_pb_w]
     apply (pair_uniq (pb.cone.π₂ ≫ a) (pb.cone.π₂ ≫ b) (pb.cone.π₂ ≫ pair a b)
-      (by rw [Cat.assoc, fst_pair a b])
-      (by rw [Cat.assoc, snd_pair a b])).symm
+      (by rw [CategoryTheory.Category.assoc, fst_pair a b])
+      (by rw [CategoryTheory.Category.assoc, snd_pair a b])).symm
   -- S: the subobject of A×B tabulated by R (represented by the monic pair(a,b))
   let S : Subobject 𝒞 (prod A B) := ⟨T, pair a b, h_monic⟩
   -- span factors through S via pb.cone.π₂
@@ -1491,59 +1492,59 @@ theorem graph_id_comp {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe ((graph (Cat.id
   rcases h_image_le with ⟨k, hk⟩
   -- k ≫ pair(a,b) = I.arr, so k witnesses the RelHom from composed to R
   have hkA : k ≫ a = I.arr ≫ fst := by
-    calc k ≫ a = (k ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
+    calc k ≫ a = (k ≫ pair a b) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair a b]
       _ = I.arr ≫ fst := by rw [hk]
   have hkB : k ≫ b = I.arr ≫ snd := by
-    calc k ≫ b = (k ≫ pair a b) ≫ snd := by rw [Cat.assoc, snd_pair a b]
+    calc k ≫ b = (k ≫ pair a b) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair a b]
       _ = I.arr ≫ snd := by rw [hk]
   exact ⟨⟨k, hkA, hkB⟩⟩
 
 /-- **§1.56**: `graph(id_A)` is a left identity for `⊚` (reverse containment).
     Lift through the pullback of id_A and R.colA via the cone ⟨R.colA, id⟩. -/
-theorem comp_graph_id_left {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R ((graph (Cat.id A)) ⊚ R) := by
+theorem comp_graph_id_left {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R ((graph (𝟙 A)) ⊚ R) := by
   let T := R.src; let a := R.colA; let b := R.colB
   -- Pullback of id_A and a over A; lift from cone ⟨a, id_T⟩
-  let pb := HasPullbacks.has (Cat.id A) a
-  have h_cone_w : a ≫ (Cat.id A) = (Cat.id T) ≫ a := by rw [Cat.comp_id, Cat.id_comp]
-  let c : Cone (Cat.id A) a := ⟨T, a, Cat.id T, h_cone_w⟩
+  let pb := HasPullbacks.has (𝟙 A) a
+  have h_cone_w : a ≫ (𝟙 A) = (𝟙 T) ≫ a := by rw [CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
+  let c : Cone (𝟙 A) a := ⟨T, a, 𝟙 T, h_cone_w⟩
   let u := pb.lift c
   have hu₁ : u ≫ pb.cone.π₁ = a := pb.lift_fst c
-  have hu₂ : u ≫ pb.cone.π₂ = Cat.id T := pb.lift_snd c
+  have hu₂ : u ≫ pb.cone.π₂ = 𝟙 T := pb.lift_snd c
   -- span = pair(π₁, π₂ ≫ b)
-  let span := pair (pb.cone.π₁ ≫ (Cat.id A)) (pb.cone.π₂ ≫ b)
+  let span := pair (pb.cone.π₁ ≫ (𝟙 A)) (pb.cone.π₂ ≫ b)
   let I := image span
   -- h = u ≫ image.lift span : T → I.dom
   let h : T ⟶ I.dom := u ≫ image.lift span
   have h_colA : h ≫ (I.arr ≫ fst) = a := by
     dsimp [h, I]
-    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, fst_pair,
-      ← Cat.assoc u pb.cone.π₁, Cat.comp_id]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (image.lift span), image.lift_fac span, fst_pair,
+      ← CategoryTheory.Category.assoc u pb.cone.π₁, CategoryTheory.Category.comp_id]
     exact hu₁
   have h_colB : h ≫ (I.arr ≫ snd) = b := by
     dsimp [h, I]
-    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, snd_pair,
-      ← Cat.assoc u pb.cone.π₂, hu₂, Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (image.lift span), image.lift_fac span, snd_pair,
+      ← CategoryTheory.Category.assoc u pb.cone.π₂, hu₂, CategoryTheory.Category.id_comp]
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
 /-- **§1.56**: `graph(id_B)` is a right identity for `⊚`.  Dual to `graph_id_comp`:
     pullback of R.colB and id_B is trivial; image minimality yields the RelHom. -/
-theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (Cat.id B))) R := by
+theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (𝟙 B))) R := by
   let T := R.src; let a := R.colA; let b := R.colB
   have h_monic : Monic (pair a b) := monic_pair_of_monicPair a b R.isMonicPair
   -- Pullback of R.colB and id_B over B
-  let pb := HasPullbacks.has b (Cat.id B)
+  let pb := HasPullbacks.has b (𝟙 B)
   -- pb.cone.w : pb.cone.π₁ ≫ b = pb.cone.π₂ ≫ id_B
   have h_pb_w : pb.cone.π₁ ≫ b = pb.cone.π₂ := by
-    simpa [Cat.comp_id] using pb.cone.w
+    simpa [CategoryTheory.Category.comp_id] using pb.cone.w
   -- span = pair(π₁ ≫ a, π₂) after ≫ id cancels
-  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (Cat.id B))
+  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (𝟙 B))
   -- span = pair(π₁ ≫ a, π₁ ≫ b) = π₁ ≫ pair(a,b)
   have h_span_eq : pb.cone.π₁ ≫ pair a b = span := by
     dsimp [span]
-    rw [Cat.comp_id, ← h_pb_w]
+    rw [CategoryTheory.Category.comp_id, ← h_pb_w]
     apply pair_uniq (pb.cone.π₁ ≫ a) (pb.cone.π₁ ≫ b) _
-      (by rw [Cat.assoc, fst_pair a b])
-      (by rw [Cat.assoc, snd_pair a b])
+      (by rw [CategoryTheory.Category.assoc, fst_pair a b])
+      (by rw [CategoryTheory.Category.assoc, snd_pair a b])
   let S : Subobject 𝒞 (prod A B) := ⟨T, pair a b, h_monic⟩
   have hallows : Allows S span := ⟨pb.cone.π₁, h_span_eq⟩
   let I := image span
@@ -1551,36 +1552,36 @@ theorem comp_graph_id {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe (R ⊚ (graph (
   rcases h_image_le with ⟨k, hk⟩
   -- k ≫ pair(a,b) = I.arr
   have hkA : k ≫ a = I.arr ≫ fst := by
-    calc k ≫ a = (k ≫ pair a b) ≫ fst := by rw [Cat.assoc, fst_pair a b]
+    calc k ≫ a = (k ≫ pair a b) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair a b]
       _ = I.arr ≫ fst := by rw [hk]
   have hkB : k ≫ b = I.arr ≫ snd := by
-    calc k ≫ b = (k ≫ pair a b) ≫ snd := by rw [Cat.assoc, snd_pair a b]
+    calc k ≫ b = (k ≫ pair a b) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair a b]
       _ = I.arr ≫ snd := by rw [hk]
   exact ⟨⟨k, hkA, hkB⟩⟩
 
 /-- **§1.56**: `graph(id_B)` is a right identity for `⊚` (reverse containment).
     Dual to `comp_graph_id_left`: lift via cone ⟨id_T, R.colB⟩. -/
-theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ (graph (Cat.id B))) := by
+theorem comp_graph_id_right {A B : 𝒞} (R : BinRel 𝒞 A B) : RelLe R (R ⊚ (graph (𝟙 B))) := by
   let T := R.src; let a := R.colA; let b := R.colB
   -- Pullback of R.colB and id_B over B; lift from cone ⟨id_T, R.colB⟩
-  let pb := HasPullbacks.has b (Cat.id B)
-  have h_cone_w : (Cat.id T) ≫ b = b ≫ (Cat.id B) := by rw [Cat.id_comp, Cat.comp_id]
-  let c : Cone b (Cat.id B) := ⟨T, Cat.id T, b, h_cone_w⟩
+  let pb := HasPullbacks.has b (𝟙 B)
+  have h_cone_w : (𝟙 T) ≫ b = b ≫ (𝟙 B) := by rw [CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]
+  let c : Cone b (𝟙 B) := ⟨T, 𝟙 T, b, h_cone_w⟩
   let u := pb.lift c
-  have hu₁ : u ≫ pb.cone.π₁ = Cat.id T := pb.lift_fst c
+  have hu₁ : u ≫ pb.cone.π₁ = 𝟙 T := pb.lift_fst c
   have hu₂ : u ≫ pb.cone.π₂ = b := pb.lift_snd c
   -- span = pair(π₁ ≫ a, π₂ ≫ id_B)
-  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (Cat.id B))
+  let span := pair (pb.cone.π₁ ≫ a) (pb.cone.π₂ ≫ (𝟙 B))
   let I := image span
   let h : T ⟶ I.dom := u ≫ image.lift span
   have h_colA : h ≫ (I.arr ≫ fst) = a := by
     dsimp [h, I]
-    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, fst_pair,
-      ← Cat.assoc u pb.cone.π₁, hu₁, Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (image.lift span), image.lift_fac span, fst_pair,
+      ← CategoryTheory.Category.assoc u pb.cone.π₁, hu₁, CategoryTheory.Category.id_comp]
   have h_colB : h ≫ (I.arr ≫ snd) = b := by
     dsimp [h, I]
-    rw [Cat.assoc, ← Cat.assoc (image.lift span), image.lift_fac span, snd_pair,
-      Cat.comp_id]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (image.lift span), image.lift_fac span, snd_pair,
+      CategoryTheory.Category.comp_id]
     exact hu₂
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
@@ -1593,15 +1594,15 @@ theorem pullback_fst_mono {B I D : 𝒞} (f : B ⟶ D) (m : I ⟶ D) (hm : Monic
   change p ≫ pb.cone.π₁ = q ≫ pb.cone.π₁ at hpq
   have hpq2 : p ≫ pb.cone.π₂ = q ≫ pb.cone.π₂ := by
     apply hm
-    calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₂ ≫ m) := Cat.assoc _ _ _
+    calc (p ≫ pb.cone.π₂) ≫ m = p ≫ (pb.cone.π₂ ≫ m) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (pb.cone.π₁ ≫ f) := by rw [← pb.cone.w]
-      _ = (p ≫ pb.cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+      _ = (p ≫ pb.cone.π₁) ≫ f := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (q ≫ pb.cone.π₁) ≫ f := by rw [hpq]
-      _ = q ≫ (pb.cone.π₁ ≫ f) := Cat.assoc _ _ _
+      _ = q ≫ (pb.cone.π₁ ≫ f) := CategoryTheory.Category.assoc _ _ _
       _ = q ≫ (pb.cone.π₂ ≫ m) := by rw [pb.cone.w]
-      _ = (q ≫ pb.cone.π₂) ≫ m := (Cat.assoc _ _ _).symm
+      _ = (q ≫ pb.cone.π₂) ≫ m := (CategoryTheory.Category.assoc _ _ _).symm
   have hcone : (p ≫ pb.cone.π₁) ≫ f = (p ≫ pb.cone.π₂) ≫ m := by
-    rw [Cat.assoc, Cat.assoc, pb.cone.w]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pb.cone.w]
   let cn : Cone f m := ⟨W, p ≫ pb.cone.π₁, p ≫ pb.cone.π₂, hcone⟩
   rw [pb.lift_uniq cn p rfl rfl, pb.lift_uniq cn q hpq.symm hpq2.symm]
 
@@ -1621,8 +1622,8 @@ theorem cover_mono_diagonal {A B I D : 𝒞} {c : A ⟶ B} {f : B ⟶ D} {m : I 
   have hu₂ : u ≫ pb.cone.π₂ = d := pb.lift_snd cn
   obtain ⟨inv, hπinv, hinvπ⟩ : IsIso pb.cone.π₁ := hc pb.cone.π₁ u hπmono hu₁
   refine ⟨inv ≫ pb.cone.π₂, ?_, ?_⟩
-  · rw [← hu₁, Cat.assoc, ← Cat.assoc pb.cone.π₁ inv pb.cone.π₂, hπinv, Cat.id_comp, hu₂]
-  · rw [Cat.assoc, ← pb.cone.w, ← Cat.assoc, hinvπ, Cat.id_comp]
+  · rw [← hu₁, CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc pb.cone.π₁ inv pb.cone.π₂, hπinv, CategoryTheory.Category.id_comp, hu₂]
+  · rw [CategoryTheory.Category.assoc, ← pb.cone.w, ← CategoryTheory.Category.assoc, hinvπ, CategoryTheory.Category.id_comp]
 
 /-- Composition of covers is a cover.  `f ≫ g` factors through a mono `m`;
     cover⊥mono descends the square to factor `g` through `m`, and `g` being a
@@ -1641,7 +1642,7 @@ theorem image_cover_comp {A B D : 𝒞} (c : A ⟶ B) (f : B ⟶ D) (hc : Cover 
     (image (c ≫ f)).le (image f) ∧ (image f).le (image (c ≫ f)) := by
   refine ⟨image_min _ _ ?_, image_min _ _ ?_⟩
   · obtain ⟨g, hg⟩ := image_allows f
-    exact ⟨c ≫ g, by rw [Cat.assoc, hg]⟩
+    exact ⟨c ≫ g, by rw [CategoryTheory.Category.assoc, hg]⟩
   · obtain ⟨d, hd⟩ := image_allows (c ≫ f)
     obtain ⟨g, _, hgm⟩ := cover_mono_diagonal hc (image (c ≫ f)).monic hd.symm
     exact ⟨g, hgm⟩
@@ -1661,7 +1662,7 @@ theorem compose_le {A B C : 𝒞} {R R' : BinRel 𝒞 A B} {S S' : BinRel 𝒞 B
   let span' : pb'.cone.pt ⟶ prod A C := pair (pb'.cone.π₁ ≫ R'.colA) (pb'.cone.π₂ ≫ S'.colB)
   -- the two `RelHom`s lift `pb`'s legs to a cone over `(R'.colB, S'.colA)`.
   have hcw : (pb.cone.π₁ ≫ hr) ≫ R'.colB = (pb.cone.π₂ ≫ hs) ≫ S'.colA := by
-    rw [Cat.assoc, hrB, pb.cone.w, Cat.assoc, hsA]
+    rw [CategoryTheory.Category.assoc, hrB, pb.cone.w, CategoryTheory.Category.assoc, hsA]
   let c' : Cone R'.colB S'.colA := ⟨pb.cone.pt, pb.cone.π₁ ≫ hr, pb.cone.π₂ ≫ hs, hcw⟩
   let w := pb'.lift c'
   have hw₁ : w ≫ pb'.cone.π₁ = pb.cone.π₁ ≫ hr := pb'.lift_fst c'
@@ -1669,17 +1670,17 @@ theorem compose_le {A B C : 𝒞} {R R' : BinRel 𝒞 A B} {S S' : BinRel 𝒞 B
   -- `w` carries the `R⊚S`-span onto the `R'⊚S'`-span.
   have hspan : w ≫ span' = span :=
     pair_uniq (pb.cone.π₁ ≫ R.colA) (pb.cone.π₂ ≫ S.colB) (w ≫ span')
-      (by dsimp [span']; rw [Cat.assoc, fst_pair, ← Cat.assoc, hw₁, Cat.assoc, hrA])
-      (by dsimp [span']; rw [Cat.assoc, snd_pair, ← Cat.assoc, hw₂, Cat.assoc, hsB])
+      (by dsimp [span']; rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, hw₁, CategoryTheory.Category.assoc, hrA])
+      (by dsimp [span']; rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, hw₂, CategoryTheory.Category.assoc, hsB])
   -- so `span` factors through `image span' = (R'⊚S').src`; minimality gives the `RelHom`.
   have hallows : Allows (image span') span :=
-    ⟨w ≫ image.lift span', by rw [Cat.assoc, image.lift_fac, hspan]⟩
+    ⟨w ≫ image.lift span', by rw [CategoryTheory.Category.assoc, image.lift_fac, hspan]⟩
   obtain ⟨k, hk⟩ := image_min span (image span') hallows
   refine ⟨⟨k, ?_, ?_⟩⟩
   · show k ≫ ((image span').arr ≫ fst) = (image span).arr ≫ fst
-    rw [← Cat.assoc, hk]
+    rw [← CategoryTheory.Category.assoc, hk]
   · show k ≫ ((image span').arr ≫ snd) = (image span).arr ≫ snd
-    rw [← Cat.assoc, hk]
+    rw [← CategoryTheory.Category.assoc, hk]
 
 /-- **Covers descend relation-containments**: to prove `X ⊂ Y` it suffices to
     find a cover `c : P ↠ X.src` and a map `φ : P → Y.src` agreeing with `c`
@@ -1693,16 +1694,16 @@ theorem relLe_of_cover_factor {A B : 𝒞} {X Y : BinRel 𝒞 A B} {P : 𝒞}
   have hmY : Monic (pair Y.colA Y.colB) := monic_pair_of_monicPair Y.colA Y.colB Y.isMonicPair
   have hsq : c ≫ pair X.colA X.colB = φ ≫ pair Y.colA Y.colB := by
     have e1 : c ≫ pair X.colA X.colB = pair (c ≫ X.colA) (c ≫ X.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
     have e2 : φ ≫ pair Y.colA Y.colB = pair (c ≫ X.colA) (c ≫ X.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hA]) (by rw [Cat.assoc, snd_pair, hB])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair, hA]) (by rw [CategoryTheory.Category.assoc, snd_pair, hB])
     rw [e1, e2]
   obtain ⟨g, _, hg⟩ := cover_mono_diagonal hc hmY hsq
   refine ⟨⟨g, ?_, ?_⟩⟩
-  · calc g ≫ Y.colA = (g ≫ pair Y.colA Y.colB) ≫ fst := by rw [Cat.assoc, fst_pair]
+  · calc g ≫ Y.colA = (g ≫ pair Y.colA Y.colB) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair]
       _ = pair X.colA X.colB ≫ fst := by rw [hg]
       _ = X.colA := fst_pair _ _
-  · calc g ≫ Y.colB = (g ≫ pair Y.colA Y.colB) ≫ snd := by rw [Cat.assoc, snd_pair]
+  · calc g ≫ Y.colB = (g ≫ pair Y.colA Y.colB) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair]
       _ = pair X.colA X.colB ≫ snd := by rw [hg]
       _ = X.colB := snd_pair _ _
 
@@ -1732,28 +1733,28 @@ theorem compose_assoc [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
   -- `e ≫ col` simplifications (image.lift_fac then fst/snd of the pair)
   have hRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
     show eRS ≫ ((image spanRS).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
     show eRS ≫ ((image spanRS).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hRSTa : eRST ≫ ((R ⊚ S) ⊚ T).colA = pbRST.cone.π₁ ≫ (R ⊚ S).colA := by
     show eRST ≫ ((image spanRST).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hRSTb : eRST ≫ ((R ⊚ S) ⊚ T).colB = pbRST.cone.π₂ ≫ T.colB := by
     show eRST ≫ ((image spanRST).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hSTa : eST ≫ (S ⊚ T).colA = pbST.cone.π₁ ≫ S.colA := by
     show eST ≫ ((image spanST).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hSTb : eST ≫ (S ⊚ T).colB = pbST.cone.π₂ ≫ T.colB := by
     show eST ≫ ((image spanST).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hR_STa : eR_ST ≫ (R ⊚ (S ⊚ T)).colA = pbRST'.cone.π₁ ≫ R.colA := by
     show eR_ST ≫ ((image spanR_ST).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hR_STb : eR_ST ≫ (R ⊚ (S ⊚ T)).colB = pbRST'.cone.π₂ ≫ (S ⊚ T).colB := by
     show eR_ST ≫ ((image spanR_ST).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   -- common cover `P1`: pull the image-cover `eRS` back along `pbRST.π₁`.
   let pb1 := HasPullbacks.has eRS pbRST.cone.π₁
   have hwcov : Cover pb1.cone.π₂ := cover_pullback pbRST.cone.π₁ (image_lift_cover spanRS)
@@ -1767,32 +1768,32 @@ theorem compose_assoc [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
   -- S–T agreement at C
   have hSTmid : s ≫ S.colB = t ≫ T.colA := by
     calc s ≫ S.colB = p ≫ (eRS ≫ (R ⊚ S).colB) := by
-            rw [hRSb]; exact (Cat.assoc _ _ _)
-      _ = (p ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+            rw [hRSb]; exact (CategoryTheory.Category.assoc _ _ _)
+      _ = (p ≫ eRS) ≫ (R ⊚ S).colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (q ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colB := by rw [hw1]
-      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
       _ = q ≫ (pbRST.cone.π₂ ≫ T.colA) := by rw [pbRST.cone.w]
-      _ = t ≫ T.colA := (Cat.assoc _ _ _).symm
+      _ = t ≫ T.colA := (CategoryTheory.Category.assoc _ _ _).symm
   -- assemble P1 → P_ST → (S⊚T).src
   let mST := pbST.lift ⟨pb1.cone.pt, s, t, hSTmid⟩
   have hmST1 : mST ≫ pbST.cone.π₁ = s := pbST.lift_fst _
   have hmST2 : mST ≫ pbST.cone.π₂ = t := pbST.lift_snd _
   let ist := mST ≫ eST
   have hista : ist ≫ (S ⊚ T).colA = s ≫ S.colA := by
-    calc ist ≫ (S ⊚ T).colA = mST ≫ (eST ≫ (S ⊚ T).colA) := Cat.assoc _ _ _
+    calc ist ≫ (S ⊚ T).colA = mST ≫ (eST ≫ (S ⊚ T).colA) := CategoryTheory.Category.assoc _ _ _
       _ = mST ≫ (pbST.cone.π₁ ≫ S.colA) := by rw [hSTa]
-      _ = (mST ≫ pbST.cone.π₁) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = (mST ≫ pbST.cone.π₁) ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = s ≫ S.colA := by rw [hmST1]
   have histb : ist ≫ (S ⊚ T).colB = t ≫ T.colB := by
-    calc ist ≫ (S ⊚ T).colB = mST ≫ (eST ≫ (S ⊚ T).colB) := Cat.assoc _ _ _
+    calc ist ≫ (S ⊚ T).colB = mST ≫ (eST ≫ (S ⊚ T).colB) := CategoryTheory.Category.assoc _ _ _
       _ = mST ≫ (pbST.cone.π₂ ≫ T.colB) := by rw [hSTb]
-      _ = (mST ≫ pbST.cone.π₂) ≫ T.colB := (Cat.assoc _ _ _).symm
+      _ = (mST ≫ pbST.cone.π₂) ≫ T.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = t ≫ T.colB := by rw [hmST2]
   -- R–(S⊚T) agreement at B
   have hRmid : r ≫ R.colB = ist ≫ (S ⊚ T).colA := by
-    calc r ≫ R.colB = p ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+    calc r ≫ R.colB = p ≫ (pbRS.cone.π₁ ≫ R.colB) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
-      _ = (p ≫ pbRS.cone.π₂) ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = (p ≫ pbRS.cone.π₂) ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = s ≫ S.colA := rfl
       _ = ist ≫ (S ⊚ T).colA := hista.symm
   -- assemble P1 → P_R(ST)
@@ -1804,28 +1805,28 @@ theorem compose_assoc [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
     (mR ≫ eR_ST) ?_ ?_
   · -- φ ≫ (R⊚(S⊚T)).colA = c ≫ ((R⊚S)⊚T).colA
     calc (mR ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colA
-        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colA) := Cat.assoc _ _ _
+        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colA) := CategoryTheory.Category.assoc _ _ _
       _ = mR ≫ (pbRST'.cone.π₁ ≫ R.colA) := by rw [hR_STa]
-      _ = (mR ≫ pbRST'.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+      _ = (mR ≫ pbRST'.cone.π₁) ≫ R.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = r ≫ R.colA := by rw [hmR1]
-      _ = p ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+      _ = p ≫ (pbRS.cone.π₁ ≫ R.colA) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (eRS ≫ (R ⊚ S).colA) := by rw [hRSa]
-      _ = (p ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+      _ = (p ≫ eRS) ≫ (R ⊚ S).colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (q ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colA := by rw [hw1]
-      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+      _ = q ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
       _ = q ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colA) := by rw [hRSTa]
-      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colA := (Cat.assoc _ _ _).symm
+      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colA := (CategoryTheory.Category.assoc _ _ _).symm
   · -- φ ≫ (R⊚(S⊚T)).colB = c ≫ ((R⊚S)⊚T).colB
     calc (mR ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB
-        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := Cat.assoc _ _ _
+        = mR ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := CategoryTheory.Category.assoc _ _ _
       _ = mR ≫ (pbRST'.cone.π₂ ≫ (S ⊚ T).colB) := by rw [hR_STb]
-      _ = (mR ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colB := (Cat.assoc _ _ _).symm
+      _ = (mR ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = ist ≫ (S ⊚ T).colB := by rw [hmR2]
       _ = t ≫ T.colB := histb
       _ = (q ≫ pbRST.cone.π₂) ≫ T.colB := rfl
-      _ = q ≫ (pbRST.cone.π₂ ≫ T.colB) := Cat.assoc _ _ _
+      _ = q ≫ (pbRST.cone.π₂ ≫ T.colB) := CategoryTheory.Category.assoc _ _ _
       _ = q ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colB) := by rw [hRSTb]
-      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colB := (Cat.assoc _ _ _).symm
+      _ = (q ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colB := (CategoryTheory.Category.assoc _ _ _).symm
 
 /-- **§1.56 / §1.569**: `⊚` is associative (reverse, `R⊚(S⊚T) ⊂ (R⊚S)⊚T`).
     The mirror of `compose_assoc`: now `R⊚(S⊚T)` pulls `R` back along the image
@@ -1847,21 +1848,21 @@ theorem compose_assoc' [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
   let spanR_ST := pair (pbRST'.cone.π₁ ≫ R.colA) (pbRST'.cone.π₂ ≫ (S ⊚ T).colB)
   let eR_ST := image.lift spanR_ST
   have hRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
-    show eRS ≫ ((image spanRS).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
-    show eRS ≫ ((image spanRS).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hRSTa : eRST ≫ ((R ⊚ S) ⊚ T).colA = pbRST.cone.π₁ ≫ (R ⊚ S).colA := by
-    show eRST ≫ ((image spanRST).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eRST ≫ ((image spanRST).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hRSTb : eRST ≫ ((R ⊚ S) ⊚ T).colB = pbRST.cone.π₂ ≫ T.colB := by
-    show eRST ≫ ((image spanRST).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eRST ≫ ((image spanRST).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hSTa : eST ≫ (S ⊚ T).colA = pbST.cone.π₁ ≫ S.colA := by
-    show eST ≫ ((image spanST).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eST ≫ ((image spanST).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hSTb : eST ≫ (S ⊚ T).colB = pbST.cone.π₂ ≫ T.colB := by
-    show eST ≫ ((image spanST).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eST ≫ ((image spanST).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hR_STa : eR_ST ≫ (R ⊚ (S ⊚ T)).colA = pbRST'.cone.π₁ ≫ R.colA := by
-    show eR_ST ≫ ((image spanR_ST).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eR_ST ≫ ((image spanR_ST).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hR_STb : eR_ST ≫ (R ⊚ (S ⊚ T)).colB = pbRST'.cone.π₂ ≫ (S ⊚ T).colB := by
-    show eR_ST ≫ ((image spanR_ST).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eR_ST ≫ ((image spanR_ST).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   -- common cover: pull the image-cover `eST` back along `pbRST'.π₂`.
   let pb2 := HasPullbacks.has eST pbRST'.cone.π₂
   have hwcov : Cover pb2.cone.π₂ := cover_pullback pbRST'.cone.π₂ (image_lift_cover spanST)
@@ -1875,34 +1876,34 @@ theorem compose_assoc' [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
   have hpe : p ≫ pbRST'.cone.π₂ = pst ≫ eST := hw2.symm
   -- R–S agreement at B
   have hRSmid : r ≫ R.colB = s ≫ S.colA := by
-    calc r ≫ R.colB = p ≫ (pbRST'.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+    calc r ≫ R.colB = p ≫ (pbRST'.cone.π₁ ≫ R.colB) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (pbRST'.cone.π₂ ≫ (S ⊚ T).colA) := by rw [pbRST'.cone.w]
-      _ = (p ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colA := (Cat.assoc _ _ _).symm
+      _ = (p ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (pst ≫ eST) ≫ (S ⊚ T).colA := by rw [hpe]
-      _ = pst ≫ (eST ≫ (S ⊚ T).colA) := Cat.assoc _ _ _
+      _ = pst ≫ (eST ≫ (S ⊚ T).colA) := CategoryTheory.Category.assoc _ _ _
       _ = pst ≫ (pbST.cone.π₁ ≫ S.colA) := by rw [hSTa]
-      _ = s ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = s ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
   -- assemble pb2 → P_RS → (R⊚S).src
   let mRS := pbRS.lift ⟨pb2.cone.pt, r, s, hRSmid⟩
   have hmRS1 : mRS ≫ pbRS.cone.π₁ = r := pbRS.lift_fst _
   have hmRS2 : mRS ≫ pbRS.cone.π₂ = s := pbRS.lift_snd _
   let irs := mRS ≫ eRS
   have hirsa : irs ≫ (R ⊚ S).colA = r ≫ R.colA := by
-    calc irs ≫ (R ⊚ S).colA = mRS ≫ (eRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+    calc irs ≫ (R ⊚ S).colA = mRS ≫ (eRS ≫ (R ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
       _ = mRS ≫ (pbRS.cone.π₁ ≫ R.colA) := by rw [hRSa]
-      _ = (mRS ≫ pbRS.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+      _ = (mRS ≫ pbRS.cone.π₁) ≫ R.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = r ≫ R.colA := by rw [hmRS1]
   have hirsb : irs ≫ (R ⊚ S).colB = s ≫ S.colB := by
-    calc irs ≫ (R ⊚ S).colB = mRS ≫ (eRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+    calc irs ≫ (R ⊚ S).colB = mRS ≫ (eRS ≫ (R ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
       _ = mRS ≫ (pbRS.cone.π₂ ≫ S.colB) := by rw [hRSb]
-      _ = (mRS ≫ pbRS.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+      _ = (mRS ≫ pbRS.cone.π₂) ≫ S.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = s ≫ S.colB := by rw [hmRS2]
   -- (R⊚S)–T agreement at C
   have hmid2 : irs ≫ (R ⊚ S).colB = t ≫ T.colA := by
     calc irs ≫ (R ⊚ S).colB = s ≫ S.colB := hirsb
-      _ = pst ≫ (pbST.cone.π₁ ≫ S.colB) := Cat.assoc _ _ _
+      _ = pst ≫ (pbST.cone.π₁ ≫ S.colB) := CategoryTheory.Category.assoc _ _ _
       _ = pst ≫ (pbST.cone.π₂ ≫ T.colA) := by rw [pbST.cone.w]
-      _ = t ≫ T.colA := (Cat.assoc _ _ _).symm
+      _ = t ≫ T.colA := (CategoryTheory.Category.assoc _ _ _).symm
   -- assemble pb2 → P_(RS)T
   let mRST := pbRST.lift ⟨pb2.cone.pt, irs, t, hmid2⟩
   have hmRST1 : mRST ≫ pbRST.cone.π₁ = irs := pbRST.lift_fst _
@@ -1911,27 +1912,27 @@ theorem compose_assoc' [PullbacksTransferCovers 𝒞] {A B C D : 𝒞}
     (mRST ≫ eRST) ?_ ?_
   · -- φ ≫ ((R⊚S)⊚T).colA = c ≫ (R⊚(S⊚T)).colA
     calc (mRST ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colA
-        = mRST ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colA) := Cat.assoc _ _ _
+        = mRST ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colA) := CategoryTheory.Category.assoc _ _ _
       _ = mRST ≫ (pbRST.cone.π₁ ≫ (R ⊚ S).colA) := by rw [hRSTa]
-      _ = (mRST ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+      _ = (mRST ≫ pbRST.cone.π₁) ≫ (R ⊚ S).colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = irs ≫ (R ⊚ S).colA := by rw [hmRST1]
       _ = r ≫ R.colA := hirsa
-      _ = p ≫ (pbRST'.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+      _ = p ≫ (pbRST'.cone.π₁ ≫ R.colA) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colA) := by rw [hR_STa]
-      _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colA := (Cat.assoc _ _ _).symm
+      _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colA := (CategoryTheory.Category.assoc _ _ _).symm
   · -- φ ≫ ((R⊚S)⊚T).colB = c ≫ (R⊚(S⊚T)).colB
     calc (mRST ≫ eRST) ≫ ((R ⊚ S) ⊚ T).colB
-        = mRST ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colB) := Cat.assoc _ _ _
+        = mRST ≫ (eRST ≫ ((R ⊚ S) ⊚ T).colB) := CategoryTheory.Category.assoc _ _ _
       _ = mRST ≫ (pbRST.cone.π₂ ≫ T.colB) := by rw [hRSTb]
-      _ = (mRST ≫ pbRST.cone.π₂) ≫ T.colB := (Cat.assoc _ _ _).symm
+      _ = (mRST ≫ pbRST.cone.π₂) ≫ T.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = t ≫ T.colB := by rw [hmRST2]
-      _ = pst ≫ (pbST.cone.π₂ ≫ T.colB) := Cat.assoc _ _ _
+      _ = pst ≫ (pbST.cone.π₂ ≫ T.colB) := CategoryTheory.Category.assoc _ _ _
       _ = pst ≫ (eST ≫ (S ⊚ T).colB) := by rw [hSTb]
-      _ = (pst ≫ eST) ≫ (S ⊚ T).colB := (Cat.assoc _ _ _).symm
+      _ = (pst ≫ eST) ≫ (S ⊚ T).colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (p ≫ pbRST'.cone.π₂) ≫ (S ⊚ T).colB := by rw [hpe]
-      _ = p ≫ (pbRST'.cone.π₂ ≫ (S ⊚ T).colB) := Cat.assoc _ _ _
+      _ = p ≫ (pbRST'.cone.π₂ ≫ (S ⊚ T).colB) := CategoryTheory.Category.assoc _ _ _
       _ = p ≫ (eR_ST ≫ (R ⊚ (S ⊚ T)).colB) := by rw [hR_STb]
-      _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB := (Cat.assoc _ _ _).symm
+      _ = (p ≫ eR_ST) ≫ (R ⊚ (S ⊚ T)).colB := (CategoryTheory.Category.assoc _ _ _).symm
 
 
 /-- **§1.569 ⇐ core**: under associativity of `⊚`, if `f : A → C` is a cover then
@@ -1956,13 +1957,13 @@ theorem pullback_leg_cover_of_assoc
   -- e_M : pbM.pt → M.src, the image-cover of the M-span = pair π₁ π₂, which is monic
   let spanM : pbM.cone.pt ⟶ prod B A := pair (pbM.cone.π₁ ≫ (graph g).colA) (pbM.cone.π₂ ≫ ((graph f)°).colB)
   have hspanM_eq : spanM = pair pbM.cone.π₁ pbM.cone.π₂ := by
-    dsimp [spanM, graph, reciprocal]; rw [Cat.comp_id, Cat.comp_id]
+    dsimp [spanM, graph, reciprocal]; rw [CategoryTheory.Category.comp_id, CategoryTheory.Category.comp_id]
   have hspanM_mono : Monic spanM := by
     rw [hspanM_eq]
     have hmp : MonicPair pbM.cone.π₁ pbM.cone.π₂ := by
       intro W u v hu hv
       have hcone : (u ≫ pbM.cone.π₁) ≫ g = (u ≫ pbM.cone.π₂) ≫ f := by
-        rw [Cat.assoc, Cat.assoc, pbM.cone.w]
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pbM.cone.w]
       let cn : Cone g f := ⟨W, u ≫ pbM.cone.π₁, u ≫ pbM.cone.π₂, hcone⟩
       rw [pbM.lift_uniq cn u rfl rfl, pbM.lift_uniq cn v hu.symm hv.symm]
     apply monic_pair_of_monicPair; exact hmp
@@ -1970,9 +1971,9 @@ theorem pullback_leg_cover_of_assoc
   have heM_iso : IsIso eM := image_lift_iso_of_mono spanM hspanM_mono
   have heM_colA : eM ≫ M.colA = pbM.cone.π₁ := by
     show eM ≫ ((image spanM).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac]
     show pair _ _ ≫ fst = _
-    rw [fst_pair]; dsimp [graph]; rw [Cat.comp_id]
+    rw [fst_pair]; dsimp [graph]; rw [CategoryTheory.Category.comp_id]
   -- it now suffices: Cover M.colA (then pbM.π₁ = eM ≫ M.colA, eM iso ⟹ cover)
   suffices hMcolA : Cover M.colA by
     rw [← heM_colA]; intro D m k hm hkm
@@ -1980,19 +1981,19 @@ theorem pullback_leg_cover_of_assoc
   -- outer pullback of M.colB and id_A
   let pbO := HasPullbacks.has M.colB (graph f).colA
   have hO_w : pbO.cone.π₁ ≫ M.colB = pbO.cone.π₂ := by
-    simpa [graph, Cat.comp_id] using pbO.cone.w
+    simpa [graph, CategoryTheory.Category.comp_id] using pbO.cone.w
   have hO_iso : IsIso pbO.cone.π₁ := by
     -- π₁ is the pullback of id_A along M.colB; its retraction is the lift of ⟨id, M.colB⟩
-    let cn : Cone M.colB (graph f).colA := ⟨M.src, Cat.id M.src, M.colB, by
-      dsimp [graph]; rw [Cat.id_comp, Cat.comp_id]⟩
+    let cn : Cone M.colB (graph f).colA := ⟨M.src, 𝟙 M.src, M.colB, by
+      dsimp [graph]; rw [CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]⟩
     refine ⟨pbO.lift cn, ?_, ?_⟩
     · -- π₁ ≫ lift cn = id : both legs agree, use lift_uniq
       have h1 : (pbO.cone.π₁ ≫ pbO.lift cn) ≫ pbO.cone.π₁ = pbO.cone.π₁ := by
-        rw [Cat.assoc, pbO.lift_fst cn]; dsimp [cn]; rw [Cat.comp_id]
+        rw [CategoryTheory.Category.assoc, pbO.lift_fst cn]; dsimp [cn]; rw [CategoryTheory.Category.comp_id]
       have h2 : (pbO.cone.π₁ ≫ pbO.lift cn) ≫ pbO.cone.π₂ = pbO.cone.π₂ := by
-        rw [Cat.assoc, pbO.lift_snd cn]; dsimp [cn]; exact hO_w
+        rw [CategoryTheory.Category.assoc, pbO.lift_snd cn]; dsimp [cn]; exact hO_w
       rw [pbO.lift_uniq pbO.cone (pbO.cone.π₁ ≫ pbO.lift cn) h1 h2,
-          ← pbO.lift_uniq pbO.cone (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)]
+          ← pbO.lift_uniq pbO.cone (𝟙 _) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)]
     · exact pbO.lift_fst cn
   -- spanO and its image-cover eO
   let spanO : pbO.cone.pt ⟶ prod B C := pair (pbO.cone.π₁ ≫ M.colA) (pbO.cone.π₂ ≫ (graph f).colB)
@@ -2000,12 +2001,12 @@ theorem pullback_leg_cover_of_assoc
   have heO_cover : Cover eO := image_lift_cover spanO
   have heO_colA : eO ≫ (M ⊚ graph f).colA = pbO.cone.π₁ ≫ M.colA := by
     show eO ≫ ((image spanO).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac]
     show pair _ _ ≫ fst = _
     rw [fst_pair]
   -- from (★): (M ⊚ graph f).colA is split epi
   obtain ⟨hh, hhA, _⟩ := hstar
-  have hsplit : hh ≫ (M ⊚ graph f).colA = Cat.id B := by
+  have hsplit : hh ≫ (M ⊚ graph f).colA = 𝟙 B := by
     have := hhA; dsimp [graph] at this; exact this
   have hcolA_cover : Cover (M ⊚ graph f).colA := split_epi_cover hsplit
   -- eO ≫ colA = π₁ ≫ M.colA is a cover; π₁ iso ⟹ M.colA cover
@@ -2013,7 +2014,7 @@ theorem pullback_leg_cover_of_assoc
     rw [← heO_colA]; exact cover_comp heO_cover hcolA_cover
   obtain ⟨inv, hinv1, hinv2⟩ := hO_iso
   have hMcolA_eq : M.colA = inv ≫ (pbO.cone.π₁ ≫ M.colA) := by
-    rw [← Cat.assoc, hinv2, Cat.id_comp]
+    rw [← CategoryTheory.Category.assoc, hinv2, CategoryTheory.Category.id_comp]
   rw [hMcolA_eq]; intro D m k hm hkm
   exact cover_precomp_iso ⟨pbO.cone.π₁, hinv2, hinv1⟩ hcomp_cover m k hm hkm
 
@@ -2046,15 +2047,15 @@ theorem regular_of_compose_assoc
   -- hj₁ : j ≫ c.π₁ = pbCan.π₂ ;  hj₂ : j ≫ c.π₂ = pbCan.π₁
   -- i ≫ j = id (both are lifts of cone `c` through `c`, by IsPullback-uniqueness)
   obtain ⟨_, _, huniqC⟩ := hpb c
-  have hij : i ≫ j = Cat.id c.pt := by
+  have hij : i ≫ j = 𝟙 c.pt := by
     rw [huniqC (i ≫ j)
-        (by rw [Cat.assoc, hj₁, hi₂]) (by rw [Cat.assoc, hj₂, hi₁]),
-      ← huniqC (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+        (by rw [CategoryTheory.Category.assoc, hj₁, hi₂]) (by rw [CategoryTheory.Category.assoc, hj₂, hi₁]),
+      ← huniqC (𝟙 c.pt) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)]
   -- j ≫ i = id (both are lifts of pbCan.cone through pbCan, by lift_uniq)
-  have hji : j ≫ i = Cat.id pbCan.cone.pt := by
+  have hji : j ≫ i = 𝟙 pbCan.cone.pt := by
     rw [pbCan.lift_uniq pbCan.cone (j ≫ i)
-        (by rw [Cat.assoc, hi₁, hj₂]) (by rw [Cat.assoc, hi₂, hj₁]),
-      ← pbCan.lift_uniq pbCan.cone (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)]
+        (by rw [CategoryTheory.Category.assoc, hi₁, hj₂]) (by rw [CategoryTheory.Category.assoc, hi₂, hj₁]),
+      ← pbCan.lift_uniq pbCan.cone (𝟙 _) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)]
   -- c.π₂ = i ≫ pbCan.π₁, i iso, pbCan.π₁ cover ⟹ c.π₂ cover
   rw [← hi₁]; intro D m k hm hkm
   exact cover_precomp_iso ⟨j, hij, hji⟩ hcanCov m k hm hkm
@@ -2074,9 +2075,9 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   let spanRS := pair (pbRS.cone.π₁ ≫ R.colA) (pbRS.cone.π₂ ≫ S.colB)
   let eRS := image.lift spanRS
   have hRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
-    show eRS ≫ ((image spanRS).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eRS ≫ ((image spanRS).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
-    show eRS ≫ ((image spanRS).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eRS ≫ ((image spanRS).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   -- (2) the two legs of the meet `M = (R⊚S) ⊓ T`
   obtain ⟨⟨xRS, hxRSa, hxRSb⟩⟩ := intersect_le_left (R ⊚ S) T
   obtain ⟨⟨xT, hxTa, hxTb⟩⟩ := intersect_le_right (R ⊚ S) T
@@ -2091,30 +2092,30 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   let tt := c ≫ xT                       -- P → T.src
   -- R–S agreement at B (the shared B-value of r and s)
   have hRSmid : r ≫ R.colB = s ≫ S.colA := by
-    calc r ≫ R.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+    calc r ≫ R.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colB) := CategoryTheory.Category.assoc _ _ _
       _ = pb1.cone.π₁ ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
-      _ = s ≫ S.colA := (Cat.assoc _ _ _).symm
+      _ = s ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
   -- A-value of r equals A-value of tt (both = c ≫ M.colA)
   have hRA : r ≫ R.colA = c ≫ M.colA := by
-    calc r ≫ R.colA = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+    calc r ≫ R.colA = pb1.cone.π₁ ≫ (pbRS.cone.π₁ ≫ R.colA) := CategoryTheory.Category.assoc _ _ _
       _ = pb1.cone.π₁ ≫ (eRS ≫ (R ⊚ S).colA) := by rw [hRSa]
-      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (c ≫ xRS) ≫ (R ⊚ S).colA := by rw [hw1]
-      _ = c ≫ (xRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+      _ = c ≫ (xRS ≫ (R ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
       _ = c ≫ M.colA := by rw [hxRSa]
   have hTA : tt ≫ T.colA = c ≫ M.colA := by
-    calc tt ≫ T.colA = c ≫ (xT ≫ T.colA) := Cat.assoc _ _ _
+    calc tt ≫ T.colA = c ≫ (xT ≫ T.colA) := CategoryTheory.Category.assoc _ _ _
       _ = c ≫ M.colA := by rw [hxTa]
   -- C-value of s equals C-value of tt (both = c ≫ M.colB)
   have hSC : s ≫ S.colB = c ≫ M.colB := by
-    calc s ≫ S.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₂ ≫ S.colB) := Cat.assoc _ _ _
+    calc s ≫ S.colB = pb1.cone.π₁ ≫ (pbRS.cone.π₂ ≫ S.colB) := CategoryTheory.Category.assoc _ _ _
       _ = pb1.cone.π₁ ≫ (eRS ≫ (R ⊚ S).colB) := by rw [hRSb]
-      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+      _ = (pb1.cone.π₁ ≫ eRS) ≫ (R ⊚ S).colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (c ≫ xRS) ≫ (R ⊚ S).colB := by rw [hw1]
-      _ = c ≫ (xRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+      _ = c ≫ (xRS ≫ (R ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
       _ = c ≫ M.colB := by rw [hxRSb]
   have hTC : tt ≫ T.colB = c ≫ M.colB := by
-    calc tt ≫ T.colB = c ≫ (xT ≫ T.colB) := Cat.assoc _ _ _
+    calc tt ≫ T.colB = c ≫ (xT ≫ T.colB) := CategoryTheory.Category.assoc _ _ _
       _ = c ≫ M.colB := by rw [hxTb]
   -- (4) the `T ⊚ S°` point over P: pull back `T.colB` and `S°.colA`(=`S.colB`),
   --     witnessed by the shared C-value `tt ≫ T.colB = s ≫ S.colB`.
@@ -2122,9 +2123,9 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   let spanTS := pair (pbTS.cone.π₁ ≫ T.colA) (pbTS.cone.π₂ ≫ S°.colB)
   let eTS := image.lift spanTS
   have hTSa : eTS ≫ (T ⊚ S°).colA = pbTS.cone.π₁ ≫ T.colA := by
-    show eTS ≫ ((image spanTS).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eTS ≫ ((image spanTS).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hTSb : eTS ≫ (T ⊚ S°).colB = pbTS.cone.π₂ ≫ S°.colB := by
-    show eTS ≫ ((image spanTS).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eTS ≫ ((image spanTS).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   -- `tt`/`s` agree at C (`S°.colA = S.colB`), so they pull back to a P-point `u`.
   have hu_mid : tt ≫ T.colB = s ≫ S°.colA := by
     show tt ≫ T.colB = s ≫ S.colB; rw [hTC, ← hSC]
@@ -2134,16 +2135,16 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   let w := u ≫ eTS            -- P → (T⊚S°).src
   -- `w` has A-value `tt ≫ T.colA = r ≫ R.colA` and B-value `s ≫ S.colA = r ≫ R.colB`
   have hwA : w ≫ (T ⊚ S°).colA = r ≫ R.colA := by
-    calc w ≫ (T ⊚ S°).colA = u ≫ (eTS ≫ (T ⊚ S°).colA) := Cat.assoc _ _ _
+    calc w ≫ (T ⊚ S°).colA = u ≫ (eTS ≫ (T ⊚ S°).colA) := CategoryTheory.Category.assoc _ _ _
       _ = u ≫ (pbTS.cone.π₁ ≫ T.colA) := by rw [hTSa]
-      _ = (u ≫ pbTS.cone.π₁) ≫ T.colA := (Cat.assoc _ _ _).symm
+      _ = (u ≫ pbTS.cone.π₁) ≫ T.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = tt ≫ T.colA := by rw [hu1]
       _ = c ≫ M.colA := hTA
       _ = r ≫ R.colA := hRA.symm
   have hwB : w ≫ (T ⊚ S°).colB = r ≫ R.colB := by
-    calc w ≫ (T ⊚ S°).colB = u ≫ (eTS ≫ (T ⊚ S°).colB) := Cat.assoc _ _ _
+    calc w ≫ (T ⊚ S°).colB = u ≫ (eTS ≫ (T ⊚ S°).colB) := CategoryTheory.Category.assoc _ _ _
       _ = u ≫ (pbTS.cone.π₂ ≫ S°.colB) := by rw [hTSb]
-      _ = (u ≫ pbTS.cone.π₂) ≫ S°.colB := (Cat.assoc _ _ _).symm
+      _ = (u ≫ pbTS.cone.π₂) ≫ S°.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = s ≫ S°.colB := by rw [hu2]
       _ = s ≫ S.colA := rfl
       _ = r ≫ R.colB := hRSmid.symm
@@ -2151,26 +2152,26 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   let pbI := HasPullbacks.has (pair R.colA R.colB) (pair (T ⊚ S°).colA (T ⊚ S°).colB)
   have hI_w : r ≫ pair R.colA R.colB = w ≫ pair (T ⊚ S°).colA (T ⊚ S°).colB := by
     have e1 : r ≫ pair R.colA R.colB = pair (r ≫ R.colA) (r ≫ R.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
     have e2 : w ≫ pair (T ⊚ S°).colA (T ⊚ S°).colB = pair (r ≫ R.colA) (r ≫ R.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair, hwA]) (by rw [Cat.assoc, snd_pair, hwB])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair, hwA]) (by rw [CategoryTheory.Category.assoc, snd_pair, hwB])
     rw [e1, e2]
   let mI := pbI.lift ⟨pb1.cone.pt, r, w, hI_w⟩
   have hmI1 : mI ≫ pbI.cone.π₁ = r := pbI.lift_fst _
   have hmIa : mI ≫ RTS.colA = r ≫ R.colA := by
     show mI ≫ (pbI.cone.π₁ ≫ R.colA) = _
-    rw [← Cat.assoc, hmI1]
+    rw [← CategoryTheory.Category.assoc, hmI1]
   have hmIb : mI ≫ RTS.colB = r ≫ R.colB := by
     show mI ≫ (pbI.cone.π₁ ≫ R.colB) = _
-    rw [← Cat.assoc, hmI1]
+    rw [← CategoryTheory.Category.assoc, hmI1]
   -- (6) compose `RTS ⊚ S` over P from `mI` and `s`, then descend through the cover.
   let pbN := HasPullbacks.has RTS.colB S.colA
   let spanN := pair (pbN.cone.π₁ ≫ RTS.colA) (pbN.cone.π₂ ≫ S.colB)
   let eN := image.lift spanN
   have hNa : eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA = pbN.cone.π₁ ≫ RTS.colA := by
-    show eN ≫ ((image spanN).arr ≫ fst) = _; rw [← Cat.assoc, image.lift_fac, fst_pair]
+    show eN ≫ ((image spanN).arr ≫ fst) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have hNb : eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB = pbN.cone.π₂ ≫ S.colB := by
-    show eN ≫ ((image spanN).arr ≫ snd) = _; rw [← Cat.assoc, image.lift_fac, snd_pair]
+    show eN ≫ ((image spanN).arr ≫ snd) = _; rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have hN_mid : mI ≫ RTS.colB = s ≫ S.colA := by rw [hmIb]; exact hRSmid
   let mN := pbN.lift ⟨pb1.cone.pt, mI, s, hN_mid⟩
   have hmN1 : mN ≫ pbN.cone.π₁ = mI := pbN.lift_fst _
@@ -2178,17 +2179,17 @@ theorem modular_identity [PullbacksTransferCovers 𝒞] {A B C : 𝒞}
   refine relLe_of_cover_factor c hccov (mN ≫ eN) ?_ ?_
   · -- (mN ≫ eN) ≫ N.colA = c ≫ M.colA
     calc (mN ≫ eN) ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA
-        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA) := Cat.assoc _ _ _
+        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
       _ = mN ≫ (pbN.cone.π₁ ≫ RTS.colA) := by rw [hNa]
-      _ = (mN ≫ pbN.cone.π₁) ≫ RTS.colA := (Cat.assoc _ _ _).symm
+      _ = (mN ≫ pbN.cone.π₁) ≫ RTS.colA := (CategoryTheory.Category.assoc _ _ _).symm
       _ = mI ≫ RTS.colA := by rw [hmN1]
       _ = r ≫ R.colA := hmIa
       _ = c ≫ M.colA := hRA
   · -- (mN ≫ eN) ≫ N.colB = c ≫ M.colB
     calc (mN ≫ eN) ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB
-        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB) := Cat.assoc _ _ _
+        = mN ≫ (eN ≫ ((R ⊓ (T ⊚ S°)) ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
       _ = mN ≫ (pbN.cone.π₂ ≫ S.colB) := by rw [hNb]
-      _ = (mN ≫ pbN.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+      _ = (mN ≫ pbN.cone.π₂) ≫ S.colB := (CategoryTheory.Category.assoc _ _ _).symm
       _ = s ≫ S.colB := by rw [hmN2]
       _ = c ≫ M.colB := hSC
 
@@ -2200,64 +2201,64 @@ theorem compose_assoc_of_regular [RegularCategory 𝒞] {A B C D : 𝒞}
 
 /-- **§1.564**: `graph` preserves composition: `graph(f ≫ g) ≅ graph(f) ⊚ graph(g)`. -/
 theorem graph_comp {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph (f ≫ g)) (graph f ⊚ graph g) := by
-  let pb := HasPullbacks.has f (Cat.id B)
-  have h_cone_w : (Cat.id A) ≫ f = f ≫ (Cat.id B) := by rw [Cat.id_comp, Cat.comp_id]
-  let c : Cone f (Cat.id B) := ⟨A, Cat.id A, f, h_cone_w⟩
+  let pb := HasPullbacks.has f (𝟙 B)
+  have h_cone_w : (𝟙 A) ≫ f = f ≫ (𝟙 B) := by rw [CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]
+  let c : Cone f (𝟙 B) := ⟨A, 𝟙 A, f, h_cone_w⟩
   let u := pb.lift c
-  have hu₁ : u ≫ pb.cone.π₁ = Cat.id A := pb.lift_fst c
+  have hu₁ : u ≫ pb.cone.π₁ = 𝟙 A := pb.lift_fst c
   have hu₂ : u ≫ pb.cone.π₂ = f := pb.lift_snd c
-  let span := pair (pb.cone.π₁ ≫ (Cat.id A)) (pb.cone.π₂ ≫ g)
+  let span := pair (pb.cone.π₁ ≫ (𝟙 A)) (pb.cone.π₂ ≫ g)
   let I := image span
   let h : A ⟶ I.dom := u ≫ image.lift span
-  have h_colA : h ≫ (I.arr ≫ fst) = Cat.id A := by
+  have h_colA : h ≫ (I.arr ≫ fst) = 𝟙 A := by
     dsimp [h, I]
     calc
       (u ≫ image.lift span) ≫ ((image span).arr ≫ fst) =
-        u ≫ (image.lift span ≫ (image span).arr) ≫ fst := by simp [Cat.assoc]
+        u ≫ (image.lift span ≫ (image span).arr) ≫ fst := by simp [CategoryTheory.Category.assoc]
       _ = u ≫ span ≫ fst := by rw [image.lift_fac span]
-      _ = u ≫ pb.cone.π₁ ≫ Cat.id A := by simp [span, fst_pair]
-      _ = u ≫ pb.cone.π₁ := by rw [Cat.comp_id]
-      _ = Cat.id A := hu₁
+      _ = u ≫ pb.cone.π₁ ≫ 𝟙 A := by simp [span, fst_pair]
+      _ = u ≫ pb.cone.π₁ := by rw [CategoryTheory.Category.comp_id]
+      _ = 𝟙 A := hu₁
   have h_colB : h ≫ (I.arr ≫ snd) = f ≫ g := by
     dsimp [h, I]
     calc
       (u ≫ image.lift span) ≫ ((image span).arr ≫ snd) =
-        u ≫ (image.lift span ≫ (image span).arr) ≫ snd := by simp [Cat.assoc]
+        u ≫ (image.lift span ≫ (image span).arr) ≫ snd := by simp [CategoryTheory.Category.assoc]
       _ = u ≫ span ≫ snd := by rw [image.lift_fac span]
-      _ = u ≫ pb.cone.π₂ ≫ g := by simp [span, snd_pair, Cat.comp_id]
-      _ = (u ≫ pb.cone.π₂) ≫ g := by rw [← Cat.assoc]
+      _ = u ≫ pb.cone.π₂ ≫ g := by simp [span, snd_pair, CategoryTheory.Category.comp_id]
+      _ = (u ≫ pb.cone.π₂) ≫ g := by rw [← CategoryTheory.Category.assoc]
       _ = f ≫ g := by rw [hu₂]
   exact ⟨⟨h, h_colA, h_colB⟩⟩
 
 /-- **§1.564**: `graph` preserves composition (reverse containment). -/
 theorem comp_graph {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) : RelLe (graph f ⊚ graph g) (graph (f ≫ g)) := by
-  let pb := HasPullbacks.has f (Cat.id B)
-  let span := pair (pb.cone.π₁ ≫ (Cat.id A)) (pb.cone.π₂ ≫ g)
+  let pb := HasPullbacks.has f (𝟙 B)
+  let span := pair (pb.cone.π₁ ≫ (𝟙 A)) (pb.cone.π₂ ≫ g)
   let I := image span
   have h_simp : pb.cone.π₁ ≫ f = pb.cone.π₂ := by
-    simpa [Cat.comp_id] using pb.cone.w
-  have h_pair_eq : pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g) = pair pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) :=
-    pair_uniq pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) (pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g))
-      (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-      (by rw [Cat.assoc, snd_pair])
-  have h_span_eq : span = pb.cone.π₁ ≫ pair (Cat.id A) (f ≫ g) := by
+    simpa [CategoryTheory.Category.comp_id] using pb.cone.w
+  have h_pair_eq : pb.cone.π₁ ≫ pair (𝟙 A) (f ≫ g) = pair pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) :=
+    pair_uniq pb.cone.π₁ (pb.cone.π₁ ≫ (f ≫ g)) (pb.cone.π₁ ≫ pair (𝟙 A) (f ≫ g))
+      (by rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, snd_pair])
+  have h_span_eq : span = pb.cone.π₁ ≫ pair (𝟙 A) (f ≫ g) := by
     dsimp [span]
-    rw [Cat.comp_id, ← h_simp]
-    rw [Cat.assoc]
+    rw [CategoryTheory.Category.comp_id, ← h_simp]
+    rw [CategoryTheory.Category.assoc]
     exact h_pair_eq.symm
-  have h_monic : Monic (pair (Cat.id A) (f ≫ g)) :=
-    monic_pair_of_monicPair (Cat.id A) (f ≫ g) (graph (f ≫ g)).isMonicPair
-  let S : Subobject 𝒞 (prod A C) := ⟨A, pair (Cat.id A) (f ≫ g), h_monic⟩
+  have h_monic : Monic (pair (𝟙 A) (f ≫ g)) :=
+    monic_pair_of_monicPair (𝟙 A) (f ≫ g) (graph (f ≫ g)).isMonicPair
+  let S : Subobject 𝒞 (prod A C) := ⟨A, pair (𝟙 A) (f ≫ g), h_monic⟩
   have h_allows : Allows S span := ⟨pb.cone.π₁, h_span_eq.symm⟩
   have h_image_le : I.le S := image_min span S h_allows
   rcases h_image_le with ⟨k, hk⟩
-  have hkA : k ≫ (Cat.id A) = I.arr ≫ fst := by
+  have hkA : k ≫ (𝟙 A) = I.arr ≫ fst := by
     calc
-      k ≫ (Cat.id A) = (k ≫ pair (Cat.id A) (f ≫ g)) ≫ fst := by rw [Cat.assoc, fst_pair]
+      k ≫ (𝟙 A) = (k ≫ pair (𝟙 A) (f ≫ g)) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair]
       _ = I.arr ≫ fst := by rw [hk]
   have hkB : k ≫ (f ≫ g) = I.arr ≫ snd := by
     calc
-      k ≫ (f ≫ g) = (k ≫ pair (Cat.id A) (f ≫ g)) ≫ snd := by rw [Cat.assoc, snd_pair]
+      k ≫ (f ≫ g) = (k ≫ pair (𝟙 A) (f ≫ g)) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair]
       _ = I.arr ≫ snd := by rw [hk]
   exact ⟨⟨k, hkA, hkB⟩⟩
 
@@ -2268,9 +2269,9 @@ theorem graph_faithful {A B : 𝒞} {f g : A ⟶ B}
     (h : RelLe (graph f) (graph g)) : f = g := by
   rcases h with ⟨⟨h, hA, hB⟩⟩
   dsimp [graph] at hA hB
-  rw [Cat.comp_id] at hA
+  rw [CategoryTheory.Category.comp_id] at hA
   -- hA : h = id_A, hB : h ≫ g = f
-  rw [hA, Cat.id_comp] at hB
+  rw [hA, CategoryTheory.Category.id_comp] at hB
   exact hB.symm
 
 /-- **§1.564**: `graph` is an embedding (injective on morphisms). -/
@@ -2330,35 +2331,35 @@ theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞
   -- φ ≫ sp' = sp ≫ prodSwap
   have hφ_sp : φ ≫ sp' = sp ≫ prodSwap A C := by
     have hcfst : (φ ≫ sp') ≫ fst = (sp ≫ prodSwap A C) ≫ fst := by
-      rw [Cat.assoc, fst_pair, ← Cat.assoc, hφ₁]
+      rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, hφ₁]
       show pb.cone.π₂ ≫ S.colB = (sp ≫ prodSwap A C) ≫ fst
-      rw [Cat.assoc, show prodSwap A C ≫ fst = snd (A := A) (B := C) from fst_pair _ _, snd_pair]
+      rw [CategoryTheory.Category.assoc, show prodSwap A C ≫ fst = snd (A := A) (B := C) from fst_pair _ _, snd_pair]
     have hcsnd : (φ ≫ sp') ≫ snd = (sp ≫ prodSwap A C) ≫ snd := by
-      rw [Cat.assoc, snd_pair, ← Cat.assoc, hφ₂]
+      rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, hφ₂]
       show pb.cone.π₁ ≫ R.colA = (sp ≫ prodSwap A C) ≫ snd
-      rw [Cat.assoc, show prodSwap A C ≫ snd = fst (A := A) (B := C) from snd_pair _ _, fst_pair]
+      rw [CategoryTheory.Category.assoc, show prodSwap A C ≫ snd = fst (A := A) (B := C) from snd_pair _ _, fst_pair]
     rw [pair_uniq _ _ (φ ≫ sp') rfl rfl, pair_uniq _ _ (sp ≫ prodSwap A C) rfl rfl, hcfst, hcsnd]
   -- the subobject I'.arr ≫ prodSwap C A : I'.dom → A×C (mono since prodSwap iso)
   have hswapInv_mono : Monic (prodSwap C A) := by
     intro W u v huv
     have := congrArg (· ≫ prodSwap A C) huv
-    simpa [Cat.assoc, prodSwap_prodSwap, Cat.comp_id] using this
+    simpa [CategoryTheory.Category.assoc, prodSwap_prodSwap, CategoryTheory.Category.comp_id] using this
   let Sub' : Subobject 𝒞 (prod A C) :=
     ⟨I'.dom, I'.arr ≫ prodSwap C A, by
       intro W u v huv
-      exact I'.monic u v (hswapInv_mono _ _ (by simpa [Cat.assoc] using huv))⟩
+      exact I'.monic u v (hswapInv_mono _ _ (by simpa [CategoryTheory.Category.assoc] using huv))⟩
   -- Sub' allows sp via g := φ ≫ image.lift sp'
   have hallow : Allows Sub' sp := by
     refine ⟨φ ≫ image.lift sp', ?_⟩
     show (φ ≫ image.lift sp') ≫ (I'.arr ≫ prodSwap C A) = sp
     calc (φ ≫ image.lift sp') ≫ (I'.arr ≫ prodSwap C A)
         = φ ≫ ((image.lift sp' ≫ I'.arr) ≫ prodSwap C A) := by
-          rw [Cat.assoc, Cat.assoc]
+          rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
       _ = φ ≫ (sp' ≫ prodSwap C A) := by rw [image.lift_fac]
-      _ = (φ ≫ sp') ≫ prodSwap C A := (Cat.assoc _ _ _).symm
+      _ = (φ ≫ sp') ≫ prodSwap C A := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (sp ≫ prodSwap A C) ≫ prodSwap C A := by rw [hφ_sp]
-      _ = sp ≫ (prodSwap A C ≫ prodSwap C A) := Cat.assoc _ _ _
-      _ = sp := by rw [prodSwap_prodSwap, Cat.comp_id]
+      _ = sp ≫ (prodSwap A C ≫ prodSwap C A) := CategoryTheory.Category.assoc _ _ _
+      _ = sp := by rw [prodSwap_prodSwap, CategoryTheory.Category.comp_id]
   -- image-minimality: I ≤ Sub', giving k : I.dom → I'.dom with k ≫ I'.arr ≫ prodSwap = I.arr
   obtain ⟨k, hk⟩ := image_min sp Sub' hallow
   have hk' : k ≫ (I'.arr ≫ prodSwap C A) = I.arr := hk
@@ -2367,17 +2368,17 @@ theorem reciprocal_comp_le {A B C : 𝒞} (R : BinRel 𝒞 A B) (S : BinRel 𝒞
   · -- k ≫ (S°⊚R°).colA = (R⊚S)°.colA, i.e. k ≫ I'.arr ≫ fst = I.arr ≫ snd
     show k ≫ (I'.arr ≫ fst) = I.arr ≫ snd
     calc k ≫ (I'.arr ≫ fst) = k ≫ ((I'.arr ≫ prodSwap C A) ≫ prodSwap A C ≫ fst) := by
-          rw [Cat.assoc, ← Cat.assoc (prodSwap C A), prodSwap_prodSwap, Cat.id_comp]
+          rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (prodSwap C A), prodSwap_prodSwap, CategoryTheory.Category.id_comp]
       _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ fst) :=
-          (Cat.assoc _ _ _).symm
+          (CategoryTheory.Category.assoc _ _ _).symm
       _ = I.arr ≫ (prodSwap A C ≫ fst) := by rw [hk']
       _ = I.arr ≫ snd := by
             rw [show prodSwap A C ≫ fst = snd (A := A) (B := C) from fst_pair _ _]
   · show k ≫ (I'.arr ≫ snd) = I.arr ≫ fst
     calc k ≫ (I'.arr ≫ snd) = k ≫ ((I'.arr ≫ prodSwap C A) ≫ prodSwap A C ≫ snd) := by
-          rw [Cat.assoc, ← Cat.assoc (prodSwap C A), prodSwap_prodSwap, Cat.id_comp]
+          rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (prodSwap C A), prodSwap_prodSwap, CategoryTheory.Category.id_comp]
       _ = (k ≫ (I'.arr ≫ prodSwap C A)) ≫ (prodSwap A C ≫ snd) :=
-          (Cat.assoc _ _ _).symm
+          (CategoryTheory.Category.assoc _ _ _).symm
       _ = I.arr ≫ (prodSwap A C ≫ snd) := by rw [hk']
       _ = I.arr ≫ fst := by
             rw [show prodSwap A C ≫ snd = fst (A := A) (B := C) from snd_pair _ _]
@@ -2423,24 +2424,24 @@ theorem intersect_reciprocal_le {A B : 𝒞} (R S : BinRel 𝒞 A B) :
   -- From pb_SR.cone.w: π₁≫S.colA=π₂≫R.colA and π₁≫S.colB=π₂≫R.colB
   have hw := pb_SR.cone.w
   have hA : pb_SR.cone.π₂ ≫ R.colA = pb_SR.cone.π₁ ≫ S.colA := by
-    have := congrArg (· ≫ snd) hw; simp only [Cat.assoc, snd_pair] at this; exact this.symm
+    have := congrArg (· ≫ snd) hw; simp only [CategoryTheory.Category.assoc, snd_pair] at this; exact this.symm
   have hB : pb_SR.cone.π₂ ≫ R.colB = pb_SR.cone.π₁ ≫ S.colB := by
-    have := congrArg (· ≫ fst) hw; simp only [Cat.assoc, fst_pair] at this; exact this.symm
+    have := congrArg (· ≫ fst) hw; simp only [CategoryTheory.Category.assoc, fst_pair] at this; exact this.symm
   have h_cone_w : pb_SR.cone.π₂ ≫ pair R.colA R.colB = pb_SR.cone.π₁ ≫ pair S.colA S.colB := by
     have lhs : pb_SR.cone.π₂ ≫ pair R.colA R.colB =
         pair (pb_SR.cone.π₂ ≫ R.colA) (pb_SR.cone.π₂ ≫ R.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
     have rhs : pb_SR.cone.π₁ ≫ pair S.colA S.colB =
         pair (pb_SR.cone.π₁ ≫ S.colA) (pb_SR.cone.π₁ ≫ S.colB) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
     rw [lhs, rhs, hA, hB]
   let c    := (⟨pb_SR.cone.pt, pb_SR.cone.π₂, pb_SR.cone.π₁, h_cone_w⟩ :
                Cone (pair R.colA R.colB) (pair S.colA S.colB))
   let lift := pb_RS.lift c
   have hl₁ : lift ≫ pb_RS.cone.π₁ = pb_SR.cone.π₂ := pb_RS.lift_fst c
   exact ⟨⟨lift,
-    show lift ≫ pb_RS.cone.π₁ ≫ R.colB = pb_SR.cone.π₁ ≫ S.colB by rw [← Cat.assoc, hl₁]; exact hB,
-    show lift ≫ pb_RS.cone.π₁ ≫ R.colA = pb_SR.cone.π₁ ≫ S.colA by rw [← Cat.assoc, hl₁]; exact hA⟩⟩
+    show lift ≫ pb_RS.cone.π₁ ≫ R.colB = pb_SR.cone.π₁ ≫ S.colB by rw [← CategoryTheory.Category.assoc, hl₁]; exact hB,
+    show lift ≫ pb_RS.cone.π₁ ≫ R.colA = pb_SR.cone.π₁ ≫ S.colA by rw [← CategoryTheory.Category.assoc, hl₁]; exact hA⟩⟩
 
 /-- **§1.562**: (R ⊓ S)° = S° ⊓ R° (mutual containment). -/
 theorem reciprocal_intersect {A B : 𝒞} (R S : BinRel 𝒞 A B) :
@@ -2454,7 +2455,7 @@ theorem compose_le_left {A B C : 𝒞} {R R' : BinRel 𝒞 A B} (hRR' : RelLe R 
   let pb  := HasPullbacks.has R.colB T.colA
   let pb' := HasPullbacks.has R'.colB T.colA
   have hcone_w : (pb.cone.π₁ ≫ h) ≫ R'.colB = pb.cone.π₂ ≫ T.colA := by
-    rw [Cat.assoc, hB]; exact pb.cone.w
+    rw [CategoryTheory.Category.assoc, hB]; exact pb.cone.w
   let c   := (⟨pb.cone.pt, pb.cone.π₁ ≫ h, pb.cone.π₂, hcone_w⟩ : Cone R'.colB T.colA)
   let u   := pb'.lift c
   have hu₁ : u ≫ pb'.cone.π₁ = pb.cone.π₁ ≫ h := pb'.lift_fst c
@@ -2465,17 +2466,17 @@ theorem compose_le_left {A B C : 𝒞} {R R' : BinRel 𝒞 A B} (hRR' : RelLe R 
   let I' := image span'
   have h_fac : u ≫ span' = span :=
     pair_uniq _ _ _
-      (by rw [Cat.assoc, fst_pair, ← Cat.assoc, hu₁, Cat.assoc, hA])
-      (by rw [Cat.assoc, snd_pair, ← Cat.assoc, hu₂])
+      (by rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, hu₁, CategoryTheory.Category.assoc, hA])
+      (by rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, hu₂])
   have h_le : (image span).le I' := image_min span I'
-    ⟨u ≫ image.lift span', by rw [Cat.assoc, image.lift_fac span', h_fac]⟩
+    ⟨u ≫ image.lift span', by rw [CategoryTheory.Category.assoc, image.lift_fac span', h_fac]⟩
   rcases h_le with ⟨k, hk⟩
   have hkA : k ≫ (R' ⊚ T).colA = (R ⊚ T).colA := by
     show k ≫ I'.arr ≫ fst = (image span).arr ≫ fst
-    rw [← Cat.assoc, hk]
+    rw [← CategoryTheory.Category.assoc, hk]
   have hkB : k ≫ (R' ⊚ T).colB = (R ⊚ T).colB := by
     show k ≫ I'.arr ≫ snd = (image span).arr ≫ snd
-    rw [← Cat.assoc, hk]
+    rw [← CategoryTheory.Category.assoc, hk]
   exact ⟨⟨k, hkA, hkB⟩⟩
 
 /-- **§1.562**: Right-distributivity: (R ⊓ S) ⊚ T ≤ (R ⊚ T) ⊓ (S ⊚ T). -/
@@ -2532,16 +2533,16 @@ theorem constant_image_subterminator [PullbacksTransferCovers 𝒞]
   let a' : Q.pt ⟶ A := Q.π₂ ≫ Pv.π₁
   have hua : q ≫ (u ≫ (image x).arr) = a ≫ x := by
     have h1 : q ≫ (u ≫ (image x).arr) = Q.π₁ ≫ (Pu.π₂ ≫ (u ≫ (image x).arr)) := by
-      rw [hq_def, ← hq_w]; simp only [Cat.assoc]
+      rw [hq_def, ← hq_w]; simp only [CategoryTheory.Category.assoc]
     have h2 : Pu.π₂ ≫ (u ≫ (image x).arr) = Pu.π₁ ≫ x := by
-      rw [← Cat.assoc, ← hu_w, Cat.assoc, he]
-    rw [h1, h2, ← Cat.assoc]
+      rw [← CategoryTheory.Category.assoc, ← hu_w, CategoryTheory.Category.assoc, he]
+    rw [h1, h2, ← CategoryTheory.Category.assoc]
   have hva : q ≫ (v ≫ (image x).arr) = a' ≫ x := by
     have h1 : q ≫ (v ≫ (image x).arr) = Q.π₂ ≫ (Pv.π₂ ≫ (v ≫ (image x).arr)) := by
-      rw [hq_def]; simp only [Cat.assoc]
+      rw [hq_def]; simp only [CategoryTheory.Category.assoc]
     have h2 : Pv.π₂ ≫ (v ≫ (image x).arr) = Pv.π₁ ≫ x := by
-      rw [← Cat.assoc, ← hv_w, Cat.assoc, he]
-    rw [h1, h2, ← Cat.assoc]
+      rw [← CategoryTheory.Category.assoc, ← hv_w, CategoryTheory.Category.assoc, he]
+    rw [h1, h2, ← CategoryTheory.Category.assoc]
   have hq_eq : q ≫ (u ≫ (image x).arr) = q ≫ (v ≫ (image x).arr) := by
     rw [hua, hva]; exact _hx a a'
   have hq_cover : Cover q := by
@@ -2573,17 +2574,17 @@ noncomputable def relPullback [HasPullbacks 𝒞] {P C A : 𝒞}
       -- they agree on π₁ and π₂ ≫ U.colA (via the pullback), so h₁ = h₂.
       intro W g h hA hB
       have hB' : (g ≫ pb.cone.π₂) ≫ U.colB = (h ≫ pb.cone.π₂) ≫ U.colB := by
-        rw [Cat.assoc, Cat.assoc]; exact hB
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hB
       have hA' : (g ≫ pb.cone.π₂) ≫ U.colA = (h ≫ pb.cone.π₂) ≫ U.colA := by
         have sq := pb.cone.w  -- π₁ ≫ f = π₂ ≫ U.colA
         have hg : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
-          rw [Cat.assoc, Cat.assoc, sq]
+          rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, sq]
         have hh : (h ≫ pb.cone.π₁) ≫ f = (h ≫ pb.cone.π₂) ≫ U.colA := by
-          rw [Cat.assoc, Cat.assoc, sq]
+          rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, sq]
         rw [← hg, ← hh, hA]
       have hπ₂ : g ≫ pb.cone.π₂ = h ≫ pb.cone.π₂ := U.isMonicPair _ _ hA' hB'
       have hw : (g ≫ pb.cone.π₁) ≫ f = (g ≫ pb.cone.π₂) ≫ U.colA := by
-        rw [Cat.assoc, Cat.assoc, pb.cone.w]
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pb.cone.w]
       exact (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ g rfl rfl).trans
         (pb.lift_uniq ⟨W, g ≫ pb.cone.π₁, g ≫ pb.cone.π₂, hw⟩ h hA.symm hπ₂.symm).symm }
 
@@ -2613,18 +2614,18 @@ theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
   · -- forward: h := Q.lift of the Pf-induced cone over (f≫g, R.colA)
     refine ⟨Q.lift ⟨Pf.cone.pt, Pf.cone.π₁, Pf.cone.π₂ ≫ Pg.cone.π₂, ?_⟩, ?_, ?_⟩
     · calc Pf.cone.π₁ ≫ (f ≫ g)
-            = (Pf.cone.π₁ ≫ f) ≫ g := by rw [Cat.assoc]
+            = (Pf.cone.π₁ ≫ f) ≫ g := by rw [CategoryTheory.Category.assoc]
         _ = (Pf.cone.π₂ ≫ Pg.cone.π₁) ≫ g := by rw [wPf]
-        _ = Pf.cone.π₂ ≫ (Pg.cone.π₁ ≫ g) := by rw [Cat.assoc]
+        _ = Pf.cone.π₂ ≫ (Pg.cone.π₁ ≫ g) := by rw [CategoryTheory.Category.assoc]
         _ = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colA) := by rw [wPg]
-        _ = (Pf.cone.π₂ ≫ Pg.cone.π₂) ≫ R.colA := by rw [Cat.assoc]
+        _ = (Pf.cone.π₂ ≫ Pg.cone.π₂) ≫ R.colA := by rw [CategoryTheory.Category.assoc]
     · exact Q.lift_fst _
     · change _ ≫ (Q.cone.π₂ ≫ R.colB)
             = Pf.cone.π₂ ≫ (Pg.cone.π₂ ≫ R.colB)
-      rw [← Cat.assoc, Q.lift_snd, Cat.assoc]
+      rw [← CategoryTheory.Category.assoc, Q.lift_snd, CategoryTheory.Category.assoc]
   · -- backward: k := Pf.lift of the Q-induced cone over (f, Pg.π₁)
     let m := Pg.lift ⟨Q.cone.pt, Q.cone.π₁ ≫ f, Q.cone.π₂, by
-      calc (Q.cone.π₁ ≫ f) ≫ g = Q.cone.π₁ ≫ (f ≫ g) := by rw [Cat.assoc]
+      calc (Q.cone.π₁ ≫ f) ≫ g = Q.cone.π₁ ≫ (f ≫ g) := by rw [CategoryTheory.Category.assoc]
         _ = Q.cone.π₂ ≫ R.colA := wQ⟩
     have hm1 : m ≫ Pg.cone.π₁ = Q.cone.π₁ ≫ f := Pg.lift_fst _
     have hm2 : m ≫ Pg.cone.π₂ = Q.cone.π₂ := Pg.lift_snd _
@@ -2635,9 +2636,9 @@ theorem relPullback_comp [HasPullbacks 𝒞] {A A' A'' B : 𝒞}
     · exact hk1
     · change k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB = Q.cone.π₂ ≫ R.colB
       calc k ≫ Pf.cone.π₂ ≫ Pg.cone.π₂ ≫ R.colB
-            = (k ≫ Pf.cone.π₂) ≫ (Pg.cone.π₂ ≫ R.colB) := (Cat.assoc _ _ _).symm
+            = (k ≫ Pf.cone.π₂) ≫ (Pg.cone.π₂ ≫ R.colB) := (CategoryTheory.Category.assoc _ _ _).symm
         _ = m ≫ (Pg.cone.π₂ ≫ R.colB) := by rw [hk2]
-        _ = (m ≫ Pg.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = (m ≫ Pg.cone.π₂) ≫ R.colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = Q.cone.π₂ ≫ R.colB := by rw [hm2]
 
 section RelPullbackDist
@@ -2664,10 +2665,10 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
   let eRS : pbRS.cone.pt ⟶ (R ⊚ S).src := image.lift spanRS
   have heRSa : eRS ≫ (R ⊚ S).colA = pbRS.cone.π₁ ≫ R.colA := by
     show eRS ≫ ((image spanRS).arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have heRSb : eRS ≫ (R ⊚ S).colB = pbRS.cone.π₂ ≫ S.colB := by
     show eRS ≫ ((image spanRS).arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have heRS_cover : Cover eRS := image_lift_cover spanRS
   -- data of `relPullback g R`: pullback of `g` and `R.colA`.
   let rgR := relPullback g R
@@ -2680,10 +2681,10 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
   let e' : pb'.cone.pt ⟶ ((relPullback g R) ⊚ S).src := image.lift span'
   have he'a : e' ≫ ((relPullback g R) ⊚ S).colA = pb'.cone.π₁ ≫ rgR.colA := by
     show e' ≫ ((image span').arr ≫ fst) = _
-    rw [← Cat.assoc, image.lift_fac, fst_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, fst_pair]
   have he'b : e' ≫ ((relPullback g R) ⊚ S).colB = pb'.cone.π₂ ≫ S.colB := by
     show e' ≫ ((image span').arr ≫ snd) = _
-    rw [← Cat.assoc, image.lift_fac, snd_pair]
+    rw [← CategoryTheory.Category.assoc, image.lift_fac, snd_pair]
   have he'_cover : Cover e' := image_lift_cover span'
   constructor
   · -- FORWARD: relPullback g (R⊚S) ⊂ (relPullback g R) ⊚ S.
@@ -2695,13 +2696,13 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hc_cover : Cover c := cover_pullback (𝒞 := 𝒞) (f := eRS) Pg.cone.π₂ heRS_cover
     have hgR : (c ≫ Pg.cone.π₁) ≫ g = (q ≫ pbRS.cone.π₁) ≫ R.colA := by
       calc (c ≫ Pg.cone.π₁) ≫ g
-          = c ≫ (Pg.cone.π₁ ≫ g) := Cat.assoc _ _ _
+          = c ≫ (Pg.cone.π₁ ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colA) := by rw [Pg.cone.w]
-        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+        _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colA := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (q ≫ eRS) ≫ (R ⊚ S).colA := by rw [hcq]
-        _ = q ≫ (eRS ≫ (R ⊚ S).colA) := Cat.assoc _ _ _
+        _ = q ≫ (eRS ≫ (R ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
         _ = q ≫ (pbRS.cone.π₁ ≫ R.colA) := by rw [heRSa]
-        _ = (q ≫ pbRS.cone.π₁) ≫ R.colA := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₁) ≫ R.colA := (CategoryTheory.Category.assoc _ _ _).symm
     let PgR := HasPullbacks.has g R.colA
     let m : Pc.cone.pt ⟶ rgR.src :=
       PgR.lift ⟨Pc.cone.pt, c ≫ Pg.cone.π₁, q ≫ pbRS.cone.π₁, hgR⟩
@@ -2710,11 +2711,11 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hrgRS : m ≫ rgR.colB = (q ≫ pbRS.cone.π₂) ≫ S.colA := by
       calc m ≫ rgR.colB
           = m ≫ (PgR.cone.π₂ ≫ R.colB) := by rw [hrgRb]
-        _ = (m ≫ PgR.cone.π₂) ≫ R.colB := (Cat.assoc _ _ _).symm
+        _ = (m ≫ PgR.cone.π₂) ≫ R.colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (q ≫ pbRS.cone.π₁) ≫ R.colB := by rw [hm₂]
-        _ = q ≫ (pbRS.cone.π₁ ≫ R.colB) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₁ ≫ R.colB) := CategoryTheory.Category.assoc _ _ _
         _ = q ≫ (pbRS.cone.π₂ ≫ S.colA) := by rw [pbRS.cone.w]
-        _ = (q ≫ pbRS.cone.π₂) ≫ S.colA := (Cat.assoc _ _ _).symm
+        _ = (q ≫ pbRS.cone.π₂) ≫ S.colA := (CategoryTheory.Category.assoc _ _ _).symm
     let n : Pc.cone.pt ⟶ pb'.cone.pt :=
       pb'.lift ⟨Pc.cone.pt, m, q ≫ pbRS.cone.π₂, hrgRS⟩
     have hn₁ : n ≫ pb'.cone.π₁ = m := pb'.lift_fst _
@@ -2722,9 +2723,9 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hYA : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
              = c ≫ (relPullback g (R ⊚ S)).colA := by
       calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colA
-          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colA) := Cat.assoc _ _ _
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colA) := CategoryTheory.Category.assoc _ _ _
         _ = n ≫ (pb'.cone.π₁ ≫ rgR.colA) := by rw [he'a]
-        _ = (n ≫ pb'.cone.π₁) ≫ rgR.colA := (Cat.assoc _ _ _).symm
+        _ = (n ≫ pb'.cone.π₁) ≫ rgR.colA := (CategoryTheory.Category.assoc _ _ _).symm
         _ = m ≫ rgR.colA := by rw [hn₁]
         _ = m ≫ PgR.cone.π₁ := by rw [hrgRa]
         _ = c ≫ Pg.cone.π₁ := hm₁
@@ -2732,15 +2733,15 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hYB : (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
              = c ≫ (relPullback g (R ⊚ S)).colB := by
       calc (n ≫ e') ≫ ((relPullback g R) ⊚ S).colB
-          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colB) := Cat.assoc _ _ _
+          = n ≫ (e' ≫ ((relPullback g R) ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
         _ = n ≫ (pb'.cone.π₂ ≫ S.colB) := by rw [he'b]
-        _ = (n ≫ pb'.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = (n ≫ pb'.cone.π₂) ≫ S.colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (q ≫ pbRS.cone.π₂) ≫ S.colB := by rw [hn₂]
-        _ = q ≫ (pbRS.cone.π₂ ≫ S.colB) := Cat.assoc _ _ _
+        _ = q ≫ (pbRS.cone.π₂ ≫ S.colB) := CategoryTheory.Category.assoc _ _ _
         _ = q ≫ (eRS ≫ (R ⊚ S).colB) := by rw [heRSb]
-        _ = (q ≫ eRS) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (q ≫ eRS) ≫ (R ⊚ S).colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (c ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := by rw [hcq]
-        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = c ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
         _ = c ≫ (relPullback g (R ⊚ S)).colB := rfl
     obtain ⟨hrel⟩ := relLe_of_cover_factor (X := relPullback g (R ⊚ S))
       (Y := (relPullback g R) ⊚ S) c hc_cover (n ≫ e') hYA hYB
@@ -2751,7 +2752,7 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hrw : (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB = pb'.cone.π₂ ≫ S.colA := by
       have hpbw : pb'.cone.π₁ ≫ rgR.colB = pb'.cone.π₂ ≫ S.colA := pb'.cone.w
       calc (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colB
-          = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colB) := Cat.assoc _ _ _
+          = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colB) := CategoryTheory.Category.assoc _ _ _
         _ = pb'.cone.π₂ ≫ S.colA := hpbw
     let r : pb'.cone.pt ⟶ pbRS.cone.pt :=
       pbRS.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₂, pb'.cone.π₂, hrw⟩
@@ -2759,13 +2760,13 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
     have hr₂ : r ≫ pbRS.cone.π₂ = pb'.cone.π₂ := pbRS.lift_snd _
     have hag : (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g = (r ≫ eRS) ≫ (R ⊚ S).colA := by
       calc (pb'.cone.π₁ ≫ PgR.cone.π₁) ≫ g
-          = pb'.cone.π₁ ≫ (PgR.cone.π₁ ≫ g) := Cat.assoc _ _ _
+          = pb'.cone.π₁ ≫ (PgR.cone.π₁ ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = pb'.cone.π₁ ≫ (PgR.cone.π₂ ≫ R.colA) := by rw [PgR.cone.w]
-        _ = (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colA := (Cat.assoc _ _ _).symm
+        _ = (pb'.cone.π₁ ≫ PgR.cone.π₂) ≫ R.colA := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (r ≫ pbRS.cone.π₁) ≫ R.colA := by rw [hr₁]
-        _ = r ≫ (pbRS.cone.π₁ ≫ R.colA) := Cat.assoc _ _ _
+        _ = r ≫ (pbRS.cone.π₁ ≫ R.colA) := CategoryTheory.Category.assoc _ _ _
         _ = r ≫ (eRS ≫ (R ⊚ S).colA) := by rw [heRSa]
-        _ = (r ≫ eRS) ≫ (R ⊚ S).colA := (Cat.assoc _ _ _).symm
+        _ = (r ≫ eRS) ≫ (R ⊚ S).colA := (CategoryTheory.Category.assoc _ _ _).symm
     let φ : pb'.cone.pt ⟶ Pg.cone.pt :=
       Pg.lift ⟨pb'.cone.pt, pb'.cone.π₁ ≫ PgR.cone.π₁, r ≫ eRS, hag⟩
     have hφ₁ : φ ≫ Pg.cone.π₁ = pb'.cone.π₁ ≫ PgR.cone.π₁ := Pg.lift_fst _
@@ -2781,11 +2782,11 @@ theorem relPullback_compose_dist {X A B C : 𝒞} (g : X ⟶ A)
              = e' ≫ ((relPullback g R) ⊚ S).colB := by
       calc φ ≫ (relPullback g (R ⊚ S)).colB
           = φ ≫ (Pg.cone.π₂ ≫ (R ⊚ S).colB) := rfl
-        _ = (φ ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := (Cat.assoc _ _ _).symm
+        _ = (φ ≫ Pg.cone.π₂) ≫ (R ⊚ S).colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (r ≫ eRS) ≫ (R ⊚ S).colB := by rw [hφ₂]
-        _ = r ≫ (eRS ≫ (R ⊚ S).colB) := Cat.assoc _ _ _
+        _ = r ≫ (eRS ≫ (R ⊚ S).colB) := CategoryTheory.Category.assoc _ _ _
         _ = r ≫ (pbRS.cone.π₂ ≫ S.colB) := by rw [heRSb]
-        _ = (r ≫ pbRS.cone.π₂) ≫ S.colB := (Cat.assoc _ _ _).symm
+        _ = (r ≫ pbRS.cone.π₂) ≫ S.colB := (CategoryTheory.Category.assoc _ _ _).symm
         _ = pb'.cone.π₂ ≫ S.colB := by rw [hr₂]
         _ = e' ≫ ((relPullback g R) ⊚ S).colB := he'b.symm
     obtain ⟨hrel⟩ := relLe_of_cover_factor (X := (relPullback g R) ⊚ S)

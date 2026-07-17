@@ -2,6 +2,8 @@ import Fredy.S2_1
 import Fredy.S2_2
 import Fredy.S2_3
 
+open CategoryTheory
+
 universe v u
 
 /-
@@ -1692,7 +1694,7 @@ theorem globalModular {A B C : GlobalObj 𝒜} (R : GlobalMorphism A B) (S : Glo
 
 /-- §2.224 (2) The global completion is an allegory. -/
 instance globalAllegory : Allegory (GlobalObj 𝒜) where
-  toCat := globalCat
+  toCategory := globalCat
   recip := GlobalMorphism.recip
   inter := globalInter
   recip_recip := globalRecip_recip

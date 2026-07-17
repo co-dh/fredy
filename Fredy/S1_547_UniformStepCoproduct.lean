@@ -40,6 +40,7 @@ import Fredy.S1_543_RatCapHcanon
 open Freyd
 open Freyd.Colim
 open Freyd.LaxColim
+open CategoryTheory
 
 /-! ## The binary-coproduct preservation predicate (dual of `PreservesBinaryProducts`) -/
 
@@ -51,7 +52,7 @@ universe u₁ u₂ v
     `F A + F B → F(A + B)` (given by `case (F inl) (F inr)`) is an isomorphism.  Dual of
     `PreservesBinaryProducts`; note the comparison runs `F A + F B → F(A + B)` (the opposite
     direction to the product comparison `F(A × B) → F A × F B`). -/
-def PreservesBinaryCoproducts {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+def PreservesBinaryCoproducts {𝒞 : Type u₁} {𝒟 : Type u₂} [CategoryTheory.Category.{v} 𝒞] [CategoryTheory.Category.{v} 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] [HasBinaryCoproducts 𝒞] [HasBinaryCoproducts 𝒟] : Prop :=
   ∀ {A B : 𝒞},
     IsIso (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
@@ -66,7 +67,7 @@ namespace Freyd.Colim
 
 universe u
 
-variable {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ] [Cat.{u} ℰ]
+variable {𝒜 ℬ ℰ : Type u} [CategoryTheory.Category.{u} 𝒜] [CategoryTheory.Category.{u} ℬ] [CategoryTheory.Category.{u} ℰ]
 
 /-- **Binary-coproduct preservation composes.**  If `F` and `G` each make their coproduct comparison
     an iso, so does `G ∘ F`: the composite comparison factors as `φG ≫ G(φF)` (`φF`, `φG` the rung
@@ -85,15 +86,16 @@ theorem preservesBinaryCoproducts_comp [HasBinaryCoproducts 𝒜] [HasBinaryCopr
   let φG : HasBinaryCoproducts.coprod (G (F A)) (G (F B)) ⟶ G (HasBinaryCoproducts.coprod (F A) (F B)) :=
     HasBinaryCoproducts.case (hG.map (HasBinaryCoproducts.inl (A := F A) (B := F B)))
       (hG.map (HasBinaryCoproducts.inr (A := F A) (B := F B)))
-  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso (F := G) φF (hpcF (A := A) (B := B))
+  have hGφF_iso : IsIso (hG.map φF) :=
+    functor_preserves_iso (bundledFunctor (hF := hG) G) φF (hpcF (A := A) (B := B))
   have hcomp_iso : IsIso (φG ≫ hG.map φF) := isIso_comp (hpcG (A := F A) (B := F B)) hGφF_iso
   -- the `G∘F`-comparison equals `φG ≫ G(φF)`: agree after `inl` and after `inr` (jointly epic).
   have hinl : HasBinaryCoproducts.inl ≫ (φG ≫ hG.map φF)
       = (compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inl (A := A) (B := B)) := by
-    rw [← Cat.assoc, HasBinaryCoproducts.case_inl, ← hG.map_comp, HasBinaryCoproducts.case_inl]; rfl
+    rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inl, ← hG.map_comp, HasBinaryCoproducts.case_inl]; rfl
   have hinr : HasBinaryCoproducts.inr ≫ (φG ≫ hG.map φF)
       = (compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inr (A := A) (B := B)) := by
-    rw [← Cat.assoc, HasBinaryCoproducts.case_inr, ← hG.map_comp, HasBinaryCoproducts.case_inr]; rfl
+    rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inr, ← hG.map_comp, HasBinaryCoproducts.case_inr]; rfl
   have hkey : HasBinaryCoproducts.case
       ((compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inl (A := A) (B := B)))
       ((compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inr (A := A) (B := B)))
@@ -133,7 +135,7 @@ namespace Freyd.LaxColim
 
 universe u'
 
-variable {ι : Type u'} {D : Directed ι} {𝒞 : Type u'} [Cat.{u'} 𝒞] [DisjointBinaryCoproduct 𝒞]
+variable {ι : Type u'} {D : Directed ι} {𝒞 : Type u'} [CategoryTheory.Category.{u'} 𝒞] [DisjointBinaryCoproduct 𝒞]
 
 /-- **`LaxCoproductData (laxOfProjSystem' P)`.**  Per-fibre coproducts `overHasBinaryCoproducts`;
     `pres` (joint-epi preservation) and `presCase` (copairing preservation) are the committed
@@ -164,7 +166,7 @@ universe u
 -- `PreRegularCategory S` provenances (direct vs `RegularCategory.toPreRegularCategory`) diverge and
 -- the lax-coproduct argument reports a `HasPullbacks` type mismatch.  A single positive root makes
 -- every `laxOfProjSystem' (cofinalProjSystem …)` resolve identically.
-variable {S : Type u} [Cat.{u} S] [DisjointBinaryCoproduct S]
+variable {S : Type u} [CategoryTheory.Category.{u} S] [DisjointBinaryCoproduct S]
 variable [DecidableEq S]
 variable (W : WSCover S)
 
@@ -190,13 +192,18 @@ theorem terminalSlicePresCoprods :
     (terminalSliceFunctor W |>.map (HasBinaryCoproducts.inr (A := A) (B := B))) ?_
   intro Z f g
   -- mediator: copair the underlying arrows in `S`, lift to the slice (term-uniqueness over `pr base`).
-  refine ⟨⟨HasBinaryCoproducts.case f.f g.f, base_hom_uniq W _ _⟩,
-      ⟨OverHom.ext (HasBinaryCoproducts.case_inl f.f g.f),
-       OverHom.ext (HasBinaryCoproducts.case_inr f.f g.f)⟩, ?_⟩
+  refine ⟨CategoryTheory.Over.homMk (HasBinaryCoproducts.case f.left g.left)
+      (base_hom_uniq W _ _),
+      ⟨CategoryTheory.Over.OverMorphism.ext
+          (HasBinaryCoproducts.case_inl f.left g.left),
+       CategoryTheory.Over.OverMorphism.ext
+          (HasBinaryCoproducts.case_inr f.left g.left)⟩, ?_⟩
   intro v hv₁ hv₂
   -- uniqueness: underlying `v.f` equals `case f.f g.f` by `case_uniq` (its `inl`/`inr` legs are `f.f`/`g.f`).
-  exact OverHom.ext (HasBinaryCoproducts.case_uniq f.f g.f v.f
-    (congrArg OverHom.f hv₁) (congrArg OverHom.f hv₂))
+  exact CategoryTheory.Over.OverMorphism.ext
+    (HasBinaryCoproducts.case_uniq f.left g.left v.left
+      (congrArg CategoryTheory.CommaMorphism.left hv₁)
+      (congrArg CategoryTheory.CommaMorphism.left hv₂))
 
 set_option maxHeartbeats 1000000 in
 /-- **(coproduct analog of `stepProds`) The §1.547 successor functor preserves binary coproducts.**

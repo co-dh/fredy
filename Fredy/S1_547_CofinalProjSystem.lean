@@ -55,7 +55,7 @@ import Fredy.S1_543_Capitalization
 import Fredy.S1_543_CapitalizationLaxColimit
 import Fredy.S1_543_WellOrdering
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -105,7 +105,7 @@ theorem dedup_nodup (l : List 𝒞) : (dedup l).Nodup := by
 
 section Engine
 
-variable [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+variable [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
 /-- The factor projection `∏U ⟶ B` at the first occurrence of `B` in `U` (head ⟹ `fst`; otherwise
     `snd` then recurse).  Positional indexing is forced (`B ∈ U` is a `Prop`, can't large-eliminate),
@@ -143,7 +143,7 @@ theorem listProd_hom_ext : ∀ {U : List 𝒞}, U.Nodup → ∀ {X : 𝒞} (p q 
       intro B hB
       have hCB : C ≠ B := fun e => (List.nodup_cons.1 hnd).1 (e ▸ hB)
       have hh := h B (List.mem_cons.2 (Or.inr hB))
-      rw [factorProj_cons_ne (List.mem_cons.2 (Or.inr hB)) hCB hB, ← Cat.assoc, ← Cat.assoc] at hh
+      rw [factorProj_cons_ne (List.mem_cons.2 (Or.inr hB)) hCB hB, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc] at hh
       exact hh
 
 /-- The assembled projection `∏U ⟶ ∏V` for `V ⊆ U`: `pair` the V-factor projections (recursion on
@@ -159,7 +159,7 @@ noncomputable def selectProj (U : List 𝒞) : ∀ (V : List 𝒞), (∀ B ∈ V
 theorem pair_precomp {X Y A B : 𝒞} (g : X ⟶ Y) (a : Y ⟶ A) (b : Y ⟶ B) :
     g ≫ pair a b = pair (g ≫ a) (g ≫ b) :=
   pair_uniq (g ≫ a) (g ≫ b) (g ≫ pair a b)
-    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
 
 /-- **Recovery — `selectProj` followed by a V-factor projection IS the U-factor projection.**  The
     keystone strict-coherence fact: positional selection composes.  By construction of `selectProj`
@@ -173,7 +173,7 @@ theorem selectProj_factor (U : List 𝒞) :
     by_cases hCB : C = B
     · subst hCB; rw [factorProj_cons_head, fst_pair]
     · have hB' : B ∈ V' := (List.mem_cons.1 hB).resolve_left (fun e => hCB e.symm)
-      rw [factorProj_cons_ne hB hCB hB', ← Cat.assoc, snd_pair]
+      rw [factorProj_cons_ne hB hCB hB', ← CategoryTheory.Category.assoc, snd_pair]
       exact selectProj_factor U V' _ B hB'
 
 /-! ## Phase 2 — the STRICT coherence laws (the keystone)
@@ -184,10 +184,10 @@ theorem selectProj_factor (U : List 𝒞) :
 
 /-- **STRICT unit** — `selectProj` over the reflexive inclusion is the identity. -/
 theorem selectProj_refl {U : List 𝒞} (hnd : U.Nodup) (h : ∀ B ∈ U, B ∈ U) :
-    selectProj U U h = Cat.id (listProd (𝒞 := 𝒞) U) := by
+    selectProj U U h = 𝟙 (listProd (𝒞 := 𝒞) U) := by
   apply listProd_hom_ext hnd
   intro B hB
-  rw [selectProj_factor U U h B hB, Cat.id_comp]
+  rw [selectProj_factor U U h B hB, CategoryTheory.Category.id_comp]
 
 /-- **STRICT composition** (contravariant) — `selectProj` over a composite inclusion equals the
     composite of `selectProj`s.  Needs only the SMALLEST list `V` nodup. -/
@@ -196,7 +196,7 @@ theorem selectProj_trans {V U W : List 𝒞} (hVnd : V.Nodup)
     selectProj W V hVW = selectProj W U hUW ≫ selectProj U V hVU := by
   apply listProd_hom_ext hVnd
   intro B hB
-  rw [selectProj_factor W V hVW B hB, Cat.assoc, selectProj_factor U V hVU B hB,
+  rw [selectProj_factor W V hVW B hB, CategoryTheory.Category.assoc, selectProj_factor U V hVU B hB,
       selectProj_factor W U hUW B (hVU B hB)]
 
 /-- **Reordering iso** — between two nodup lists with the same members, `selectProj` both ways are
@@ -207,12 +207,12 @@ theorem selectProj_reorder_iso {V V' : List 𝒞} (hV : V.Nodup) (hV' : V'.Nodup
   refine ⟨selectProj V' V hVV', ?_, ?_⟩
   · apply listProd_hom_ext hV
     intro B hB
-    rw [Cat.assoc, selectProj_factor V' V hVV' B hB, selectProj_factor V V' hV'V B (hVV' B hB),
-        Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, selectProj_factor V' V hVV' B hB, selectProj_factor V V' hV'V B (hVV' B hB),
+        CategoryTheory.Category.id_comp]
   · apply listProd_hom_ext hV'
     intro B hB
-    rw [Cat.assoc, selectProj_factor V V' hV'V B hB, selectProj_factor V' V hVV' B (hV'V B hB),
-        Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, selectProj_factor V V' hV'V B hB, selectProj_factor V' V hVV' B (hV'V B hB),
+        CategoryTheory.Category.id_comp]
 
 end Engine
 
@@ -226,7 +226,7 @@ end Engine
 
 section Cover
 
-variable [Cat.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+variable [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
 
 /-- `snd : C×A ⟶ A` is a cover when `C` is well-supported (`prod_fst_cover` through `prodSwap`). -/
 theorem prod_snd_cover {C A : 𝒞} (hC : WellSupported C) :
@@ -247,23 +247,23 @@ theorem cover_postcomp_iso {X Y Z : 𝒞} {f : X ⟶ Y} {e : Y ⟶ Z} (hf : Cove
     intro W a b hab
     apply hm
     have hcomp : (a ≫ m ≫ einv) ≫ e = (b ≫ m ≫ einv) ≫ e := by rw [hab]
-    calc a ≫ m = a ≫ m ≫ (einv ≫ e) := by rw [heinv, Cat.comp_id]
-      _ = (a ≫ m ≫ einv) ≫ e := by rw [Cat.assoc, Cat.assoc]
+    calc a ≫ m = a ≫ m ≫ (einv ≫ e) := by rw [heinv, CategoryTheory.Category.comp_id]
+      _ = (a ≫ m ≫ einv) ≫ e := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
       _ = (b ≫ m ≫ einv) ≫ e := hcomp
-      _ = b ≫ m ≫ (einv ≫ e) := by rw [Cat.assoc, Cat.assoc]
-      _ = b ≫ m := by rw [heinv, Cat.comp_id]
+      _ = b ≫ m ≫ (einv ≫ e) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = b ≫ m := by rw [heinv, CategoryTheory.Category.comp_id]
   have hfac : (g ≫ m ≫ einv) = f := by
-    rw [← Cat.assoc, show g ≫ m = f ≫ e from hgm, Cat.assoc, hee, Cat.comp_id]
+    rw [← CategoryTheory.Category.assoc, show g ≫ m = f ≫ e from hgm, CategoryTheory.Category.assoc, hee, CategoryTheory.Category.comp_id]
   obtain ⟨minv, hm1, hm2⟩ := hf (m ≫ einv) g hmono' hfac
   refine ⟨einv ≫ minv, ?_, ?_⟩
-  · calc m ≫ (einv ≫ minv) = (m ≫ einv) ≫ minv := (Cat.assoc _ _ _).symm
-      _ = Cat.id C := hm1
-  · calc (einv ≫ minv) ≫ m = einv ≫ (minv ≫ m) := Cat.assoc _ _ _
-      _ = einv ≫ (minv ≫ m) ≫ (einv ≫ e) := by rw [heinv, Cat.comp_id]
-      _ = einv ≫ (minv ≫ (m ≫ einv)) ≫ e := by rw [Cat.assoc, Cat.assoc, Cat.assoc]
-      _ = einv ≫ (Cat.id Y) ≫ e := by rw [hm2]
-      _ = einv ≫ e := by rw [Cat.id_comp]
-      _ = Cat.id Z := heinv
+  · calc m ≫ (einv ≫ minv) = (m ≫ einv) ≫ minv := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = 𝟙 C := hm1
+  · calc (einv ≫ minv) ≫ m = einv ≫ (minv ≫ m) := CategoryTheory.Category.assoc _ _ _
+      _ = einv ≫ (minv ≫ m) ≫ (einv ≫ e) := by rw [heinv, CategoryTheory.Category.comp_id]
+      _ = einv ≫ (minv ≫ (m ≫ einv)) ≫ e := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = einv ≫ (𝟙 Y) ≫ e := by rw [hm2]
+      _ = einv ≫ e := by rw [CategoryTheory.Category.id_comp]
+      _ = 𝟙 Z := heinv
 
 variable [DecidableEq 𝒞]
 
@@ -314,7 +314,7 @@ theorem listProd_pull_factor (N : List 𝒞) (A : 𝒞) (hnd : N.Nodup) (hA : A 
         = selectProj (A :: N') N' (fun B hB => List.mem_cons.2 (Or.inr hB)) := by
       rw [selectProj_head_notin A N' N' (fun B hB => List.mem_cons.2 (Or.inr hB))
             (List.Nodup.not_mem_erase hnd) (fun B hB => hB),
-          selectProj_refl (hnd.erase A) (fun B hB => hB), Cat.comp_id]
+          selectProj_refl (hnd.erase A) (fun B hB => hB), CategoryTheory.Category.comp_id]
     rw [hsnd]
     show selectProj N (A :: N') hsub ≫ selectProj (A :: N') N' _ = _
     rw [← selectProj_trans (hnd.erase A) (fun B hB => List.mem_cons.2 (Or.inr hB)) hsub
@@ -351,12 +351,12 @@ theorem selectProj_pull_head (N : List 𝒞) (A : 𝒞) (U : List 𝒞)
   by_cases hAB : A = B
   · -- the fresh `A`-coordinate.
     subst hAB
-    rw [factorProj_cons_head, Cat.assoc, fst_pair, hψfst]
+    rw [factorProj_cons_head, CategoryTheory.Category.assoc, fst_pair, hψfst]
   · -- a `U`-factor `B`: route `ψ ≫ snd = selectProj N (N.erase A)`, then `selectProj_trans`.
     have hB' : B ∈ U := (List.mem_cons.1 hB).resolve_left (fun e => hAB e.symm)
-    rw [factorProj_cons_ne hB hAB hB', Cat.assoc, ← Cat.assoc (pair _ _), snd_pair,
-        Cat.assoc, selectProj_factor (N.erase A) U hUe B hB',
-        ← Cat.assoc, hψsnd,
+    rw [factorProj_cons_ne hB hAB hB', CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (pair _ _), snd_pair,
+        CategoryTheory.Category.assoc, selectProj_factor (N.erase A) U hUe B hB',
+        ← CategoryTheory.Category.assoc, hψsnd,
         selectProj_factor N (N.erase A) (fun _ hh => List.mem_of_mem_erase hh) B (hUe B hB')]
 
 private theorem mem_filter_ne {C x : 𝒞} {V : List 𝒞} :
@@ -439,7 +439,7 @@ end Cover
 
 section TokenEngine
 
-variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
+variable {τ : Type u} {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
 variable [DecidableEq τ] (f : τ → 𝒟)
 
 /-- The token factor projection `listProd (l.map f) ⟶ f t` at the first occurrence of token `t` in
@@ -478,7 +478,7 @@ theorem tListProd_hom_ext : ∀ {l : List τ}, l.Nodup → ∀ {X : 𝒟}
       intro t ht
       have hct : c ≠ t := fun e => (List.nodup_cons.1 hnd).1 (e ▸ ht)
       have hh := h t (List.mem_cons.2 (Or.inr ht))
-      rw [tFactorProj_cons_ne f (List.mem_cons.2 (Or.inr ht)) hct ht, ← Cat.assoc, ← Cat.assoc] at hh
+      rw [tFactorProj_cons_ne f (List.mem_cons.2 (Or.inr ht)) hct ht, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc] at hh
       exact hh
 
 /-- The token assembled projection `listProd (l.map f) ⟶ listProd (m.map f)` for `m ⊆ l`. -/
@@ -500,15 +500,15 @@ theorem tSelectProj_factor (l : List τ) :
     by_cases hct : c = t
     · subst hct; rw [tFactorProj_cons_head, fst_pair]
     · have ht' : t ∈ m' := (List.mem_cons.1 ht).resolve_left (fun e => hct e.symm)
-      rw [tFactorProj_cons_ne f ht hct ht', ← Cat.assoc, snd_pair]
+      rw [tFactorProj_cons_ne f ht hct ht', ← CategoryTheory.Category.assoc, snd_pair]
       exact tSelectProj_factor l m' _ t ht'
 
 /-- **STRICT unit** — token `tSelectProj` over the reflexive inclusion is the identity. -/
 theorem tSelectProj_refl {l : List τ} (hnd : l.Nodup) (h : ∀ t ∈ l, t ∈ l) :
-    tSelectProj f l l h = Cat.id (listProd (𝒞 := 𝒟) (l.map f)) := by
+    tSelectProj f l l h = 𝟙 (listProd (𝒞 := 𝒟) (l.map f)) := by
   apply tListProd_hom_ext f hnd
   intro t ht
-  rw [tSelectProj_factor f l l h t ht, Cat.id_comp]
+  rw [tSelectProj_factor f l l h t ht, CategoryTheory.Category.id_comp]
 
 /-- **STRICT composition** (contravariant) for the token engine. -/
 theorem tSelectProj_trans {m l w : List τ} (hmnd : m.Nodup)
@@ -516,7 +516,7 @@ theorem tSelectProj_trans {m l w : List τ} (hmnd : m.Nodup)
     tSelectProj f w m hmw = tSelectProj f w l hlw ≫ tSelectProj f l m hml := by
   apply tListProd_hom_ext f hmnd
   intro t ht
-  rw [tSelectProj_factor f w m hmw t ht, Cat.assoc, tSelectProj_factor f l m hml t ht,
+  rw [tSelectProj_factor f w m hmw t ht, CategoryTheory.Category.assoc, tSelectProj_factor f l m hml t ht,
       tSelectProj_factor f w l hlw t (hml t ht)]
 
 /-- **Reordering iso** for the token engine. -/
@@ -526,12 +526,12 @@ theorem tSelectProj_reorder_iso {m m' : List τ} (hm : m.Nodup) (hm' : m'.Nodup)
   refine ⟨tSelectProj f m' m hmm', ?_, ?_⟩
   · apply tListProd_hom_ext f hm
     intro t ht
-    rw [Cat.assoc, tSelectProj_factor f m' m hmm' t ht, tSelectProj_factor f m m' hm'm t (hmm' t ht),
-        Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, tSelectProj_factor f m' m hmm' t ht, tSelectProj_factor f m m' hm'm t (hmm' t ht),
+        CategoryTheory.Category.id_comp]
   · apply tListProd_hom_ext f hm'
     intro t ht
-    rw [Cat.assoc, tSelectProj_factor f m m' hm'm t ht, tSelectProj_factor f m' m hmm' t (hm'm t ht),
-        Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, tSelectProj_factor f m m' hm'm t ht, tSelectProj_factor f m' m hmm' t (hm'm t ht),
+        CategoryTheory.Category.id_comp]
 
 /-- When the head token `c` of `l` is NOT in `m`, `tSelectProj (c::l') m` strips `c` via `snd`. -/
 theorem tSelectProj_head_notin (c : τ) (l' : List τ) :
@@ -545,7 +545,7 @@ theorem tSelectProj_head_notin (c : τ) (l' : List τ) :
         = pair (snd ≫ tFactorProj f l' c2 (h' c2 List.mem_cons_self))
             (snd ≫ tSelectProj f l' m' (fun t ht => h' t (List.mem_cons.2 (Or.inr ht)))) := by
       rw [tSelectProj]
-      exact pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      exact pair_uniq _ _ _ (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
     rw [tSelectProj, hpp]
     have hc2 : c ≠ c2 := fun e => hc (e ▸ List.mem_cons_self)
     have hfp : tFactorProj f (c :: l') c2 (h c2 List.mem_cons_self)
@@ -560,7 +560,7 @@ end TokenEngine
 
 section TokenCover
 
-variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [PreRegularCategory 𝒟] [HasEqualizers 𝒟]
+variable {τ : Type u} {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] [PreRegularCategory 𝒟] [HasEqualizers 𝒟]
 variable [DecidableEq τ] [DecidableEq 𝒟] (f : τ → 𝒟)
 
 private theorem tmem_filter_ne {c x : τ} {m : List τ} :
@@ -628,7 +628,7 @@ end TokenCover
 
 section TokenPull
 
-variable {τ : Type u} {𝒟 : Type u} [Cat.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
+variable {τ : Type u} {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] [HasTerminal 𝒟] [HasBinaryProducts 𝒟]
 variable [DecidableEq τ] (f : τ → 𝒟)
 
 /-- **Pull a single token factor to the front.**  For nodup token list `l ∋ t₀`, the reordering
@@ -658,7 +658,7 @@ theorem tListProd_pull_factor (l : List τ) (t₀ : τ) (hnd : l.Nodup) (ht₀ :
         = tSelectProj f (t₀ :: l') l' (fun t ht => List.mem_cons.2 (Or.inr ht)) := by
       rw [tSelectProj_head_notin f t₀ l' l' (fun t ht => List.mem_cons.2 (Or.inr ht))
             (List.Nodup.not_mem_erase hnd) (fun t ht => ht),
-          tSelectProj_refl f (hnd.erase t₀) (fun t ht => ht), Cat.comp_id]
+          tSelectProj_refl f (hnd.erase t₀) (fun t ht => ht), CategoryTheory.Category.comp_id]
     rw [hsnd]
     show tSelectProj f l (t₀ :: l') hsub ≫ tSelectProj f (t₀ :: l') l' _ = _
     rw [← tSelectProj_trans f (hnd.erase t₀) (fun t ht => List.mem_cons.2 (Or.inr ht)) hsub
@@ -684,11 +684,11 @@ theorem tSelectProj_pull_head (l : List τ) (t₀ : τ) (m : List τ)
   rw [tSelectProj_factor f l (t₀ :: m) hml t ht]
   by_cases ht₀t : t₀ = t
   · subst ht₀t
-    rw [tFactorProj_cons_head, Cat.assoc, fst_pair, hψfst]
+    rw [tFactorProj_cons_head, CategoryTheory.Category.assoc, fst_pair, hψfst]
   · have ht' : t ∈ m := (List.mem_cons.1 ht).resolve_left (fun e => ht₀t e.symm)
-    rw [tFactorProj_cons_ne f ht ht₀t ht', Cat.assoc, ← Cat.assoc (pair _ _), snd_pair,
-        Cat.assoc, tSelectProj_factor f (l.erase t₀) m hme t ht',
-        ← Cat.assoc, hψsnd,
+    rw [tFactorProj_cons_ne f ht ht₀t ht', CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (pair _ _), snd_pair,
+        CategoryTheory.Category.assoc, tSelectProj_factor f (l.erase t₀) m hme t ht',
+        ← CategoryTheory.Category.assoc, hψsnd,
         tSelectProj_factor f l (l.erase t₀) (fun _ hh => List.mem_of_mem_erase hh) t (hme t ht')]
 
 end TokenPull
@@ -701,7 +701,7 @@ end TokenPull
 
 section System
 
-variable {S : Type u} [Cat.{u} S] [PreRegularCategory S] [DecidableEq S]
+variable {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S] [DecidableEq S]
 
 /-- A **token** is a `Nat`-tagged object.  The `Nat`-tag lets a FRESH copy of an object that already
     appears be added (distinct tag ⟹ nodup preserved), which the object-keyed index could not do.
@@ -721,7 +721,7 @@ instance (priority := 2000) instBEqTok [DecidableEq S] : BEq (Tok S) :=
 /-- The index: finite NODUP lists of TOKENS, every token's object WELL-SUPPORTED.  Nodup is on the
     whole token `ℕ × S` (so two tokens over the same object are distinct iff their tags differ);
     well-supportedness is required of each token's object (`Prod.snd`). -/
-def WSList (S : Type u) [Cat.{u} S] [PreRegularCategory S] :=
+def WSList (S : Type u) [CategoryTheory.Category.{u} S] [PreRegularCategory S] :=
   {U : List (Tok S) // U.Nodup ∧ ∀ t ∈ U, WellSupported t.2}
 
 /-- The subset relation on the index. -/
@@ -730,7 +730,7 @@ def WSList.le (U V : WSList S) : Prop := ∀ t ∈ U.1, t ∈ V.1
 /-- **The cofinal directed SUBSET index.**  `le = ⊆`; reflexive/transitive by the subset order;
     `bound = dedup (U ++ V)` (nodup, ws, contains both).  Unlike the prefix index, this is cofinal
     over the FULL object set (no countability ceiling). -/
-def wsDirected (S : Type u) [Cat.{u} S] [PreRegularCategory S] [DecidableEq S] :
+def wsDirected (S : Type u) [CategoryTheory.Category.{u} S] [PreRegularCategory S] [DecidableEq S] :
     Directed (WSList S) where
   le := WSList.le
   refl _ _ h := h
@@ -775,7 +775,7 @@ end System
 
 section Cover2
 
-variable (S : Type u) [Cat.{u} S] [PreRegularCategory S]
+variable (S : Type u) [CategoryTheory.Category.{u} S] [PreRegularCategory S]
 
 /-- **The cofinal cover datum for the §1.547 uniform successor.**  It carries object equality
     (`Classical.decEq` in the inhabitant) and — the new ingredient the prefix index could not supply —

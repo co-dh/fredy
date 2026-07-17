@@ -15,7 +15,7 @@ import Fredy.S2_3
 
 universe v u
 
-open Freyd Freyd.Alg
+open CategoryTheory Freyd Freyd.Alg
 
 namespace Freyd.Alg.Mat
 
@@ -27,7 +27,7 @@ section ListJoin
 
 variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
 
-def listJoin' {a b : 𝒜} : List (a ⟶ b) → a ⟶ b
+def listJoin' {a b : 𝒜} : List (a ⟶ b) → (a ⟶ b)
   | []      => 𝟘
   | x :: xs => x ∪ listJoin' xs
 
@@ -112,7 +112,7 @@ section ListMeet
 
 variable {𝒜 : Type u} [Allegory 𝒜]
 
-def listMeet' {a b : 𝒜} : (l : List (a ⟶ b)) → l ≠ [] → a ⟶ b
+def listMeet' {a b : 𝒜} : (l : List (a ⟶ b)) → l ≠ [] → (a ⟶ b)
   | [x],            _  => x
   | x :: y :: rest, _  => x ∩ listMeet' (y :: rest) (List.cons_ne_nil y rest)
 
@@ -414,7 +414,6 @@ theorem le_matDiv_comp {X Y Z : MatObj 𝒜} (R : X ⟶ Z) (S : Y ⟶ Z) :
   cases zn with
   | zero => exact Fin.elim0 k
   | succ m =>
-    simp only
     refine listJoin'_le (fun x hx => ?_); obtain ⟨j, rfl⟩ := List.mem_ofFn.mp hx
     exact le_trans (comp_mono_right (listMeet'_le _ _ (List.mem_ofFn.mpr ⟨k, rfl⟩)) _)
       (DivisionAllegory.div_comp_le _ _)
@@ -538,7 +537,7 @@ theorem cast_comp_recip {A B C : 𝒜} (h : A = B) (f g : B ⟶ C) :
 theorem cast_recip_comp {A B C D : 𝒜} (h : A = B) (f : B ⟶ C) (g : B ⟶ D) :
     (h ▸ f : A ⟶ C)° ≫ (h ▸ g : A ⟶ D) = f° ≫ g := by cases h; rfl
 
-theorem finJoin_cast_endo {A B : 𝒜} (h : A = B) {n} (t : Fin n → B ⟶ B) :
+theorem finJoin_cast_endo {A B : 𝒜} (h : A = B) {n} (t : Fin n → (B ⟶ B)) :
     finJoin (fun i => (h ▸ t i : A ⟶ A)) = h ▸ finJoin t := by cases h; rfl
 
 theorem cast_id_is_id {A B : 𝒜} (h : A = B) : (h ▸ Cat.id B : A ⟶ A) = Cat.id A := by cases h; rfl

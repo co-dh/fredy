@@ -15,6 +15,7 @@
 import Fredy.S1_1
 import Fredy.S1_41
 
+open CategoryTheory
 
 universe v u
 

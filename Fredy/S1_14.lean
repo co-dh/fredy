@@ -13,6 +13,8 @@ import Fredy.S1_1
 import Fredy.S1_41
 import Fredy.S1_18
 
+open CategoryTheory
+
 namespace Freyd
 
 universe v u u₁ u₂
@@ -39,12 +41,12 @@ def monoidToCat (M : Type u) [mn : Monoid' M] : Cat.{u, 0} PUnit where
   assoc    := fun f g h => mn.mul_assoc f g h
 
 /-- §1.14  A one-object category is a monoid (take `Hom star star` as carrier). -/
-def catToMonoid' {𝒞 : Type u} [C : Cat.{v} 𝒞] (star : 𝒞) : Monoid' (C.Hom star star) where
-  one       := C.id star
-  mul f g   := C.comp f g
-  one_mul f := C.id_comp f
-  mul_one f := C.comp_id f
-  mul_assoc := fun f g h => C.assoc f g h
+def catToMonoid' {𝒞 : Type u} [C : Cat.{v} 𝒞] (star : 𝒞) : Monoid' (star ⟶ star) where
+  one       := 𝟙 star
+  mul f g   := f ≫ g
+  one_mul f := CategoryTheory.Category.id_comp f
+  mul_one f := CategoryTheory.Category.comp_id f
+  mul_assoc := fun f g h => CategoryTheory.Category.assoc f g h
 
 -- ---------------------------------------------------------------------------
 -- §1.15  DISCRETE CATEGORY
@@ -157,16 +159,15 @@ class ContraFunctor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F :
 /-- §1.182  A contravariant functor `F : C → D` is the same as a covariant
     functor `Cᵒᵖ → D`.  We give the covariant instance explicitly. -/
 def contraToCovar {C : Type u₁} [cat_C : Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : ContraFunctor F] : @Functor (OppCat C) (oppCatInst C) D _ F where
-  map {X Y} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y) := hF.map f
-  map_id   X  := hF.map_id X
-  map_comp {X Y Z} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y)
-                   (g : @Cat.Hom (OppCat C) (oppCatInst C) Y Z) := hF.map_comp g f
+    (F : C → D) [hF : ContraFunctor F] : Functor (fun X : Cᵒᵖ ↦ F X.unop) where
+  map f := hF.map f.unop
+  map_id X := hF.map_id X.unop
+  map_comp f g := hF.map_comp g.unop f.unop
 
 /-- §1.182  The identity `C → Cᵒᵖ` is a contravariant functor. -/
 def toOpContra (C : Type u) [cat : Cat.{v} C] :
-    @ContraFunctor C cat (OppCat C) (oppCatInst C) (fun X : C => (X : OppCat C)) where
-  map {X Y} (f : cat.Hom X Y) : @Cat.Hom (OppCat C) (oppCatInst C) Y X := f
+    @ContraFunctor C cat Cᵒᵖ inferInstance (fun X : C => Opposite.op X) where
+  map f := f.op
   map_id _ := rfl
   map_comp _ _ := rfl
 
@@ -186,10 +187,20 @@ structure CatIso {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C 
   left_id     : ∀ X : C, inv (F X) = X
   right_id    : ∀ Y : D, F (inv Y) = Y
 
+private def identityFunctor (C : Type u₁) [Cat.{v} C] : Functor (fun X : C => X) where
+  map f := f
+  map_id _ := rfl
+  map_comp _ _ := rfl
+
 /-- §1.1(10)  The identity functor is a self-isomorphism. -/
 def catIsoId (C : Type u₁) [Cat.{v} C] :
-    @CatIso C _ C _ (fun X : C => X) inferInstance :=
-  ⟨fun X => X, inferInstance, fun _ => rfl, fun _ => rfl⟩
+    @CatIso C _ C _ (fun X : C => X) (identityFunctor C) := by
+  letI : Functor (fun X : C => X) := identityFunctor C
+  exact
+    { inv := fun X => X
+      inv_functor := identityFunctor C
+      left_id := fun _ => rfl
+      right_id := fun _ => rfl }
 
 /-- Build a `Functor` for a composition `G ∘ F` without same-universe restriction. -/
 def functorComp {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]

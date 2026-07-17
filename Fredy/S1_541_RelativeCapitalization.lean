@@ -114,14 +114,14 @@ import Fredy.S1_56
 import Fredy.S1_53_SliceRegular
 import Fredy.S1_543_Capitalization
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 
 universe u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞]
 
 /-! ## §1.544  The slice embedding `A → A/B` as a functor
 
@@ -134,34 +134,35 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   `slice_embedding_separates`. -/
 
 /-- The object part of the slice embedding `A → A/B`: `C ↦ (C×B ──snd──▶ B)`. -/
-def sliceEmbedObj (B : 𝒞) (C : 𝒞) : Over B := ⟨prod C B, snd⟩
+def sliceEmbedObj (B : 𝒞) (C : 𝒞) : Over B :=
+  CategoryTheory.Over.mk (snd : prod C B ⟶ B)
 
 /-- The morphism part of the slice embedding: `f : C → D` becomes the over-hom whose
     underlying arrow is `f×B = pair (fst≫f) snd : C×B → D×B`.  It commutes with the
     structure map `snd` by `snd_pair`. -/
 def sliceEmbedMap (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
     OverHom (sliceEmbedObj B C) (sliceEmbedObj B D) :=
-  ⟨pair (fst ≫ f) snd, snd_pair (fst ≫ f) snd⟩
+  CategoryTheory.Over.homMk (pair (fst ≫ f) snd) (snd_pair (fst ≫ f) snd)
 
 /-- The underlying arrow of `sliceEmbedMap B f` is `(prodRightFunctor B).map f` — the
     bridge to the already-proven product-embedding facts of §1.544. -/
 theorem sliceEmbedMap_f (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
-    (sliceEmbedMap B f).f = (prodRightFunctor B).map f := rfl
+    (sliceEmbedMap B f).left = (prodRightFunctor B).map f := rfl
 
 /-- The slice embedding `A → A/B` is a functor.  Underlying arrows are `prodRightFunctor B`'s,
-    so the laws transport along `OverHom.ext` (a slice equation is its underlying equation). -/
+    so the laws transport along `CategoryTheory.Over.OverMorphism.ext` (a slice equation is its underlying equation). -/
 instance sliceEmbedFunctor (B : 𝒞) : Functor (sliceEmbedObj B) where
   map {C D} f := sliceEmbedMap B f
-  map_id C := OverHom.ext (by
-    show (sliceEmbedMap B (Cat.id C)).f = (Cat.id (sliceEmbedObj B C)).f
+  map_id C := CategoryTheory.Over.OverMorphism.ext (by
+    change (sliceEmbedMap B (𝟙 C)).left = 𝟙 (prod C B)
     rw [sliceEmbedMap_f, (prodRightFunctor B).map_id]; rfl)
-  map_comp {C D E} f g := OverHom.ext (by
-    show (sliceEmbedMap B (f ≫ g)).f = ((sliceEmbedMap B f) ⊚ (sliceEmbedMap B g)).f
+  map_comp {C D E} f g := CategoryTheory.Over.OverMorphism.ext (by
+    show (sliceEmbedMap B (f ≫ g)).left = ((sliceEmbedMap B f) ⊚ (sliceEmbedMap B g)).left
     rw [sliceEmbedMap_f, (prodRightFunctor B).map_comp]; rfl)
 
 /-- The slice embedding's `.map` agrees (underlying-arrow) with `prodRightFunctor`. -/
 theorem sliceEmbedFunctor_map_f (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
-    ((sliceEmbedFunctor B).map f).f = (prodRightFunctor B).map f := rfl
+    ((sliceEmbedFunctor B).map f).left = (prodRightFunctor B).map f := rfl
 
 /-! ### Faithfulness of the slice embedding (§1.544)
 
@@ -180,7 +181,7 @@ theorem sliceEmbedFunctor_map_f (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
 theorem sliceEmbed_embedding (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : WellSupported B) :
     @Embedding 𝒞 _ (Over B) _ (sliceEmbedObj B) (sliceEmbedFunctor B) := by
   intro C D f g h
-  exact slice_embedding_separates B hws f g (congrArg OverHom.f h)
+  exact slice_embedding_separates B hws f g (congrArg CategoryTheory.CommaMorphism.left h)
 
 /-- **Cover right-factor.**  If `g ≫ f` is a cover then `f` is a cover.  (Any monic `m`
     that `f` factors through, `g ≫ f` also factors through; `g ≫ f` a cover forces `m` iso.) -/
@@ -188,7 +189,7 @@ theorem cover_of_comp_cover {X Y Z : 𝒞} (g : X ⟶ Y) (f : Y ⟶ Z) (hgf : Co
     Cover f := by
   intro C m h hm hfac
   refine hgf m (g ≫ h) hm ?_
-  rw [Cat.assoc, hfac]
+  rw [CategoryTheory.Category.assoc, hfac]
 
 /-- **§1.544 — the slice embedding is FAITHFUL** for well-supported `B`. -/
 theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : WellSupported B) :
@@ -196,7 +197,7 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
   refine ⟨sliceEmbed_embedding B hws, ?_⟩
   intro C D f hiso
   -- the underlying arrow `f×B : C×B → D×B` is iso in `𝒞`
-  have hfBiso : IsIso ((sliceEmbedFunctor B).map f).f := overIso_underlying hiso
+  have hfBiso : IsIso ((sliceEmbedFunctor B).map f).left := overIso_underlying hiso
   rw [sliceEmbedFunctor_map_f] at hfBiso
   -- `f×B` mono (from its inverse as a retraction)
   obtain ⟨inv, hinv1, _hinv2⟩ := hfBiso
@@ -220,7 +221,7 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
       exact cover_precomp_iso ⟨inv, hinv1, _hinv2⟩ (prod_fst_cover hws)
     -- right-factor of a cover is a cover (inlined to avoid an implicit-binder elaboration quirk):
     intro K m h hm hfac
-    exact hcov m ((fst : prod C B ⟶ C) ≫ h) hm (by rw [Cat.assoc, hfac])
+    exact hcov m ((fst : prod C B ⟶ C) ≫ h) hm (by rw [CategoryTheory.Category.assoc, hfac])
   exact monic_cover_iso f hfcover hfmono
 
 /-! ## §1.545  The slice rung as a faithful pre-regular extension
@@ -245,15 +246,15 @@ theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : Well
     because `diag B ≫ snd = id_B` (the second projection of the diagonal is the identity). -/
 def sliceGenericPoint (B : 𝒞) :
     OverHom (overTerm B) (sliceEmbedObj B B) :=
-  ⟨diag B, by show diag B ≫ snd = Cat.id B; exact snd_pair _ _⟩
+  CategoryTheory.Over.homMk (diag B) (by show diag B ≫ snd = 𝟙 B; exact snd_pair _ _)
 
 /-- **§1.546 — `A/B` acquires a point of `A(B)`.**  `sliceGenericPoint B` is a point
     `1 → sliceEmbedObj B B` in `A/B` (its source is the terminator `overTerm B`, which is the
     `1` of `A/B`).  This is the generic point Freyd's relative capitalization adds for the
     chosen well-supported `B`. -/
 theorem sliceAcquiresPoint (B : 𝒞) :
-    (sliceGenericPoint B).f ≫ (sliceEmbedObj B B).hom = (overTerm B).hom := by
-  show diag B ≫ snd = Cat.id B
+    (sliceGenericPoint B).left ≫ (sliceEmbedObj B B).hom = (overTerm B).hom := by
+  show diag B ≫ snd = 𝟙 B
   exact snd_pair _ _
 
 /-! ## §1.547  Product slices acquire a point of every factor
@@ -269,7 +270,7 @@ theorem sliceAcquiresPoint (B : 𝒞) :
 
   This generalizes `sliceGenericPoint`/`sliceAcquiresPoint` (the `B = ∏U` self-point case)
   to an arbitrary projection `g : ∏U → B`.  Below, `g` is any map into a (well-supported)
-  target `B` from the base `P = ∏U`; the point's underlying arrow is `pair g (Cat.id P)`. -/
+  target `B` from the base `P = ∏U`; the point's underlying arrow is `pair g (𝟙 P)`. -/
 
 /-- **Generic point of a factor in a product slice (§1.547).**  For any base `P` and any
     map `g : P → B`, the slice `A/P` acquires a point of `sliceEmbedObj P B = ⟨B × P, snd⟩`:
@@ -279,16 +280,17 @@ theorem sliceAcquiresPoint (B : 𝒞) :
     `P = B`, `g = id_B` recovers `sliceGenericPoint B` (the diagonal). -/
 def sliceFactorPoint {P : 𝒞} (B : 𝒞) (g : P ⟶ B) :
     OverHom (overTerm P) (sliceEmbedObj P B) :=
-  ⟨pair g (Cat.id P), by show pair g (Cat.id P) ≫ snd = Cat.id P; exact snd_pair g (Cat.id P)⟩
+  CategoryTheory.Over.homMk (pair g (𝟙 P))
+    (by show pair g (𝟙 P) ≫ snd = 𝟙 P; exact snd_pair g (𝟙 P))
 
 /-- **§1.547 — `A/P` acquires a point of `sliceEmbedObj P B` along `g : P → B`.**
     `sliceFactorPoint B g` is a point `1 → sliceEmbedObj P B` in `A/P` (source = the
     terminator `overTerm P`).  This is the generic point the product-slice rung adds for the
     well-supported target `B` reached from the base `P` by `g`. -/
 theorem sliceAcquiresFactorPoint {P : 𝒞} (B : 𝒞) (g : P ⟶ B) :
-    (sliceFactorPoint B g).f ≫ (sliceEmbedObj P B).hom = (overTerm P).hom := by
-  show pair g (Cat.id P) ≫ snd = Cat.id P
-  exact snd_pair g (Cat.id P)
+    (sliceFactorPoint B g).left ≫ (sliceEmbedObj P B).hom = (overTerm P).hom := by
+  show pair g (𝟙 P) ≫ snd = 𝟙 P
+  exact snd_pair g (𝟙 P)
 
 /-- **Both factors of a binary product slice are pointed (§1.547, two-factor crux).**
     The single slice `A/(B × B')` acquires, from its own base, a point of the factor `B`
@@ -297,9 +299,9 @@ theorem sliceAcquiresFactorPoint {P : 𝒞} (B : 𝒞) (g : P ⟶ B) :
     iterating it over a finite `U` (its product carries a projection to each member) gives one
     rung that points all of `U` at once, the content of the directed-union construction. -/
 theorem prodSliceAcquiresBothFactors (B B' : 𝒞) :
-    (sliceFactorPoint B (fst : prod B B' ⟶ B)).f ≫ (sliceEmbedObj (prod B B') B).hom
+    (sliceFactorPoint B (fst : prod B B' ⟶ B)).left ≫ (sliceEmbedObj (prod B B') B).hom
         = (overTerm (prod B B')).hom
-      ∧ (sliceFactorPoint B' (snd : prod B B' ⟶ B')).f ≫ (sliceEmbedObj (prod B B') B').hom
+      ∧ (sliceFactorPoint B' (snd : prod B B' ⟶ B')).left ≫ (sliceEmbedObj (prod B B') B').hom
         = (overTerm (prod B B')).hom :=
   ⟨sliceAcquiresFactorPoint B (fst : prod B B' ⟶ B),
    sliceAcquiresFactorPoint B' (snd : prod B B' ⟶ B')⟩
@@ -348,7 +350,7 @@ def listDirected : Directed (List 𝒞) where
     uniform §1.547 payoff of the index above, a direct instance of `sliceAcquiresFactorPoint`
     along the projection `listProdProj`.  Sorry-free. -/
 theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
-    (sliceFactorPoint (U.get k) (listProdProj U k)).f
+    (sliceFactorPoint (U.get k) (listProdProj U k)).left
         ≫ (sliceEmbedObj (listProd U) (U.get k)).hom
       = (overTerm (listProd U)).hom :=
   sliceAcquiresFactorPoint (U.get k) (listProdProj U k)
@@ -381,52 +383,52 @@ theorem listProdSliceAcquiresEveryFactor (U : List 𝒞) (k : Fin U.length) :
       * `mf' : cnD.pt ⟶ prod A (prod A P)` is the induced map on the base-changed embedded apex —
         we take that apex to be the canonical `A × (A×P)` product cone of the cospan
         `(snd, snd)`, with legs `fst`, `snd`.  So `mf'` satisfies
-        `mf' ≫ fst = cnD.π₁ ≫ m.f ≫ fst` (the `A`-leg of `D ↪ A×P`) and `mf' ≫ snd = cnD.π₂`
+        `mf' ≫ fst = cnD.π₁ ≫ m.left ≫ fst` (the `A`-leg of `D ↪ A×P`) and `mf' ≫ snd = cnD.π₂`
         (the base leg, landing in `A×P = P'`).
 
     Then there is NO section `s : (prod A P) ⟶ cnD.pt` of the base-change structure map `cnD.π₂`
     (`s ≫ cnD.π₂ = id`) whose `A`-coordinate is the FRESH coordinate `fst`
     (`s ≫ mf' ≫ fst = fst`).  For such a section makes `(s ≫ cnD.π₁) : A×P → D.dom` a SECTION of
-    `m.f` (`(s ≫ cnD.π₁) ≫ m.f = pair fst snd = id_{A×P}`), so `m.f` is split-epi hence a cover;
-    being monic (`m` mono), `m.f` is then iso, so `m` is a slice-iso — contradicting properness.
+    `m.left` (`(s ≫ cnD.π₁) ≫ m.left = pair fst snd = id_{A×P}`), so `m.left` is split-epi hence a cover;
+    being monic (`m` mono), `m.left` is then iso, so `m` is a slice-iso — contradicting properness.
 
     This is the precise point-free directed-union escape; no fractions saturation is used. -/
 theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
     (m : OverHom D (sliceEmbedObj P A)) (hmono : OverMono m) (hproper : ¬ OverIso m)
     (cnD : Cone D.hom (snd : prod A P ⟶ P)) (_hcnD : cnD.IsPullback)
     (mf' : cnD.pt ⟶ prod A (prod A P))
-    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A))
+    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.left ≫ (fst : prod A P ⟶ A))
     (_hmf'₂ : mf' ≫ (snd : prod A (prod A P) ⟶ prod A P) = cnD.π₂)
-    (s : (prod A P) ⟶ cnD.pt) (hs₂ : s ≫ cnD.π₂ = Cat.id (prod A P))
+    (s : (prod A P) ⟶ cnD.pt) (hs₂ : s ≫ cnD.π₂ = 𝟙 (prod A P))
     (hsA : s ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A)) : False := by
-  -- `D.hom = m.f ≫ snd` (the over-hom law, since `(sliceEmbedObj P A).hom = snd`).
-  have hmw : m.f ≫ (snd : prod A P ⟶ P) = D.hom := m.w
-  -- `t := s ≫ cnD.π₁ : A×P → D.dom`.  Show `t ≫ m.f = id_{A×P}` via joint-monicity of `(fst, snd)`.
-  -- `A`-leg: `s ≫ cnD.π₁ ≫ m.f ≫ fst = s ≫ mf' ≫ fst = fst`.
-  have hAleg : s ≫ cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A) = (fst : prod A P ⟶ A) := by
-    rw [← hmf'₁]; rw [← Cat.assoc] at hsA ⊢; exact hsA
-  -- `P`-leg: `s ≫ cnD.π₁ ≫ m.f ≫ snd = s ≫ cnD.π₁ ≫ D.hom = s ≫ cnD.π₂ ≫ snd = snd`.
-  have hPleg : s ≫ cnD.π₁ ≫ m.f ≫ (snd : prod A P ⟶ P) = (snd : prod A P ⟶ P) := by
-    rw [hmw, cnD.w, ← Cat.assoc s, hs₂, Cat.id_comp]
-  -- hence `t ≫ m.f = pair fst snd = id_{A×P}`.
-  have htmf : (s ≫ cnD.π₁) ≫ m.f = Cat.id (prod A P) := by
-    have hpair : (s ≫ cnD.π₁) ≫ m.f = pair (fst : prod A P ⟶ A) (snd : prod A P ⟶ P) :=
+  -- `D.hom = m.left ≫ snd` (the over-hom law, since `(sliceEmbedObj P A).hom = snd`).
+  have hmw : m.left ≫ (snd : prod A P ⟶ P) = D.hom := CategoryTheory.Over.w m
+  -- `t := s ≫ cnD.π₁ : A×P → D.dom`.  Show `t ≫ m.left = id_{A×P}` via joint-monicity of `(fst, snd)`.
+  -- `A`-leg: `s ≫ cnD.π₁ ≫ m.left ≫ fst = s ≫ mf' ≫ fst = fst`.
+  have hAleg : s ≫ cnD.π₁ ≫ m.left ≫ (fst : prod A P ⟶ A) = (fst : prod A P ⟶ A) := by
+    rw [← hmf'₁]; rw [← CategoryTheory.Category.assoc] at hsA ⊢; exact hsA
+  -- `P`-leg: `s ≫ cnD.π₁ ≫ m.left ≫ snd = s ≫ cnD.π₁ ≫ D.hom = s ≫ cnD.π₂ ≫ snd = snd`.
+  have hPleg : s ≫ cnD.π₁ ≫ m.left ≫ (snd : prod A P ⟶ P) = (snd : prod A P ⟶ P) := by
+    rw [hmw, cnD.w, ← CategoryTheory.Category.assoc s, hs₂, CategoryTheory.Category.id_comp]
+  -- hence `t ≫ m.left = pair fst snd = id_{A×P}`.
+  have htmf : (s ≫ cnD.π₁) ≫ m.left = 𝟙 (prod A P) := by
+    have hpair : (s ≫ cnD.π₁) ≫ m.left = pair (fst : prod A P ⟶ A) (snd : prod A P ⟶ P) :=
       pair_uniq _ _ _
-        (by rw [Cat.assoc, Cat.assoc]; exact hAleg)
-        (by rw [Cat.assoc, Cat.assoc]; exact hPleg)
+        (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hAleg)
+        (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hPleg)
     rw [hpair, pair_fst_snd]
-  -- `m.f` is split-epi (right inverse `s ≫ cnD.π₁`), hence a cover; monic ⟹ iso ⟹ `m` slice-iso.
-  have hfmono : Monic m.f := sigma_preserves_mono m hmono
-  have hcover : Cover m.f := by
+  -- `m.left` is split-epi (right inverse `s ≫ cnD.π₁`), hence a cover; monic ⟹ iso ⟹ `m` slice-iso.
+  have hfmono : Monic m.left := sigma_preserves_mono m hmono
+  have hcover : Cover m.left := by
     intro K n h hn hfac
-    -- `n` mono, `h ≫ n = m.f`; the right inverse of `n` is `(s ≫ cnD.π₁) ≫ h`.
-    have hni : ((s ≫ cnD.π₁) ≫ h) ≫ n = Cat.id (prod A P) := by
-      rw [Cat.assoc, hfac, htmf]
+    -- `n` mono, `h ≫ n = m.left`; the right inverse of `n` is `(s ≫ cnD.π₁) ≫ h`.
+    have hni : ((s ≫ cnD.π₁) ≫ h) ≫ n = 𝟙 (prod A P) := by
+      rw [CategoryTheory.Category.assoc, hfac, htmf]
     refine ⟨(s ≫ cnD.π₁) ≫ h, ?_, hni⟩
     -- `n ≫ ((s≫cnD.π₁)≫h) = id`: cancel `n` mono on `(… ≫ n) = (id ≫ n)`.
     apply hn
-    rw [Cat.assoc, hni]; rw [Cat.id_comp]; exact Cat.comp_id n
-  have hfiso : IsIso m.f := monic_cover_iso m.f hcover hfmono
+    rw [CategoryTheory.Category.assoc, hni]; rw [CategoryTheory.Category.id_comp]; exact CategoryTheory.Category.comp_id n
+  have hfiso : IsIso m.left := monic_cover_iso m.left hcover hfmono
   exact hproper (overIso_of_underlying m hfiso)
 
 /-- **§1.546 base-change escape — POINT-FACTORIZATION form (Sorry-free, axiom-free).**  The same
@@ -437,12 +439,12 @@ theorem baseChange_freshFactor_missed {P A : 𝒞} {D : Over P}
     proper mono `m : D ↪ sliceEmbedObj P A` along `snd : A×P ⟶ P`, then `False`.
 
     Concretely the hypotheses present the base-change by its pullback cone `cnD` of `D.hom` along
-    `snd` (so `D̄.dom = cnD.pt`, `D̄.hom = cnD.π₂`) and the embedded-apex comparison `m̄.f = mf'` with
-    `mf' ≫ fst = cnD.π₁ ≫ m.f ≫ fst`, `mf' ≫ snd = cnD.π₂` — exactly the data
+    `snd` (so `D̄.dom = cnD.pt`, `D̄.hom = cnD.π₂`) and the embedded-apex comparison `m̄.left = mf'` with
+    `mf' ≫ fst = cnD.π₁ ≫ m.left ≫ fst`, `mf' ≫ snd = cnD.π₂` — exactly the data
     `baseChange_freshFactor_missed` consumes.  A point factorization `t ⊚ m̄ = sliceFactorPoint A fst`
-    yields its underlying `t.f : A×P ⟶ cnD.pt` AS the missing section: `t.f ≫ cnD.π₂ = id` (it is a
+    yields its underlying `t.left : A×P ⟶ cnD.pt` AS the missing section: `t.left ≫ cnD.π₂ = id` (it is a
     point over `A×P`, the over-hom law `t.w`) reaching the fresh coordinate
-    `t.f ≫ mf' ≫ fst = fst` (the underlying `A`-leg of `t ⊚ m̄ = sliceFactorPoint A fst`).  Then
+    `t.left ≫ mf' ≫ fst = fst` (the underlying `A`-leg of `t ⊚ m̄ = sliceFactorPoint A fst`).  Then
     `baseChange_freshFactor_missed` refutes it.
 
     This is the reusable consumer of a POINT factorization (an `OverHom` equation), the shape a
@@ -453,31 +455,33 @@ theorem freshSlicePoint_factors_imp_false {P A : 𝒞} {D : Over P}
     (cnD : Cone D.hom (snd : prod A P ⟶ P)) (hcnD : cnD.IsPullback)
     -- the base-changed mono `m̄ : ⟨cnD.pt, cnD.π₂⟩ ↪ sliceEmbedObj (A×P) A`, underlying `mf'`.
     (mf' : cnD.pt ⟶ prod A (prod A P))
-    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.f ≫ (fst : prod A P ⟶ A))
+    (hmf'₁ : mf' ≫ (fst : prod A (prod A P) ⟶ A) = cnD.π₁ ≫ m.left ≫ (fst : prod A P ⟶ A))
     (hmf'₂ : mf' ≫ (snd : prod A (prod A P) ⟶ prod A P) = cnD.π₂)
-    (mbar : OverHom (⟨cnD.pt, cnD.π₂⟩ : Over (prod A P)) (sliceEmbedObj (prod A P) A))
-    (hmbar : mbar.f = mf')
+    (mbar : OverHom (CategoryTheory.Over.mk cnD.π₂ : Over (prod A P))
+      (sliceEmbedObj (prod A P) A))
+    (hmbar : mbar.left = mf')
     -- the FRESH slice point factors through `m̄`.
-    (t : OverHom (overTerm (prod A P)) (⟨cnD.pt, cnD.π₂⟩ : Over (prod A P)))
+    (t : OverHom (overTerm (prod A P))
+      (CategoryTheory.Over.mk cnD.π₂ : Over (prod A P)))
     (hfac : t ⊚ mbar = sliceFactorPoint A (fst : prod A P ⟶ A)) : False := by
-  -- the underlying point-factorization arrow: `t.f ≫ mbar.f = (sliceFactorPoint A fst).f = pair fst id`.
-  have hfacf : t.f ≫ mbar.f = pair (fst : prod A P ⟶ A) (Cat.id (prod A P)) :=
-    congrArg OverHom.f hfac
-  -- `t.f : A×P ⟶ cnD.pt` is a section of `cnD.π₂` (the over-hom law `t.w`, since `D̄.hom = cnD.π₂`).
-  have hs₂ : t.f ≫ cnD.π₂ = Cat.id (prod A P) := t.w
-  -- and it reaches the fresh coordinate `fst`: `t.f ≫ (mf' ≫ fst) = (t.f ≫ mbar.f) ≫ fst = fst`.
-  have hsA : t.f ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A) := by
-    rw [← hmbar, ← Cat.assoc, hfacf, fst_pair]
-  exact baseChange_freshFactor_missed m hmono hproper cnD hcnD mf' hmf'₁ hmf'₂ t.f hs₂ hsA
+  -- the underlying point-factorization arrow: `t.left ≫ mbar.left = (sliceFactorPoint A fst).left = pair fst id`.
+  have hfacf : t.left ≫ mbar.left = pair (fst : prod A P ⟶ A) (𝟙 (prod A P)) :=
+    congrArg CategoryTheory.CommaMorphism.left hfac
+  -- `t.left : A×P ⟶ cnD.pt` is a section of `cnD.π₂` (the over-hom law `t.w`, since `D̄.hom = cnD.π₂`).
+  have hs₂ : t.left ≫ cnD.π₂ = 𝟙 (prod A P) := CategoryTheory.Over.w t
+  -- and it reaches the fresh coordinate `fst`: `t.left ≫ (mf' ≫ fst) = (t.left ≫ mbar.left) ≫ fst = fst`.
+  have hsA : t.left ≫ (mf' ≫ (fst : prod A (prod A P) ⟶ A)) = (fst : prod A P ⟶ A) := by
+    rw [← hmbar, ← CategoryTheory.Category.assoc, hfacf, fst_pair]
+  exact baseChange_freshFactor_missed m hmono hproper cnD hcnD mf' hmf'₁ hmf'₂ t.left hs₂ hsA
 
 /-- **§1.546 fresh-section read-off (the consumer-facing half of the descent).**  The §1.546 escape
     consumer `freshSlicePoint_factors_imp_false` needs, at base `A×PN`, an arrow
-    `q : A×PN ⟶ Dbar.dom` with `q ≫ Dbar.hom = snd` (a section of the base-change structure map) whose
-    fresh `A`-coordinate is `fst` (`q ≫ mC.f ≫ fst = fst`).  This lemma BUILDS that `q` from the more
+    `q : A×PN ⟶ Dbar.left` with `q ≫ Dbar.hom = snd` (a section of the base-change structure map) whose
+    fresh `A`-coordinate is `fst` (`q ≫ mC.left ≫ fst = fst`).  This lemma BUILDS that `q` from the more
     primitive datum produced by the lax-colimit descent: a section `s : A×PN ⟶ cnDN.pt` of the
     base-change pullback `cnDN` (chosen pullback of `Dbar.hom` along `snd : A×PN ⟶ PN`) that is a
     point over `A×PN` (`s ≫ cnDN.π₂ = id`) reaching the fresh coordinate
-    (`s ≫ cnDN.π₁ ≫ mC.f ≫ fst = fst`).  The witness is `q := s ≫ cnDN.π₁`: the structure leg uses the
+    (`s ≫ cnDN.π₁ ≫ mC.left ≫ fst = fst`).  The witness is `q := s ≫ cnDN.π₁`: the structure leg uses the
     pullback square `cnDN.w` (`cnDN.π₁ ≫ Dbar.hom = cnDN.π₂ ≫ snd`) and `s ≫ cnDN.π₂ = id`; the fresh
     leg is `hsA` verbatim.  This isolates the EASY half of the §1.546 descent so the read-off is a
     standalone, small-context lemma; the genuine §1.546 content (producing the section `s` itself,
@@ -486,14 +490,14 @@ theorem freshSlicePoint_factors_imp_false {P A : 𝒞} {D : Over P}
 theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
     (mC : OverHom Dbar (sliceEmbedObj PN A))
     (cnDN : Cone Dbar.hom (snd : prod A PN ⟶ PN)) (_hcnDN : cnDN.IsPullback)
-    (s : prod A PN ⟶ cnDN.pt) (hs₂ : s ≫ cnDN.π₂ = Cat.id (prod A PN))
-    (hsA : s ≫ cnDN.π₁ ≫ mC.f ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A)) :
-    ∃ q : prod A PN ⟶ Dbar.dom,
+    (s : prod A PN ⟶ cnDN.pt) (hs₂ : s ≫ cnDN.π₂ = 𝟙 (prod A PN))
+    (hsA : s ≫ cnDN.π₁ ≫ mC.left ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A)) :
+    ∃ q : prod A PN ⟶ Dbar.left,
       q ≫ Dbar.hom = (snd : prod A PN ⟶ PN) ∧
-        q ≫ mC.f ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A) := by
+        q ≫ mC.left ≫ (fst : prod A PN ⟶ A) = (fst : prod A PN ⟶ A) := by
   refine ⟨s ≫ cnDN.π₁, ?_, ?_⟩
-  · rw [Cat.assoc, cnDN.w, ← Cat.assoc, hs₂, Cat.id_comp]
-  · rw [Cat.assoc]; exact hsA
+  · rw [CategoryTheory.Category.assoc, cnDN.w, ← CategoryTheory.Category.assoc, hs₂, CategoryTheory.Category.id_comp]
+  · rw [CategoryTheory.Category.assoc]; exact hsA
 
 /-! ## §1.547  Assembling the inner finite-product-slice `CatSystem` (residual (A)/(B))
 
@@ -518,7 +522,7 @@ theorem freshSection_of_descentSection {PN A : 𝒞} (Dbar : Over PN)
   `CatSystem.F_refl`/`F_trans` demand ON-THE-NOSE equalities `F (refl) X = X` and
   `F (trans) X = F hjk (F hij X)`.  Base-change along `1` is `X ×_D D → D`, equal to `X` only up
   to iso, and base-change along a composite re-associates pullbacks — both hold only up to
-  canonical iso, never definitionally (probed: `baseChangeObj (Cat.id D) X = X` does not reduce).
+  canonical iso, never definitionally (probed: `baseChangeObj (𝟙 D) X = X` does not reduce).
   The outer ω-tower sidestepped this by transporting via `transN` (literal iterated composition,
   strictly functorial).  The inner system needs the same strictification of base-change (or a
   strictly-functorial replacement transition), which is a standalone construction.
@@ -549,7 +553,7 @@ structure ListProjFamily where
   /-- the product projection `∏U → ∏V` for each `V ⊆ U`. -/
   proj : ∀ {V U : List 𝒞}, listSubset V U → (listProd U ⟶ listProd V)
   /-- strict unit: the projection along the reflexive inclusion is the identity. -/
-  proj_refl : ∀ (U : List 𝒞), proj (listDirected.refl U) = Cat.id (listProd U)
+  proj_refl : ∀ (U : List 𝒞), proj (listDirected.refl U) = 𝟙 (listProd U)
   /-- strict composition: the projection along a composite inclusion is the composite. -/
   proj_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W),
     proj (listDirected.trans hVU hUW) = proj hUW ≫ proj hVU
@@ -558,7 +562,7 @@ structure ListProjFamily where
     `A/(∏U) = Over (listProd U)`.  This is residual-(A)/(B)-free (it is just the object family). -/
 def innerObj (U : List 𝒞) : Type u := Over (listProd U)
 
-instance innerCat (U : List 𝒞) : Cat.{u} (innerObj (𝒞 := 𝒞) U) := overCat (listProd U)
+instance innerCat (U : List 𝒞) : CategoryTheory.Category.{u} (innerObj (𝒞 := 𝒞) U) := overCat (listProd U)
 
 /-- **The inner transition functor**, *given* a projection family `P` (residual (A)): for `V ⊆ U`,
     base-change `A/(∏V) → A/(∏U)` along `P.proj : ∏U → ∏V`.  The OBJECT map is `baseChangeObj`,
@@ -578,7 +582,7 @@ instance innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : 
 /-- **The strict-functoriality obligation for the inner transition (residual (B-strict)), AS A
     HYPOTHESIS — NOT asserted.**  A `CatSystem` demands the transitions be functorial *on the nose*:
     `F_refl : F (refl) X = X` and `F_trans : F (trans) X = F hjk (F hij X)`.  For RAW base-change
-    these equations are **false** (`baseChangeObj (Cat.id (∏U)) X = X ×_{∏U} ∏U → ∏U`, canonically
+    these equations are **false** (`baseChangeObj (𝟙 (∏U)) X = X ×_{∏U} ∏U → ∏U`, canonically
     iso to `X` but NOT equal; the composite re-associates the iterated pullback).  We therefore
     DECLARE the strict laws as a hypothesis bundle rather than discharge them with a false `Sorry`:
     a witness of `StrictBaseChange P` is exactly the base-change strictification (or a strictly
@@ -624,10 +628,10 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   `Σ_m : A/C → A/D`, `⟨X, x⟩ ↦ ⟨X, x ≫ m⟩`.  It is STRICTLY functorial and — unlike base-change —
   satisfies the `CatSystem` object laws DEFINITIONALLY:
 
-    * `reindexObj_id   : reindexObj (Cat.id C) X = X`                           (strict `F_refl`)
+    * `reindexObj_id   : reindexObj (𝟙 C) X = X`                           (strict `F_refl`)
     * `reindexObj_comp : reindexObj (m ≫ m') X = reindexObj m' (reindexObj m X)` (strict `F_trans`)
 
-  both proven by `rfl`-level rewriting (`Cat.comp_id` / `Cat.assoc`).  So a `CatSystem` built on
+  both proven by `rfl`-level rewriting (`CategoryTheory.Category.comp_id` / `CategoryTheory.Category.assoc`).  So a `CatSystem` built on
   `reindexFunctor` needs NO `StrictBaseChange` hypothesis: `strictReindexSystem` below has its
   `F_refl`/`F_trans` as PROVEN theorems, not fed-in inputs.  This is the route-1 strict win, in hand.
 
@@ -673,7 +677,7 @@ structure ReindexFamily where
   /-- the (non-constructible, choice-laden) base map `∏V → ∏U` for each `V ⊆ U`. -/
   base : ∀ {V U : List 𝒞}, listSubset V U → (listProd V ⟶ listProd U)
   /-- strict unit. -/
-  base_refl : ∀ (U : List 𝒞), base (listDirected.refl U) = Cat.id (listProd U)
+  base_refl : ∀ (U : List 𝒞), base (listDirected.refl U) = 𝟙 (listProd U)
   /-- strict composition. -/
   base_trans : ∀ {V U W : List 𝒞} (hVU : listSubset V U) (hUW : listSubset U W),
     base (listDirected.trans hVU hUW) = base hVU ≫ base hUW
@@ -775,7 +779,7 @@ end BaseSliceCartesian
 theorem enumChain_stage_acquires (enum : Nat → 𝒞) (n : Nat)
     (k : Fin (enumPrefix enum (n + 1)).length) :
     (sliceFactorPoint ((enumPrefix enum (n + 1)).get k)
-        (listProdProj (enumPrefix enum (n + 1)) k)).f
+        (listProdProj (enumPrefix enum (n + 1)) k)).left
       ≫ (sliceEmbedObj (listProd (enumPrefix enum (n + 1))) ((enumPrefix enum (n + 1)).get k)).hom
       = (overTerm (listProd (enumPrefix enum (n + 1)))).hom :=
   listProdSliceAcquiresEveryFactor (enumPrefix enum (n + 1)) k

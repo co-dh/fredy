@@ -27,7 +27,7 @@ import Fredy.S1_543_Capitalization
 import Fredy.S1_61
 import Fredy.S1_543_UnionFromCoproduct
 
-open Freyd
+open CategoryTheory Freyd
 
 namespace Freyd
 
@@ -53,8 +53,8 @@ theorem Subobject.Equiv.trans {B : 𝒞} {S T U : Subobject 𝒞 B}
 
 /-- A mono-preserving functor is monotone on subobjects: `S ≤ T ⟹ T_*S ≤ T_*T`. -/
 theorem Subobject.map_le {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
-    (hpm : PreservesMono T) {B : 𝒜} {S S' : Subobject 𝒜 B} (h : S.le S') :
-    (Subobject.map T hpm S).le (Subobject.map T hpm S') := by
+    (hpm : PreservesMono (bundledFunctor T)) {B : 𝒜} {S S' : Subobject 𝒜 B} (h : S.le S') :
+    (Subobject.map (bundledFunctor T) hpm S).le (Subobject.map (bundledFunctor T) hpm S') := by
   obtain ⟨k, hk⟩ := h
   exact ⟨hT.map k, by
     show hT.map k ≫ hT.map S'.arr = hT.map S.arr
@@ -249,7 +249,7 @@ variable {ι : Type u} {D : Directed ι}
 /-- The transition-mono-preservation bundle (the `objIncl_preserves_images` shape), abbreviated for
     the many hypotheses below. -/
 abbrev TransMono (C : CatSystem ι D) : Prop :=
-  ∀ {i j : ι} (hij : D.le i j), @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij)
+  ∀ {i j : ι} (hij : D.le i j), PreservesMono (bundledFunctor (hF := C.functF hij) (C.F hij))
 
 /-- The colimit subobject GERM of a stage subobject `X ⊆ y`: `objIncl N X.dom ↣ objIncl N y` via
     `homInclObj X.arr`, monic since transitions preserve `X.arr`'s mono (`hmono`).  This is exactly
@@ -379,8 +379,7 @@ theorem union_germ_equiv (C : CatSystem ι D) (hC : C.Coherent) (hmono : TransMo
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
-            (@image _ (C.catA i) (hi i) _ _ f)))
+          (Subobject.map (bundledFunctor (hF := C.functF hij) (C.F hij)) (hmono hij) (@image _ (C.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
     [hImg : @HasImages C.Obj (colimitCat C hC)]
     [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hImg]
@@ -532,8 +531,7 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
-            (@image _ (C.catA i) (hi i) _ _ f)))
+          (Subobject.map (bundledFunctor (hF := C.functF hij) (C.F hij)) (hmono hij) (@image _ (C.catA i) (hi i) _ _ f)))
     (hbot : ∀ i, PreLogos (C.A i))
     [hReg : @RegularCategory C.Obj (colimitCat C hC)]
     [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :
