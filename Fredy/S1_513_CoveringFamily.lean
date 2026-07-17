@@ -15,11 +15,11 @@
 import Fredy.S1_43
 import Fredy.S1_51
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -60,7 +60,7 @@ def EpicFamily {ι : Type} {A : ι → 𝒞} {B : 𝒞} (f : ∀ i, A i ⟶ B) :
 theorem eqMap_monic [HasEqualizers 𝒞] {A B : 𝒞} (g h : A ⟶ B) : Monic (eqMap g h) := by
   intro W p q hpq
   have hp_eq : (p ≫ eqMap g h) ≫ g = (p ≫ eqMap g h) ≫ h := by
-    rw [Cat.assoc, Cat.assoc, eqMap_eq]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, eqMap_eq]
   have hp : p = eqLift g h (p ≫ eqMap g h) hp_eq := eqLift_uniq g h _ hp_eq p rfl
   have hq : q = eqLift g h (p ≫ eqMap g h) hp_eq := eqLift_uniq g h _ hp_eq q hpq.symm
   rw [hp, hq]
@@ -81,10 +81,10 @@ theorem covering_family_epic [HasEqualizers 𝒞] {ι : Type} {A : ι → 𝒞} 
   -- Covering ⟹ the equalizer inclusion is iso.
   obtain ⟨einv, _, hinv⟩ := hf S hallows
   -- `e ≫ g = e ≫ h`; cancel the (now invertible) `e = eqMap g h` on the left.
-  calc g = (einv ≫ eqMap g h) ≫ g := by rw [hinv, Cat.id_comp]
-    _ = einv ≫ (eqMap g h ≫ g) := Cat.assoc _ _ _
+  calc g = (einv ≫ eqMap g h) ≫ g := by rw [hinv, CategoryTheory.Category.id_comp]
+    _ = einv ≫ (eqMap g h ≫ g) := CategoryTheory.Category.assoc _ _ _
     _ = einv ≫ (eqMap g h ≫ h) := by rw [eqMap_eq]
-    _ = (einv ≫ eqMap g h) ≫ h := (Cat.assoc _ _ _).symm
-    _ = h := by rw [hinv, Cat.id_comp]
+    _ = (einv ≫ eqMap g h) ≫ h := (CategoryTheory.Category.assoc _ _ _).symm
+    _ = h := by rw [hinv, CategoryTheory.Category.id_comp]
 
 end Freyd

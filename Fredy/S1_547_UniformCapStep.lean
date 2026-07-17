@@ -52,12 +52,13 @@ import Fredy.S1_547_CofinalProjSystem
 open Freyd
 open Freyd.Colim
 open Freyd.LaxColim
+open CategoryTheory
 
 namespace Freyd.UniformCap
 
 universe u
 
-variable {S : Type u} [Cat.{u} S] [PreRegularCategory S]
+variable {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S]
 
 open Freyd.CofinalProj
 
@@ -124,7 +125,7 @@ abbrev uniformTargetTy (_W : WSCover S) : Type u :=
 -- The lax preservation lemmas produce data in the raw `laxColimCat …` form, which is definitionally this
 -- category; the `[HasPullbacks S]` instance pin above is what keeps that defeq on-the-nose so the elaborator
 -- accepts the lax data in every `CapStep` field without an "application type mismatch".
-noncomputable instance uniformTargetCat (W : WSCover S) : Cat.{u} (uniformTargetTy W) :=
+noncomputable instance uniformTargetCat (W : WSCover S) : CategoryTheory.Category.{u} (uniformTargetTy W) :=
   ratCat (cofinalProjSystem (S := S))
 
 
@@ -148,13 +149,14 @@ theorem fibre_base_eq :
 /-- **The §1.547 base embedding `S → S/(∏(base)) = S/1`**, `X ↦ ⟨X, term X⟩` (transported along
     `pr_base_eq` so the structure map `X ⟶ listProd (W.base).1` is the canonical terminator). -/
 def terminalSliceObj (X : S) : Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)) :=
-  ⟨X, ((pr_base_eq W).symm ▸ (term X : X ⟶ (HasTerminal.one : S)))⟩
+  CategoryTheory.Over.mk
+    (Cat.comp (term X : X ⟶ (HasTerminal.one : S)) (eqToHom (pr_base_eq W).symm))
 
 /-- The morphism part: `f : X ⟶ Y ↦ ⟨f, term_uniq⟩` (commutes with the structure maps since any two
     maps into the base stage `= 1` agree). -/
 def terminalSliceMap {X Y : S} (f : X ⟶ Y) :
     OverHom (terminalSliceObj W X) (terminalSliceObj W Y) :=
-  ⟨f, base_hom_uniq W _ _⟩
+  CategoryTheory.Over.homMk f (base_hom_uniq W _ _)
 
 /-- The base embedding `S → S/1` is a functor (laws transport via `OverHom.ext` to the underlying
     `S`-arrow equalities, which hold by the source's `Functor`/`Cat` laws). -/
@@ -162,8 +164,8 @@ instance terminalSliceFunctor :
     @Functor S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
       (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (terminalSliceObj W) where
   map {_ _} f := terminalSliceMap W f
-  map_id _ := OverHom.ext rfl
-  map_comp {_ _ _} _ _ := OverHom.ext rfl
+  map_id _ := CategoryTheory.Over.OverMorphism.ext (by rfl)
+  map_comp {_ _ _} _ _ := CategoryTheory.Over.OverMorphism.ext (by simp [terminalSliceMap])
 
 /-- **`terminalSliceObj` is FAITHFUL.**  The underlying arrow of `terminalSliceMap f` IS `f`, so two
     maps with equal images have equal `f` (`OverHom.f` is literally the original arrow). -/
@@ -174,10 +176,10 @@ theorem terminalSliceFaithful :
   refine ⟨?_, ?_⟩
   · -- embedding: the underlying arrow of `terminalSliceMap f` IS `f`.
     intro X Y f g h
-    exact congrArg OverHom.f h
+    simpa [terminalSliceMap] using congrArg CategoryTheory.CommaMorphism.left h
   · -- conservative: `(terminalSliceMap f).f = f`, so an iso image forces `f` iso.
     intro X Y f hiso
-    exact overIso_underlying hiso
+    simpa [terminalSliceMap] using overIso_underlying hiso
 
 /-- The successor object map `step : S → ratCapCat P`: base-embed into the base fibre, then include
     that fibre into the lax colimit (`⟨W.base, ·⟩`).  It IS the composite `stageInclFunctorL W.base ∘
@@ -226,7 +228,7 @@ theorem terminalSlicePresTerminal :
       (terminalSliceObj W) (terminalSliceFunctor W)
       PreRegularCategory.toHasTerminal (overHasTerminal _) := by
   intro X f g
-  exact OverHom.ext (term_uniq f.f g.f)
+  exact CategoryTheory.Over.OverMorphism.ext (term_uniq f.left g.left)
 
 /-- **`terminalSliceObj` preserves binary products.**  The slice product comparison is iso iff its
     underlying `S`-arrow is; `terminalSliceObj` is the underlying-identity slice equivalence, so the
@@ -244,11 +246,15 @@ theorem terminalSlicePresProds :
     (terminalSliceFunctor W |>.map fst) (terminalSliceFunctor W |>.map snd) ?_
   intro Z f g
   -- mediator: pair the underlying arrows in `S`, lift to the slice (term-uniqueness over `pr base`).
-  refine ⟨⟨pair f.f g.f, base_hom_uniq W _ _⟩, ⟨OverHom.ext (fst_pair f.f g.f),
-      OverHom.ext (snd_pair f.f g.f)⟩, ?_⟩
+  refine ⟨CategoryTheory.Over.homMk (pair f.left g.left) (base_hom_uniq W _ _),
+    ⟨CategoryTheory.Over.OverMorphism.ext (fst_pair f.left g.left),
+      CategoryTheory.Over.OverMorphism.ext (snd_pair f.left g.left)⟩, ?_⟩
   intro v hv₁ hv₂
   -- uniqueness: underlying `v.f` equals `pair f.f g.f` by `pair_uniq` (its `fst`/`snd` legs are `f.f`/`g.f`).
-  exact OverHom.ext (pair_uniq f.f g.f v.f (congrArg OverHom.f hv₁) (congrArg OverHom.f hv₂))
+  exact CategoryTheory.Over.OverMorphism.ext
+    (pair_uniq f.left g.left v.left
+      (congrArg CategoryTheory.CommaMorphism.left hv₁)
+      (congrArg CategoryTheory.CommaMorphism.left hv₂))
 
 /-- **`terminalSliceObj` preserves equalizers.**  The image cone `(terminalSliceObj (eqObj f g),
     map (eqMap f g))` has the slice equalizer universal property (underlying it is the `S`-equalizer,
@@ -269,11 +275,14 @@ theorem terminalSlicePresEqs :
         eqMap_eq f g])).IsEqualizer := by
     intro d
     -- underlying `d.map.f : d.dom.dom ⟶ A` equalizes `f, g` (the slice cone equation, underlying).
-    have hd : d.map.f ≫ f = d.map.f ≫ g := congrArg OverHom.f d.eq
-    refine ⟨⟨eqLift f g d.map.f hd, base_hom_uniq W _ _⟩,
-      OverHom.ext (eqLift_fac f g d.map.f hd), ?_⟩
+    have hd : d.map.left ≫ f = d.map.left ≫ g :=
+      congrArg CategoryTheory.CommaMorphism.left d.eq
+    refine ⟨CategoryTheory.Over.homMk (eqLift f g d.map.left hd) (base_hom_uniq W _ _),
+      CategoryTheory.Over.OverMorphism.ext (eqLift_fac f g d.map.left hd), ?_⟩
     intro v hv
-    exact OverHom.ext (eqLift_uniq f g d.map.f hd v.f (congrArg OverHom.f hv))
+    exact CategoryTheory.Over.OverMorphism.ext
+      (eqLift_uniq f g d.map.left hd v.left
+        (congrArg CategoryTheory.CommaMorphism.left hv))
   -- the chosen-equalizer comparison factors `map (eqMap f g)`; two equalizers ⟹ iso.
   exact isIso_of_two_equalizers himg (chosenEqualizer_isEqualizer _ _)
     ((HasEqualizers.eq _ _ _ _).lift _) ((HasEqualizers.eq _ _ _ _).fac _)
@@ -284,8 +293,9 @@ theorem terminalSlicePresMono {x y : S} (φ : x ⟶ y) (hφ : Monic φ) :
     @Monic (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _ _ (terminalSliceFunctor W |>.map φ) := by
   intro Z u v huv
   -- underlying: `u.f ≫ φ = v.f ≫ φ` (the slice equation, underlying), `φ` monic ⟹ `u.f = v.f`.
-  have h : u.f ≫ φ = v.f ≫ φ := congrArg OverHom.f huv
-  exact OverHom.ext (hφ u.f v.f h)
+  have h : u.left ≫ φ = v.left ≫ φ :=
+    congrArg CategoryTheory.CommaMorphism.left huv
+  exact CategoryTheory.Over.OverMorphism.ext (hφ u.left v.left h)
 
 /-- **`terminalSliceObj` preserves covers.**  A slice map is a cover iff its underlying `S`-arrow is
     (`cover_of_cover_f`); `terminalSliceMap φ` is underlying `φ`. -/
@@ -297,8 +307,10 @@ theorem terminalSlicePresCover {x y : S} (φ : x ⟶ y) (hφ : Cover φ) :
     object `X` of the fibre to `terminalSliceObj one`; underlying it is `term X.dom : X.dom ⟶ one`,
     slice-condition by `term`-uniqueness over `pr base`. -/
 def terminalSliceTerminalArrow (X : Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) :
-    @Cat.Hom _ (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) X (terminalSliceObj W (one : S)) :=
-  ⟨term X.dom, base_hom_uniq W _ _⟩
+    @Quiver.Hom _
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))).toCategoryStruct.toQuiver
+      X (terminalSliceObj W (one : S)) :=
+  CategoryTheory.Over.homMk (term X.left) (base_hom_uniq W _ _)
 
 /-! ### Lax stage-inclusion (`stageInclNil`) terminal preservation
 
@@ -310,7 +322,8 @@ def terminalSliceTerminalArrow (X : Over (listProd (𝒞 := S) ((W.base).1.map P
     `uniq` half of `laxColimHasTerminal`, valid at ANY stage `i` (it only uses `T.pushUniq`). -/
 theorem laxTerminalUniqAt {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D)
     (hL : Coherent L) (T : LaxTerminalData L) (i : ι) (X : Obj L)
-    (f g : @Cat.Hom (Obj L) (laxColimCat L hL) X ⟨i, (T.ht i).one⟩) : f = g := by
+    (f g : @Quiver.Hom (Obj L) (laxColimCat L hL).toCategoryStruct.toQuiver
+      X ⟨i, (T.ht i).one⟩) : f = g := by
   letI : Cat (Obj L) := laxColimCat L hL
   obtain ⟨jX, xX⟩ := X
   refine Quotient.inductionOn f (fun ⟨a, fa⟩ => ?_)
@@ -325,7 +338,8 @@ theorem laxTerminalUniqAt {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, 
     `pushTrm` at a common bound). -/
 noncomputable def laxTerminalArrowAt {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D)
     (hL : Coherent L) (T : LaxTerminalData L) (i : ι) (X : Obj L) :
-    @Cat.Hom (Obj L) (laxColimCat L hL) X ⟨i, (T.ht i).one⟩ := by
+    @Quiver.Hom (Obj L) (laxColimCat L hL).toCategoryStruct.toQuiver
+      X ⟨i, (T.ht i).one⟩ := by
   letI : Cat (Obj L) := laxColimCat L hL
   obtain ⟨jX, xX⟩ := X
   let bd := D.bound jX i

@@ -41,7 +41,7 @@ import Fredy.S2_147_MapCat
 import Fredy.S2_216_MatrixAllegory
 import Fredy.S2_165_Spl
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Alg
 
 universe v u
@@ -1221,7 +1221,8 @@ theorem embedRel_reflects_monic {a b : 𝒞} {f : a ⟶ b}
   apply embedRel_faithful
   -- map both sides through `embedRel` (functorial), then cancel `embedRel f` (monic).
   refine hm (embedRel g) (embedRel h) ?_
-  rw [← embedRel_comp, ← embedRel_comp, hgh]
+  exact (embedRel_comp g f).symm.trans
+    ((congrArg embedRel hgh).trans (embedRel_comp h f))
 
 end GraphEmbedding
 
@@ -1904,11 +1905,13 @@ noncomputable def relReverseHasBinaryCoproducts (zero : RelObj 𝒞)
   · -- inl ≫ case f g = f
     apply hfaithful
     rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inl,
-        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g)), H.case_inl]
+        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g))]
+    exact H.case_inl _ _
   · -- inr ≫ case f g = g
     apply hfaithful
     rw [embedRel_comp, lift_spec (b := (H.coprod ⟨a⟩ ⟨b⟩).carrier) H.inr,
-        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g)), H.case_inr]
+        lift_spec (a := (H.coprod ⟨a⟩ ⟨b⟩).carrier) (H.case (embedRel f) (embedRel g))]
+    exact H.case_inr _ _
   · -- uniqueness
     intro h hl hr
     -- Push each C-hypothesis through `embedRel` (functorial) to Map(Rel C), using `embedRel_comp`
@@ -2200,9 +2203,9 @@ structure RegularFunctor (F : C → D) [hF : Functor F]
   /-- preserves covers (§1.52). -/
   pres_covers : PreservesCovers F
   /-- preserves monos. -/
-  pres_mono  : PreservesMono F
+  pres_mono  : PreservesMono (bundledFunctor F)
   /-- preserves images (§1.51). -/
-  pres_image : PreservesImages F pres_mono
+  pres_image : PreservesImages (bundledFunctor F) pres_mono
 
 variable {F : C → D} [hF : Functor F]
   [RegularCategory C] [RegularCategory D]
@@ -3128,7 +3131,7 @@ private theorem relOf_respects {a b : MapObj 𝒜}
 private noncomputable def relOfQuot {a b : MapObj 𝒜}
     (x : @BinRelQuot (MapObj 𝒜) (Freyd.Alg.mapCat (𝒜 := 𝒜))
           Freyd.Alg.mapHasBinaryProducts Freyd.Alg.mapHasPullbacks a b) :
-    @Cat.Hom 𝒜 Freyd.Alg.Allegory.toCat a b :=
+    @Cat.Hom 𝒜 Freyd.Alg.Allegory.toCategory a b :=
   Quotient.liftOn x Freyd.Alg.relOf (fun _ _ h => relOf_respects 𝒜 h)
 
 @[simp] private theorem relOfQuot_mk {a b : MapObj 𝒜}

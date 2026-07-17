@@ -11,7 +11,7 @@ import Fredy.S1_41
 import Fredy.S1_81
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -83,7 +83,7 @@ theorem reflects_leftInv_reflects_iso (F : 𝒞 → 𝒟) [hF : Functor F]
   --   (using g ≫ f = id_B, so z ≫ Cat.id B = z ≫ g ≫ f)
   have hz_eq_f : z = f := by
     calc z = z ≫ Cat.id B          := (Cat.comp_id z).symm
-      _ = z ≫ (g ≫ f)             := by rw [← hgf]
+      _ = z ≫ (g ≫ f)             := by rw [hgf]
       _ = (z ≫ g) ≫ f             := (Cat.assoc z g f).symm
       _ = Cat.id A ≫ f             := by rw [hzg]
       _ = f                        := Cat.id_comp f

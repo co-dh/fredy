@@ -40,7 +40,7 @@ import Fredy.S1_543_LaxGermImages
 import Fredy.S1_543_LaxColimitImages
 import Fredy.S1_543_UnionFromCoproduct
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -193,7 +193,7 @@ variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Co
 /-- The lax mono-preservation bundle (shared shape of the germ keystones), abbreviated. -/
 abbrev TransMonoL : Prop :=
   ∀ {i j : ι} (hij : D.le i j),
-    @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij)
+    PreservesMono (bundledFunctor (hF := L.functF hij) (L.F hij))
 
 /-- The colimit subobject GERM of a stage subobject `X ⊆ y` (of `L.A N`): `⟨N, X.dom⟩ ↣ ⟨N, y⟩` via
     `stageInclL X.arr`, monic since transitions preserve `X.arr`'s mono.  Lax mirror of
@@ -269,7 +269,7 @@ theorem union_germ_equivL (hmono : TransMonoL L) (coprData : LaxCoproductData L)
           = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
         @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := L.functF hij) (L.F hij)) (hmono hij)
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)]
     [hImg : @HasImages (Obj L) (laxColimCat L hL)]
@@ -391,7 +391,7 @@ theorem laxColim_invImage_union_le [Nonempty ι]
     (hmono : TransMonoL L)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
         @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := L.functF hij) (L.F hij)) (hmono hij)
             (@image _ (L.catA i) (hi i) _ _ f)))
     (hbot : ∀ i, PreLogos (L.A i))
     [hpullI : @HasPullbacks (Obj L) (laxColimCat L hL)]

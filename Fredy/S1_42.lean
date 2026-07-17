@@ -12,16 +12,17 @@
 import Fredy.S1_1
 import Fredy.S1_41
 
+open CategoryTheory
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [Category.{v} 𝒞]
 
 namespace Freyd
 
 /-! ### HasTerminal class and definitions -/
 
-class HasTerminal (𝒞 : Type u) [Cat.{v} 𝒞] where
+class HasTerminal (𝒞 : Type u) [Category.{v} 𝒞] where
   one   : 𝒞
   trm   : (X : 𝒞) → X ⟶ one
   uniq  : ∀ {X : 𝒞} (f g : X ⟶ one), f = g
@@ -58,7 +59,7 @@ end Terminal
 
 /-! ### HasBinaryProducts class and definitions -/
 
-class HasBinaryProducts (𝒞 : Type u) [Cat.{v} 𝒞] where
+class HasBinaryProducts (𝒞 : Type u) [Category.{v} 𝒞] where
   prod  : 𝒞 → 𝒞 → 𝒞
   fst   : {A B : 𝒞} → prod A B ⟶ A
   snd   : {A B : 𝒞} → prod A B ⟶ B
@@ -79,7 +80,7 @@ export HasBinaryProducts (prod fst snd pair fst_pair snd_pair pair_uniq)
 
 attribute [simp] HasBinaryProducts.fst_pair HasBinaryProducts.snd_pair
 
-def diag (A : 𝒞) : A ⟶ prod A A := pair (Cat.id A) (Cat.id A)
+def diag (A : 𝒞) : A ⟶ prod A A := pair (𝟙 A) (𝟙 A)
 
 theorem diag_mono (A : 𝒞) : Monic (diag A) :=
   mono_of_retraction (diag A) fst (fst_pair _ _)
@@ -87,8 +88,8 @@ theorem diag_mono (A : 𝒞) : Monic (diag A) :=
 /-! ### §1.423 Product corollaries -/
 
 /-- The pair of projections on A×B is the identity. -/
-theorem pair_fst_snd {A B : 𝒞} : pair (fst (A := A) (B := B)) snd = Cat.id (prod A B) :=
-  (pair_uniq fst snd (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
+theorem pair_fst_snd {A B : 𝒞} : pair (fst (A := A) (B := B)) snd = 𝟙 (prod A B) :=
+  (pair_uniq fst snd (𝟙 _) (Category.id_comp _) (Category.id_comp _)).symm
 
 /-- Projections fst and snd are jointly monic (§1.423): the product is a table on A, B. -/
 theorem fst_snd_jointly_monic {A B : 𝒞} : MonicPair (fst (A := A) (B := B)) snd := by
@@ -107,18 +108,18 @@ theorem product_unique_iso {A B : 𝒞} [hp2 : HasBinaryProducts 𝒞]
     IsIso f := by
   refine ⟨g, ?_, ?_⟩
   · -- f ≫ g = id : suffices pair (f≫g≫fst) (f≫g≫snd) = pair fst snd = id
-    have h1 : (f ≫ g) ≫ fst = fst := by rw [Cat.assoc, hg₁, hf₁]
-    have h2 : (f ≫ g) ≫ snd = snd := by rw [Cat.assoc, hg₂, hf₂]
+    have h1 : (f ≫ g) ≫ fst = fst := by rw [Category.assoc, hg₁, hf₁]
+    have h2 : (f ≫ g) ≫ snd = snd := by rw [Category.assoc, hg₂, hf₂]
     calc f ≫ g = pair ((f ≫ g) ≫ fst) ((f ≫ g) ≫ snd) := pair_uniq _ _ (f ≫ g) rfl rfl
       _ = pair fst snd := by rw [h1, h2]
-      _ = Cat.id _ := pair_fst_snd
+      _ = 𝟙 _ := pair_fst_snd
   · -- g ≫ f = id (using hp2)
-    have h1 : (g ≫ f) ≫ hp2.fst = hp2.fst := by rw [Cat.assoc, hf₁, hg₁]
-    have h2 : (g ≫ f) ≫ hp2.snd = hp2.snd := by rw [Cat.assoc, hf₂, hg₂]
-    have hid1 : (Cat.id (hp2.prod A B)) ≫ hp2.fst = hp2.fst := Cat.id_comp _
-    have hid2 : (Cat.id (hp2.prod A B)) ≫ hp2.snd = hp2.snd := Cat.id_comp _
+    have h1 : (g ≫ f) ≫ hp2.fst = hp2.fst := by rw [Category.assoc, hf₁, hg₁]
+    have h2 : (g ≫ f) ≫ hp2.snd = hp2.snd := by rw [Category.assoc, hf₂, hg₂]
+    have hid1 : (𝟙 (hp2.prod A B)) ≫ hp2.fst = hp2.fst := Category.id_comp _
+    have hid2 : (𝟙 (hp2.prod A B)) ≫ hp2.snd = hp2.snd := Category.id_comp _
     exact (hp2.pair_uniq hp2.fst hp2.snd (g ≫ f) h1 h2).trans
-      (hp2.pair_uniq hp2.fst hp2.snd (Cat.id _) hid1 hid2).symm
+      (hp2.pair_uniq hp2.fst hp2.snd (𝟙 _) hid1 hid2).symm
 
 /-! ### §1.426 Monic and monic into product -/
 
@@ -140,17 +141,17 @@ theorem monicPair_iff_monic_pair {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) :
     -- `apply hp g h` makes `g = h` follow from hp, leaving its two premises as new goals.
     apply hp g h
     -- Premise 1: `g ≫ x = h ≫ x`. Prove it by a chain of equalities (`calc`).
-    -- `rw` rewrites the goal using known equations: `Cat.assoc` reassociates
+    -- `rw` rewrites the goal using known equations: `Category.assoc` reassociates
     -- `(g ≫ p) ≫ fst` into `g ≫ (p ≫ fst)`, and `fst_pair` says `⟨x,y⟩ ≫ fst = x`.
-    · calc g ≫ x = (g ≫ pair x y) ≫ fst := by rw [Cat.assoc, fst_pair]
+    · calc g ≫ x = (g ≫ pair x y) ≫ fst := by rw [Category.assoc, fst_pair]
         -- swap g≫⟨x,y⟩ for h≫⟨x,y⟩ using our hypothesis `heq`
         _ = (h ≫ pair x y) ≫ fst := by rw [heq]
         -- collapse back the same way: `(h ≫ ⟨x,y⟩) ≫ fst = h ≫ x`
-        _ = h ≫ x := by rw [Cat.assoc, fst_pair]
+        _ = h ≫ x := by rw [Category.assoc, fst_pair]
     -- Premise 2: identical argument on the second coordinate, using `snd` / `snd_pair`.
-    · calc g ≫ y = (g ≫ pair x y) ≫ snd := by rw [Cat.assoc, snd_pair]
+    · calc g ≫ y = (g ≫ pair x y) ≫ snd := by rw [Category.assoc, snd_pair]
         _ = (h ≫ pair x y) ≫ snd := by rw [heq]
-        _ = h ≫ y := by rw [Cat.assoc, snd_pair]
+        _ = h ≫ y := by rw [Category.assoc, snd_pair]
   -- ── Backward: assuming ⟨x,y⟩ is monic, show the pair is jointly monic. ──
   -- `MonicPair x y` unfolds to: given f, g with `f≫x = g≫x` (hx) and `f≫y = g≫y` (hy),
   -- conclude `f = g`. `intro` names all of these; goal becomes `f = g`.
@@ -164,10 +165,10 @@ theorem monicPair_iff_monic_pair {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) :
     --   `(f ≫ ⟨x,y⟩) ≫ fst = f ≫ x` and `(f ≫ ⟨x,y⟩) ≫ snd = f ≫ y`.
     -- So e₁ rewrites `f ≫ ⟨x,y⟩` into the explicit pair `⟨f≫x, f≫y⟩`.
     have e₁ : f ≫ pair x y = pair (f ≫ x) (f ≫ y) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [Category.assoc, fst_pair]) (by rw [Category.assoc, snd_pair])
     -- e₂: the same for g, giving `g ≫ ⟨x,y⟩ = ⟨g≫x, g≫y⟩`.
     have e₂ : g ≫ pair x y = pair (g ≫ x) (g ≫ y) :=
-      pair_uniq _ _ _ (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+      pair_uniq _ _ _ (by rw [Category.assoc, fst_pair]) (by rw [Category.assoc, snd_pair])
     -- Goal `f ≫ ⟨x,y⟩ = g ≫ ⟨x,y⟩`. Rewrite both sides via e₁,e₂ to get
     -- `⟨f≫x, f≫y⟩ = ⟨g≫x, g≫y⟩`, then `hx : f≫x = g≫x` and `hy : f≫y = g≫y`
     -- make the two pairs literally identical, closing the goal.
@@ -185,7 +186,7 @@ theorem monic_pair_of_monic {T A B : 𝒞} (x : T ⟶ A) (y : T ⟶ B) (hy : Mon
     The full §1.426 isomorphism of posets is formalized via the monic/subobject infrastructure
     in §1.56; here we record the key arrow: b monic → pair(id,b) monic. -/
 theorem monic_id_pair_of_monic {A B : 𝒞} (b : A ⟶ B) (hb : Monic b) :
-    Monic (pair (Cat.id A) b) := monic_pair_of_monic _ b hb
+    Monic (pair (𝟙 A) b) := monic_pair_of_monic _ b hb
 
 /-! ### Product commutativity (§1.42)  A×B ≅ B×A -/
 
@@ -193,16 +194,16 @@ theorem monic_id_pair_of_monic {A B : 𝒞} (b : A ⟶ B) (hb : Monic b) :
 def prodSwap (A B : 𝒞) : prod A B ⟶ prod B A := pair snd fst
 
 /-- The swap is its own inverse: `(A×B → B×A → A×B)` is the identity. -/
-theorem prodSwap_prodSwap {A B : 𝒞} : prodSwap A B ≫ prodSwap B A = Cat.id (prod A B) := by
+theorem prodSwap_prodSwap {A B : 𝒞} : prodSwap A B ≫ prodSwap B A = 𝟙 (prod A B) := by
   calc prodSwap A B ≫ prodSwap B A
       = pair ((prodSwap A B ≫ prodSwap B A) ≫ fst) ((prodSwap A B ≫ prodSwap B A) ≫ snd) :=
         pair_uniq _ _ _ rfl rfl
     _ = pair fst snd := by
-        rw [Cat.assoc, show prodSwap B A ≫ fst = snd (A := B) (B := A) from fst_pair _ _,
+        rw [Category.assoc, show prodSwap B A ≫ fst = snd (A := B) (B := A) from fst_pair _ _,
             show prodSwap A B ≫ snd = fst (A := A) (B := B) from snd_pair _ _,
-            Cat.assoc, show prodSwap B A ≫ snd = fst (A := B) (B := A) from snd_pair _ _,
+            Category.assoc, show prodSwap B A ≫ snd = fst (A := B) (B := A) from snd_pair _ _,
             show prodSwap A B ≫ fst = snd (A := A) (B := B) from fst_pair _ _]
-    _ = Cat.id (prod A B) := pair_fst_snd
+    _ = 𝟙 (prod A B) := pair_fst_snd
 
 /-- Product commutativity (§1.42): `A×B ≅ B×A`, witnessed by `prodSwap = ⟨snd, fst⟩`,
     which is its own inverse. -/
@@ -218,15 +219,15 @@ section Unitors
 variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
 /-- Left unitor map `B → 1×B`, `⟨term B, id B⟩`. -/
-def prodOneLeftInv (B : 𝒞) : B ⟶ prod one B := pair (term B) (Cat.id B)
+def prodOneLeftInv (B : 𝒞) : B ⟶ prod one B := pair (term B) (𝟙 B)
 
 /-- Round-trip on `1×B`: `(1×B → B → 1×B)` is the identity.
     The `fst` component collapses by `term_uniq` (any two maps into `1` agree). -/
 theorem snd_prodOneLeftInv {B : 𝒞} :
-    (snd : prod one B ⟶ B) ≫ prodOneLeftInv B = Cat.id (prod one B) := by
+    (snd : prod one B ⟶ B) ≫ prodOneLeftInv B = 𝟙 (prod one B) := by
   have h1 : (snd ≫ prodOneLeftInv B) ≫ fst = fst (A := one) (B := B) := term_uniq _ _
   have h2 : (snd ≫ prodOneLeftInv B) ≫ snd = snd (A := one) (B := B) := by
-    rw [Cat.assoc, show prodOneLeftInv B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id]
+    rw [Category.assoc, show prodOneLeftInv B ≫ snd = 𝟙 B from snd_pair _ _, Category.comp_id]
   exact (pair_uniq fst snd _ h1 h2).trans pair_fst_snd
 
 /-- Left unit law (§1.42): `1×B ≅ B`, witnessed by `snd : 1×B → B`. -/
@@ -234,14 +235,14 @@ theorem prod_one_iso_left {B : 𝒞} : IsIso (snd : prod one B ⟶ B) :=
   ⟨prodOneLeftInv B, snd_prodOneLeftInv, snd_pair _ _⟩
 
 /-- Right unitor map `B → B×1`, `⟨id B, term B⟩`. -/
-def prodOneRightInv (B : 𝒞) : B ⟶ prod B one := pair (Cat.id B) (term B)
+def prodOneRightInv (B : 𝒞) : B ⟶ prod B one := pair (𝟙 B) (term B)
 
 /-- Round-trip on `B×1`: `(B×1 → B → B×1)` is the identity.
     The `snd` component collapses by `term_uniq`. -/
 theorem fst_prodOneRightInv {B : 𝒞} :
-    (fst : prod B one ⟶ B) ≫ prodOneRightInv B = Cat.id (prod B one) := by
+    (fst : prod B one ⟶ B) ≫ prodOneRightInv B = 𝟙 (prod B one) := by
   have h1 : (fst ≫ prodOneRightInv B) ≫ fst = fst (A := B) (B := one) := by
-    rw [Cat.assoc, show prodOneRightInv B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id]
+    rw [Category.assoc, show prodOneRightInv B ≫ fst = 𝟙 B from fst_pair _ _, Category.comp_id]
   have h2 : (fst ≫ prodOneRightInv B) ≫ snd = snd (A := B) (B := one) := term_uniq _ _
   exact (pair_uniq fst snd _ h1 h2).trans pair_fst_snd
 
@@ -302,7 +303,7 @@ def finiteProduct_from_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
         · simp [Fin.lastCases_last, snd_pair]
         · intro j
           simp only [Fin.lastCases_castSucc]
-          rw [← Cat.assoc, fst_pair, sub.lift_π]
+          rw [← Category.assoc, fst_pair, sub.lift_π]
       lift_uniq := by
         intro X fs h heq
         apply pair_uniq
@@ -310,7 +311,7 @@ def finiteProduct_from_term_binary [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
           intro i
           have hi := heq i.castSucc
           simp only [Fin.lastCases_castSucc] at hi
-          rw [← Cat.assoc] at hi
+          rw [← Category.assoc] at hi
           exact hi
         · have hl := heq (Fin.last n)
           simp only [Fin.lastCases_last] at hl

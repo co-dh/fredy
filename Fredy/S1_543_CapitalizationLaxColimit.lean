@@ -72,7 +72,7 @@ import Fredy.S1_543_DirectedColimit
 import Fredy.S1_543_CatColimit
 import Fredy.S1_53_SliceRegular
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 
 namespace Freyd.LaxColim
@@ -133,7 +133,7 @@ def objIncl (S : LaxCatSystem ι D) (i : ι) (x : S.A i) : Obj S := ⟨i, x⟩
   genuinely generalises the strict one (`ofStrict`).  Built on the repo's `eqToHom` (§1.36). -/
 section PointwiseNatIso
 
-variable {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
+variable {𝒜 ℬ : Type w} [CategoryTheory.Category.{w} 𝒜] [CategoryTheory.Category.{w} ℬ]
 
 /-- **Pointwise object-equality ⟹ natural iso.**  If two functors agree on objects pointwise and
     their morphism maps satisfy the `eqToHom` conjugation `G.map f = eqToHom (hpt X).symm ≫ F.map f
@@ -148,7 +148,7 @@ def natIsoOfPointwise {F G : 𝒜 → ℬ} [hF : Functor F] [hG : Functor G]
       naturality {X Y} f := by
         -- goal: `F.map f ≫ eqToHom (hpt Y) = eqToHom (hpt X) ≫ G.map f`.  Expand `G.map f` by
         -- `hmap`, then collapse `eqToHom (hpt X) ≫ eqToHom (hpt X).symm = id` on the RHS.
-        rw [hmap f, ← Cat.assoc (eqToHom (hpt X)), eqToHom_comp_eqToHom_symm, Cat.id_comp] }
+        rw [hmap f, ← CategoryTheory.Category.assoc (eqToHom (hpt X)), eqToHom_comp_eqToHom_symm, CategoryTheory.Category.id_comp] }
   isIso X := ⟨eqToHom (hpt X).symm, eqToHom_comp_eqToHom_symm _, eqToHom_symm_comp_eqToHom _⟩
 
 /-- A `HEq` between two morphisms over equal endpoints is the `eqToHom` conjugation.  This converts
@@ -158,7 +158,7 @@ theorem heq_eqToHom_conj {A B A' B' : ℬ} (hA : A = A') (hB : B = B')
     {m : A ⟶ B} {m' : A' ⟶ B'} (h : HEq m m') :
     m' = eqToHom hA.symm ≫ m ≫ eqToHom hB := by
   cases hA; cases hB
-  simp only [eqToHom_refl, Cat.id_comp, Cat.comp_id]
+  simp only [eqToHom_refl, CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]
   exact (eq_of_heq h).symm
 
 end PointwiseNatIso
@@ -208,20 +208,20 @@ noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
   equation — unlike `StrictBaseChange`, these isos really hold). -/
 section BaseChangeLax
 
-variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
 
 /-- A directed system of "products with projections": stage objects `pr i`, and for every
     `i ≤ j` a projection `pr j ⟶ pr i` (the bigger product onto the smaller), strictly coherent
     (`Cat.id` on `refl`, composite on `trans`).  This abstracts §1.547's `ListProjFamily` over
     `listDirected`; the projections ARE constructible (the only obstruction to a concrete instance
     is `DecidableEq 𝒞` for positional matching, orthogonal to the colimit construction here). -/
-structure ProjSystem (ι : Type u) (D : Directed ι) (𝒞 : Type w) [Cat.{w} 𝒞] where
+structure ProjSystem (ι : Type u) (D : Directed ι) (𝒞 : Type w) [CategoryTheory.Category.{w} 𝒞] where
   /-- the stage product object `∏(stage i)` -/
   pr : ι → 𝒞
   /-- the projection `∏j ⟶ ∏i` for `i ≤ j` -/
   proj : ∀ {i j}, D.le i j → (pr j ⟶ pr i)
   /-- strict unit: the reflexive projection is the identity -/
-  proj_refl : ∀ i, proj (D.refl i) = Cat.id (pr i)
+  proj_refl : ∀ i, proj (D.refl i) = 𝟙 (pr i)
   /-- strict composition (note the contravariance: `i ≤ j ≤ k` gives `∏k ⟶ ∏i` two ways) -/
   proj_trans : ∀ {i j k} (hij : D.le i j) (hjk : D.le j k),
     proj (D.trans hij hjk) = proj hjk ≫ proj hij
@@ -245,71 +245,74 @@ instance pcFunctF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) :
 
   Demonstration that `PseudoBaseChange.refl_iso` is genuinely inhabitable (not a renamed wall): the
   pullback of any `X.hom` along the identity is canonically `X`.  The per-object iso `X ≅
-  baseChangeObj (Cat.id C) X` is built from the pullback universal property; the inverse pair is
+  baseChangeObj (𝟙 C) X` is built from the pullback universal property; the inverse pair is
   `lift`/`π₁`, and `π₁ ≫ lift = id` follows from `lift_uniq`.  This is the harder of the two
   obligations' EASY half; the composite (`trans_iso`, pullback pasting) remains the next blocker. -/
 section BaseChangeIdIso
 
 variable {C : 𝒞}
 
-private def _idPB (X : Over C) : HasPullback X.hom (Cat.id C) := HasPullbacks.has X.hom (Cat.id C)
+private def _idPB (X : Over C) : HasPullback X.hom (𝟙 C) := HasPullbacks.has X.hom (𝟙 C)
 
-/-- The cone `⟨X.dom, id, X.hom⟩` over the cospan `(X.hom, id_C)`. -/
-private def _idCone (X : Over C) : Cone X.hom (Cat.id C) :=
-  ⟨X.dom, Cat.id X.dom, X.hom, by rw [Cat.id_comp, Cat.comp_id]⟩
+/-- The cone `⟨X.left, id, X.hom⟩` over the cospan `(X.hom, id_C)`. -/
+private def _idCone (X : Over C) : Cone X.hom (𝟙 C) :=
+  ⟨X.left, 𝟙 X.left, X.hom, by rw [CategoryTheory.Category.id_comp, CategoryTheory.Category.comp_id]⟩
 
 /-- The forward arrow `X ⟶ baseChangeObj (id) X`: the lift of `_idCone` into the pullback.  Its
     over-`C` triangle is `lift ≫ π₂ = X.hom` (`lift_snd`). -/
-private def _idFwd (X : Over C) : OverHom X (baseChangeObj (Cat.id C) X) :=
-  ⟨(_idPB X).lift (_idCone X), (_idPB X).lift_snd (_idCone X)⟩
+private def _idFwd (X : Over C) : OverHom X (baseChangeObj (𝟙 C) X) :=
+  CategoryTheory.Over.homMk ((_idPB X).lift (_idCone X))
+    ((_idPB X).lift_snd (_idCone X))
 
 /-- The backward arrow `baseChangeObj (id) X ⟶ X`: the first projection `π₁`.  Its over-`C` triangle
     is `π₁ ≫ X.hom = π₂` from the pullback square `w` (since the other leg is `id_C`). -/
-def _idBwd (X : Over C) : OverHom (baseChangeObj (Cat.id C) X) X :=
-  ⟨(_idPB X).cone.π₁, by
+def _idBwd (X : Over C) : OverHom (baseChangeObj (𝟙 C) X) X :=
+  CategoryTheory.Over.homMk ((_idPB X).cone.π₁) (by
     show (_idPB X).cone.π₁ ≫ X.hom = (_idPB X).cone.π₂
-    have := (_idPB X).cone.w; rw [Cat.comp_id] at this; exact this⟩
+    have := (_idPB X).cone.w
+    rw [CategoryTheory.Category.comp_id] at this
+    exact this)
 
 /-- `_idBwd` is an iso, with inverse `_idFwd`: back-then-forward is `id` by `lift_fst`; forward-
     then-back is `id` by pullback uniqueness (`lift_uniq`, the identity cone's lift is `id`). -/
 private theorem _idBwd_isIso (X : Over C) : @IsIso (Over C) _ _ _ (_idBwd X) := by
   refine ⟨_idFwd X, ?_, ?_⟩
   · -- `_idBwd ⊚ _idFwd = id_{baseChangeObj}` ⟺ `π₁ ≫ lift = id_pt`, by `lift_uniq`.
-    apply OverHom.ext
-    show (_idPB X).cone.π₁ ≫ (_idPB X).lift (_idCone X) = Cat.id _
+    apply CategoryTheory.Over.OverMorphism.ext
+    show (_idPB X).cone.π₁ ≫ (_idPB X).lift (_idCone X) = 𝟙 _
     -- both `π₁ ≫ lift` and `id_pt` lift the self-cone `⟨pt, π₁, π₂⟩`, so they are equal.
-    let selfCone : Cone X.hom (Cat.id C) :=
+    let selfCone : Cone X.hom (𝟙 C) :=
       ⟨(_idPB X).cone.pt, (_idPB X).cone.π₁, (_idPB X).cone.π₂, (_idPB X).cone.w⟩
     have h1 : (_idPB X).cone.π₁ ≫ (_idPB X).lift (_idCone X) = (_idPB X).lift selfCone := by
       refine (_idPB X).lift_uniq selfCone _ ?_ ?_
-      · rw [Cat.assoc, (_idPB X).lift_fst (_idCone X)]; show (_idPB X).cone.π₁ ≫ Cat.id _ = _
-        rw [Cat.comp_id]
-      · rw [Cat.assoc, (_idPB X).lift_snd (_idCone X)]
+      · rw [CategoryTheory.Category.assoc, (_idPB X).lift_fst (_idCone X)]; show (_idPB X).cone.π₁ ≫ 𝟙 _ = _
+        rw [CategoryTheory.Category.comp_id]
+      · rw [CategoryTheory.Category.assoc, (_idPB X).lift_snd (_idCone X)]
         show (_idPB X).cone.π₁ ≫ X.hom = (_idPB X).cone.π₂
-        have := (_idPB X).cone.w; rw [Cat.comp_id] at this; exact this
-    have h2 : Cat.id (_idPB X).cone.pt = (_idPB X).lift selfCone :=
-      (_idPB X).lift_uniq selfCone (Cat.id _) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])
+        have := (_idPB X).cone.w; rw [CategoryTheory.Category.comp_id] at this; exact this
+    have h2 : 𝟙 (_idPB X).cone.pt = (_idPB X).lift selfCone :=
+      (_idPB X).lift_uniq selfCone (𝟙 _) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])
     rw [h1, ← h2]
-  · -- `_idFwd ⊚ _idBwd = id_X` ⟺ `lift ≫ π₁ = id_{X.dom}` (`lift_fst` of `_idCone`).
-    apply OverHom.ext
-    show (_idPB X).lift (_idCone X) ≫ (_idPB X).cone.π₁ = Cat.id X.dom
+  · -- `_idFwd ⊚ _idBwd = id_X` ⟺ `lift ≫ π₁ = id_{X.left}` (`lift_fst` of `_idCone`).
+    apply CategoryTheory.Over.OverMorphism.ext
+    show (_idPB X).lift (_idCone X) ≫ (_idPB X).cone.π₁ = 𝟙 X.left
     exact (_idPB X).lift_fst (_idCone X)
 
-/-- **`baseChangeObj (Cat.id C) ≅ id` as a `NatIso`.**  Components are `_idBwd` (= `π₁`, iso by
+/-- **`baseChangeObj (𝟙 C) ≅ id` as a `NatIso`.**  Components are `_idBwd` (= `π₁`, iso by
     `_idBwd_isIso`); naturality is the pullback square `w` (`π₁` commutes with the base-change map's
     `π₁`-leg, which is `lift_fst`).  This proves `PseudoBaseChange.refl_iso` is genuinely
     inhabitable — the reflexive coherence iso is NOT a hidden wall. -/
 def baseChangeIdNatIso : @NatIso (Over C) _ (Over C) _
-    (baseChangeObj (Cat.id C)) (fun X => X) (baseChangeFunctor (Cat.id C)) (@idFunctor (Over C) _) where
+    (baseChangeObj (𝟙 C)) (fun X => X) (baseChangeFunctor (𝟙 C)) (@idFunctor (Over C) _) where
   nat :=
     { app := _idBwd
       naturality {X Y} m := by
         -- `baseChangeMap (id) m ⊚ _idBwd Y = _idBwd X ⊚ m`, i.e. on arrows
-        -- `(lift (baseChangeCone m)) ≫ π₁ʸ = π₁ˣ ≫ m.f`, which is exactly `lift_fst`.
-        apply OverHom.ext
-        show ((_idPB Y).lift (baseChangeCone (Cat.id C) m)) ≫ (_idPB Y).cone.π₁
-          = (_idPB X).cone.π₁ ≫ m.f
-        rw [(_idPB Y).lift_fst (baseChangeCone (Cat.id C) m)]; rfl }
+        -- `(lift (baseChangeCone m)) ≫ π₁ʸ = π₁ˣ ≫ m.left`, which is exactly `lift_fst`.
+        apply CategoryTheory.Over.OverMorphism.ext
+        show ((_idPB Y).lift (baseChangeCone (𝟙 C) m)) ≫ (_idPB Y).cone.π₁
+          = (_idPB X).cone.π₁ ≫ m.left
+        rw [(_idPB Y).lift_fst (baseChangeCone (𝟙 C) m)]; rfl }
   isIso := _idBwd_isIso
 
 end BaseChangeIdIso
@@ -332,26 +335,26 @@ theorem pasteCone_isPullback {X : 𝒞} {h : X ⟶ D}
     {c1 : Cone h g} (hc1 : c1.IsPullback)
     {c2 : Cone c1.π₂ g'} (hc2 : c2.IsPullback) :
     (Cone.mk (f := h) (g := g' ≫ g) c2.pt (c2.π₁ ≫ c1.π₁) c2.π₂
-      (by rw [Cat.assoc, c1.w, ← Cat.assoc, c2.w, Cat.assoc])).IsPullback := by
+      (by rw [CategoryTheory.Category.assoc, c1.w, ← CategoryTheory.Category.assoc, c2.w, CategoryTheory.Category.assoc])).IsPullback := by
   intro d
   -- d : cone over (h, g' ≫ g): d.π₁ ≫ h = d.π₂ ≫ (g' ≫ g).
   -- Step 1: (d.π₁, d.π₂ ≫ g') is a cone over (h, g), lift into c1 ⇒ e : d.pt ⟶ c1.pt.
-  have hw1 : d.π₁ ≫ h = (d.π₂ ≫ g') ≫ g := by rw [d.w, Cat.assoc]
+  have hw1 : d.π₁ ≫ h = (d.π₂ ≫ g') ≫ g := by rw [d.w, CategoryTheory.Category.assoc]
   obtain ⟨e, ⟨he₁, he₂⟩, huniq1⟩ := hc1 (Cone.mk d.pt d.π₁ (d.π₂ ≫ g') hw1)
   -- Step 2: (e, d.π₂) is a cone over (c1.π₂, g') (he₂ : e ≫ c1.π₂ = d.π₂ ≫ g'), lift into c2.
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc2 (Cone.mk d.pt e d.π₂ he₂)
   refine ⟨u, ⟨?_, hu₂⟩, ?_⟩
   · -- u ≫ (c2.π₁ ≫ c1.π₁) = d.π₁
-    rw [← Cat.assoc, hu₁, he₁]
+    rw [← CategoryTheory.Category.assoc, hu₁, he₁]
   · -- uniqueness: any v with v ≫ (c2.π₁ ≫ c1.π₁) = d.π₁ and v ≫ c2.π₂ = d.π₂ equals u.
     intro v hv₁ hv₂
     -- v ≫ c2.π₁ lifts the c1-cone (d.π₁, d.π₂ ≫ g'), hence equals e by uniqueness in c1.
     have hve : v ≫ c2.π₁ = e :=
-      huniq1 (v ≫ c2.π₁) (by rw [Cat.assoc]; exact hv₁)
+      huniq1 (v ≫ c2.π₁) (by rw [CategoryTheory.Category.assoc]; exact hv₁)
         (by show (v ≫ c2.π₁) ≫ c1.π₂ = d.π₂ ≫ g'
-            calc (v ≫ c2.π₁) ≫ c1.π₂ = v ≫ (c2.π₁ ≫ c1.π₂) := Cat.assoc _ _ _
+            calc (v ≫ c2.π₁) ≫ c1.π₂ = v ≫ (c2.π₁ ≫ c1.π₂) := CategoryTheory.Category.assoc _ _ _
               _ = v ≫ (c2.π₂ ≫ g') := congrArg (v ≫ ·) c2.w
-              _ = (v ≫ c2.π₂) ≫ g' := (Cat.assoc _ _ _).symm
+              _ = (v ≫ c2.π₂) ≫ g' := (CategoryTheory.Category.assoc _ _ _).symm
               _ = d.π₂ ≫ g' := congrArg (· ≫ g') hv₂)
     -- then v lifts the c2-cone (e, d.π₂), hence equals u.
     exact huniq v hve hv₂
@@ -377,26 +380,26 @@ private theorem _rhsPasted (X : Over D) :
         have hc1 := (_pb g X).cone.w
         have hc2 := (_pb g' (baseChangeObj g X)).cone.w
         calc ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁) ≫ X.hom
-            = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ ((_pb g X).cone.π₁ ≫ X.hom) := Cat.assoc _ _ _
+            = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ ((_pb g X).cone.π₁ ≫ X.hom) := CategoryTheory.Category.assoc _ _ _
           _ = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ ((_pb g X).cone.π₂ ≫ g) :=
                 congrArg ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ ·) hc1
-          _ = ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₂) ≫ g := (Cat.assoc _ _ _).symm
+          _ = ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₂) ≫ g := (CategoryTheory.Category.assoc _ _ _).symm
           _ = ((_pb g' (baseChangeObj g X)).cone.π₂ ≫ g') ≫ g := congrArg (· ≫ g) hc2
-          _ = (_pb g' (baseChangeObj g X)).cone.π₂ ≫ (g' ≫ g) := Cat.assoc _ _ _)).IsPullback :=
+          _ = (_pb g' (baseChangeObj g X)).cone.π₂ ≫ (g' ≫ g) := CategoryTheory.Category.assoc _ _ _)).IsPullback :=
   pasteCone_isPullback g g'
     (h := X.hom) ((_pb g X).cone_isPullback) ((_pb g' (baseChangeObj g X)).cone_isPullback)
 
 /-! The forward comparison map is built CONSTRUCTIVELY from the chosen pullbacks' `lift` (no
     `Classical.choice` on the `IsPullback` existential): first lift the LHS cone into the inner
-    pullback `(_pb g X)` to get `_qInner : (LHS X).dom ⟶ (bc g X).dom`, then lift `(_qInner,
+    pullback `(_pb g X)` to get `_qInner : (LHS X).left ⟶ (bc g X).left`, then lift `(_qInner,
     (LHS X).π₂)` into the outer pullback `(_pb g' (bc g X))`. -/
 
-/-- The inner factorization `(LHS X).dom ⟶ (bc g X).dom`: the lift of `((LHS X).π₁, (LHS X).π₂ ≫ g')`
+/-- The inner factorization `(LHS X).left ⟶ (bc g X).left`: the lift of `((LHS X).π₁, (LHS X).π₂ ≫ g')`
     through the inner pullback `(_pb g X)` (cone over `(X.hom, g)`). -/
-private def _qInner (X : Over D) : (baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g X).dom :=
-  (_pb g X).lift (Cone.mk (f := X.hom) (g := g) (baseChangeObj (g' ≫ g) X).dom
+private def _qInner (X : Over D) : (baseChangeObj (g' ≫ g) X).left ⟶ (baseChangeObj g X).left :=
+  (_pb g X).lift (Cone.mk (f := X.hom) (g := g) (baseChangeObj (g' ≫ g) X).left
     ((_pb (g' ≫ g) X).cone.π₁) ((_pb (g' ≫ g) X).cone.π₂ ≫ g')
-    (by rw [(_pb (g' ≫ g) X).cone.w, Cat.assoc]))
+    (by rw [(_pb (g' ≫ g) X).cone.w, CategoryTheory.Category.assoc]))
 
 private theorem _qInner_fst (X : Over D) :
     _qInner g g' X ≫ (_pb g X).cone.π₁ = (_pb (g' ≫ g) X).cone.π₁ :=
@@ -406,12 +409,12 @@ private theorem _qInner_snd (X : Over D) :
     _qInner g g' X ≫ (_pb g X).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ ≫ g' :=
   (_pb g X).lift_snd _
 
-/-- The forward comparison map `(baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g
-    X)).dom`: the lift of `(_qInner, (LHS X).π₂)` through the outer pullback `(_pb g' (bc g X))`. -/
+/-- The forward comparison map `(baseChangeObj (g' ≫ g) X).left ⟶ (baseChangeObj g' (baseChangeObj g
+    X)).left`: the lift of `(_qInner, (LHS X).π₂)` through the outer pullback `(_pb g' (bc g X))`. -/
 private def _transFwdf (X : Over D) :
-    (baseChangeObj (g' ≫ g) X).dom ⟶ (baseChangeObj g' (baseChangeObj g X)).dom :=
+    (baseChangeObj (g' ≫ g) X).left ⟶ (baseChangeObj g' (baseChangeObj g X)).left :=
   (_pb g' (baseChangeObj g X)).lift
-    (Cone.mk (f := (baseChangeObj g X).hom) (g := g') (baseChangeObj (g' ≫ g) X).dom
+    (Cone.mk (f := (baseChangeObj g X).hom) (g := g') (baseChangeObj (g' ≫ g) X).left
       (_qInner g g' X) ((_pb (g' ≫ g) X).cone.π₂)
       (by show _qInner g g' X ≫ (_pb g X).cone.π₂ = (_pb (g' ≫ g) X).cone.π₂ ≫ g'
           exact _qInner_snd g g' X))
@@ -428,7 +431,7 @@ private theorem _transFwd_π₁ (X : Over D) :
     _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)
       = (_pb (g' ≫ g) X).cone.π₁ := by
   -- `_transFwdf ≫ (_pb g' ..).π₁ = _qInner` (lift_fst); then `_qInner ≫ (_pb g X).π₁ = (LHS).π₁`.
-  rw [← Cat.assoc, _transFwd_outer_fst g g' X]
+  rw [← CategoryTheory.Category.assoc, _transFwd_outer_fst g g' X]
   exact _qInner_fst g g' X
 
 /-- The forward comparison as a slice arrow `baseChangeObj (g' ≫ g) X ⟶ baseChangeObj g'
@@ -436,7 +439,7 @@ private theorem _transFwd_π₁ (X : Over D) :
     (recall the structure map of both slice objects is `π₂`). -/
 private def _transFwd (X : Over D) :
     OverHom (baseChangeObj (g' ≫ g) X) (baseChangeObj g' (baseChangeObj g X)) :=
-  ⟨_transFwdf g g' X, _transFwd_π₂ g g' X⟩
+  CategoryTheory.Over.homMk (_transFwdf g g' X) (_transFwd_π₂ g g' X)
 
 /-- The forward comparison is iso: it is the comparison of two pullbacks of `(X.hom, g' ≫ g)` —
     the LHS chosen pullback and the pasted RHS pullback — so `isIso_of_two_pullbacks` applies. -/
@@ -446,75 +449,76 @@ private theorem _transFwd_isIso (X : Over D) : OverIso (_transFwd g g' X) :=
       (_transFwdf g g' X) (_transFwd_π₁ g g' X) (_transFwd_π₂ g g' X))
 
 /-- Naturality of the forward comparison, at the level of underlying arrows: for `m : OverHom X Y`,
-    `(baseChangeMap (g' ≫ g) m).f ≫ _transFwdf Y = _transFwdf X ≫ (baseChangeMap g' (baseChangeMap g
-    m)).f`.  Both sides factor the same cone through the RHS pasted pullback of `Y`, so they agree by
-    `lift_uniq`.  The shared cone has legs `((_pb (g'≫g) X).π₁ ≫ m.f, (_pb (g'≫g) X).π₂)` over the
+    `(baseChangeMap (g' ≫ g) m).left ≫ _transFwdf Y = _transFwdf X ≫ (baseChangeMap g' (baseChangeMap g
+    m)).left`.  Both sides factor the same cone through the RHS pasted pullback of `Y`, so they agree by
+    `lift_uniq`.  The shared cone has legs `((_pb (g'≫g) X).π₁ ≫ m.left, (_pb (g'≫g) X).π₂)` over the
     pasted projections `((_pb g' (bc g Y)).π₁ ≫ (_pb g Y).π₁, (_pb g' (bc g Y)).π₂)`. -/
 private theorem _transFwd_natf {X Y : Over D} (m : OverHom X Y) :
-    (baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y
-      = _transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f := by
+    (baseChangeMap (g' ≫ g) m).left ≫ _transFwdf g g' Y
+      = _transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).left := by
   -- It suffices that both sides agree after post-composing with the two pasted projections of `Y`,
   -- since the pasted cone of `Y` is a pullback (`_rhsPasted ... Y`).  Apply that uniqueness to the
-  -- shared cone `d` with legs `((_pb (g'≫g) X).π₁ ≫ m.f, (_pb (g'≫g) X).π₂)` over `(Y.hom, g'≫g)`.
-  have hdw : ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ≫ Y.hom
+  -- shared cone `d` with legs `((_pb (g'≫g) X).π₁ ≫ m.left, (_pb (g'≫g) X).π₂)` over `(Y.hom, g'≫g)`.
+  have hdw : ((_pb (g' ≫ g) X).cone.π₁ ≫ m.left) ≫ Y.hom
       = (_pb (g' ≫ g) X).cone.π₂ ≫ (g' ≫ g) := by
-    calc ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ≫ Y.hom
-        = (_pb (g' ≫ g) X).cone.π₁ ≫ (m.f ≫ Y.hom) := Cat.assoc _ _ _
-      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ X.hom := congrArg ((_pb (g' ≫ g) X).cone.π₁ ≫ ·) m.w
+    calc ((_pb (g' ≫ g) X).cone.π₁ ≫ m.left) ≫ Y.hom
+        = (_pb (g' ≫ g) X).cone.π₁ ≫ (m.left ≫ Y.hom) := CategoryTheory.Category.assoc _ _ _
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ X.hom :=
+        congrArg ((_pb (g' ≫ g) X).cone.π₁ ≫ ·) (CategoryTheory.Over.w m)
       _ = (_pb (g' ≫ g) X).cone.π₂ ≫ (g' ≫ g) := (_pb (g' ≫ g) X).cone.w
   obtain ⟨_, _, huniq⟩ := (_rhsPasted g g' Y)
-    (Cone.mk (f := Y.hom) (g := g' ≫ g) (baseChangeObj (g' ≫ g) X).dom
-      ((_pb (g' ≫ g) X).cone.π₁ ≫ m.f) ((_pb (g' ≫ g) X).cone.π₂) hdw)
-  -- `baseChangeMap`'s `.f` projected against the relevant pullback legs (term-typed so they `rw`).
-  have hg_fst : (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.f :=
+    (Cone.mk (f := Y.hom) (g := g' ≫ g) (baseChangeObj (g' ≫ g) X).left
+      ((_pb (g' ≫ g) X).cone.π₁ ≫ m.left) ((_pb (g' ≫ g) X).cone.π₂) hdw)
+  -- `baseChangeMap`'s `.left` projected against the relevant pullback legs (term-typed so they `rw`).
+  have hg_fst : (baseChangeMap g m).left ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.left :=
     (_pb g Y).lift_fst (baseChangeCone g m)
-  have hg'_fst : (baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₁
-      = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).f :=
+  have hg'_fst : (baseChangeMap g' (baseChangeMap g m)).left ≫ (_pb g' (baseChangeObj g Y)).cone.π₁
+      = (_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).left :=
     (_pb g' (baseChangeObj g Y)).lift_fst (baseChangeCone g' (baseChangeMap g m))
-  have hg'_snd : (baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
+  have hg'_snd : (baseChangeMap g' (baseChangeMap g m)).left ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
       = (_pb g' (baseChangeObj g X)).cone.π₂ :=
     (_pb g' (baseChangeObj g Y)).lift_snd (baseChangeCone g' (baseChangeMap g m))
-  refine (huniq ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y) ?rl1 ?rl2).trans
-    (huniq (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f) ?ll1 ?ll2).symm
+  refine (huniq ((baseChangeMap (g' ≫ g) m).left ≫ _transFwdf g g' Y) ?rl1 ?rl2).trans
+    (huniq (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).left) ?ll1 ?ll2).symm
   case ll1 =>
-    -- π₁ leg: (_transFwdf X ≫ (bc g' (bc g m)).f) ≫ (p₁ʸ) = (_pb (g'≫g) X).π₁ ≫ m.f
-    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f)
+    -- π₁ leg: (_transFwdf X ≫ (bc g' (bc g m)).left) ≫ (p₁ʸ) = (_pb (g'≫g) X).π₁ ≫ m.left
+    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).left)
             ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)
-        = _transFwdf g g' X ≫ (((baseChangeMap g' (baseChangeMap g m)).f
+        = _transFwdf g g' X ≫ (((baseChangeMap g' (baseChangeMap g m)).left
             ≫ (_pb g' (baseChangeObj g Y)).cone.π₁) ≫ (_pb g Y).cone.π₁) := by
-          simp only [Cat.assoc]
-      _ = _transFwdf g g' X ≫ (((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).f)
+          simp only [CategoryTheory.Category.assoc]
+      _ = _transFwdf g g' X ≫ (((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (baseChangeMap g m).left)
             ≫ (_pb g Y).cone.π₁) := by rw [hg'_fst]
       _ = _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁
-            ≫ ((baseChangeMap g m).f ≫ (_pb g Y).cone.π₁)) := by rw [Cat.assoc]
+            ≫ ((baseChangeMap g m).left ≫ (_pb g Y).cone.π₁)) := by rw [CategoryTheory.Category.assoc]
       _ = _transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁
-            ≫ ((_pb g X).cone.π₁ ≫ m.f)) := by rw [hg_fst]
-      _ = (_transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)) ≫ m.f := by
-          simp only [Cat.assoc]
-      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.f := by rw [_transFwd_π₁ g g' X]
+            ≫ ((_pb g X).cone.π₁ ≫ m.left)) := by rw [hg_fst]
+      _ = (_transFwdf g g' X ≫ ((_pb g' (baseChangeObj g X)).cone.π₁ ≫ (_pb g X).cone.π₁)) ≫ m.left := by
+          simp only [CategoryTheory.Category.assoc]
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.left := by rw [_transFwd_π₁ g g' X]
   case ll2 =>
-    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).f)
+    calc (_transFwdf g g' X ≫ (baseChangeMap g' (baseChangeMap g m)).left)
             ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
         = _transFwdf g g' X
-            ≫ ((baseChangeMap g' (baseChangeMap g m)).f ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) :=
-          Cat.assoc _ _ _
+            ≫ ((baseChangeMap g' (baseChangeMap g m)).left ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) :=
+          CategoryTheory.Category.assoc _ _ _
       _ = _transFwdf g g' X ≫ (_pb g' (baseChangeObj g X)).cone.π₂ := by rw [hg'_snd]
       _ = (_pb (g' ≫ g) X).cone.π₂ := _transFwd_π₂ g g' X
   case rl1 =>
-    calc ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y)
+    calc ((baseChangeMap (g' ≫ g) m).left ≫ _transFwdf g g' Y)
             ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)
-        = (baseChangeMap (g' ≫ g) m).f ≫ (_transFwdf g g' Y
-            ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)) := Cat.assoc _ _ _
-      _ = (baseChangeMap (g' ≫ g) m).f ≫ (_pb (g' ≫ g) Y).cone.π₁ := by
+        = (baseChangeMap (g' ≫ g) m).left ≫ (_transFwdf g g' Y
+            ≫ ((_pb g' (baseChangeObj g Y)).cone.π₁ ≫ (_pb g Y).cone.π₁)) := CategoryTheory.Category.assoc _ _ _
+      _ = (baseChangeMap (g' ≫ g) m).left ≫ (_pb (g' ≫ g) Y).cone.π₁ := by
           rw [_transFwd_π₁ g g' Y]
-      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.f :=
+      _ = (_pb (g' ≫ g) X).cone.π₁ ≫ m.left :=
           (_pb (g' ≫ g) Y).lift_fst (baseChangeCone (g' ≫ g) m)
   case rl2 =>
-    calc ((baseChangeMap (g' ≫ g) m).f ≫ _transFwdf g g' Y)
+    calc ((baseChangeMap (g' ≫ g) m).left ≫ _transFwdf g g' Y)
             ≫ (_pb g' (baseChangeObj g Y)).cone.π₂
-        = (baseChangeMap (g' ≫ g) m).f ≫ (_transFwdf g g' Y
-            ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) := Cat.assoc _ _ _
-      _ = (baseChangeMap (g' ≫ g) m).f ≫ (_pb (g' ≫ g) Y).cone.π₂ := by
+        = (baseChangeMap (g' ≫ g) m).left ≫ (_transFwdf g g' Y
+            ≫ (_pb g' (baseChangeObj g Y)).cone.π₂) := CategoryTheory.Category.assoc _ _ _
+      _ = (baseChangeMap (g' ≫ g) m).left ≫ (_pb (g' ≫ g) Y).cone.π₂ := by
           rw [_transFwd_π₂ g g' Y]
       _ = (_pb (g' ≫ g) X).cone.π₂ := (_pb (g' ≫ g) Y).lift_snd (baseChangeCone (g' ≫ g) m)
 
@@ -530,10 +534,10 @@ def baseChangeTransNatIso :
         (baseChangeObj g) (baseChangeObj g') (baseChangeFunctor g) (baseChangeFunctor g')) where
   nat :=
     { app := _transFwd g g'
-      naturality {_ _} m := OverHom.ext (_transFwd_natf g g' m) }
+      naturality {_ _} m := CategoryTheory.Over.OverMorphism.ext (_transFwd_natf g g' m) }
   isIso := _transFwd_isIso g g'
 
--- Public `.f`-leg characterisation of the composite coherence iso.
+-- Public `.left`-leg characterisation of the composite coherence iso.
 -- `baseChangeTransNatIso g g' X` has underlying comparison arrow `_transFwdf g g' X`
 -- (the iterated-/pasted-pullback comparison).  The lemmas below expose how it interacts with the
 -- chosen pullback projections, stated entirely in PUBLIC terms (`HasPullbacks.has _ _` — exactly what
@@ -541,12 +545,12 @@ def baseChangeTransNatIso :
 
 /-- The underlying comparison arrow of `baseChangeTransNatIso g g' X` is `_transFwdf g g' X`. -/
 theorem baseChangeTransNatIso_app_f (X : Over D) :
-    ((baseChangeTransNatIso g g').nat.app X).f = _transFwdf g g' X := rfl
+    ((baseChangeTransNatIso g g').nat.app X).left = _transFwdf g g' X := rfl
 
 /-- **`π₂`-leg of the composite coherence comparison.**  The comparison sends the outer (structure)
     projection of the pasted RHS pullback to the LHS structure projection. -/
 theorem baseChangeTransNatIso_app_f_π₂ (X : Over D) :
-    ((baseChangeTransNatIso g g').nat.app X).f
+    ((baseChangeTransNatIso g g').nat.app X).left
         ≫ (HasPullbacks.has (baseChangeObj g X).hom g').cone.π₂
       = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₂ :=
   _transFwd_π₂ g g' X
@@ -555,7 +559,7 @@ theorem baseChangeTransNatIso_app_f_π₂ (X : Over D) :
     (content) projection of the pasted RHS pullback — outer `π₁` then inner `π₁` — to the LHS
     content projection. -/
 theorem baseChangeTransNatIso_app_f_π₁ (X : Over D) :
-    ((baseChangeTransNatIso g g').nat.app X).f
+    ((baseChangeTransNatIso g g').nat.app X).left
         ≫ ((HasPullbacks.has (baseChangeObj g X).hom g').cone.π₁
             ≫ (HasPullbacks.has X.hom g).cone.π₁)
       = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₁ :=
@@ -564,12 +568,12 @@ theorem baseChangeTransNatIso_app_f_π₁ (X : Over D) :
 /-- **mixed `π₁ ≫ π₂`-leg of the composite coherence comparison.**  Outer `π₁` then inner `π₂` of the
     pasted RHS pullback equals the LHS structure projection post-composed with `g'`. -/
 theorem baseChangeTransNatIso_app_f_π₁π₂ (X : Over D) :
-    ((baseChangeTransNatIso g g').nat.app X).f
+    ((baseChangeTransNatIso g g').nat.app X).left
         ≫ ((HasPullbacks.has (baseChangeObj g X).hom g').cone.π₁
             ≫ (HasPullbacks.has X.hom g).cone.π₂)
       = (HasPullbacks.has X.hom (g' ≫ g)).cone.π₂ ≫ g' := by
   show _transFwdf g g' X ≫ _ = _
-  rw [← Cat.assoc, _transFwd_outer_fst g g' X]; exact _qInner_snd g g' X
+  rw [← CategoryTheory.Category.assoc, _transFwd_outer_fst g g' X]; exact _qInner_snd g g' X
 
 end BaseChangeTransIso
 
@@ -594,7 +598,7 @@ structure PseudoBaseChange (P : ProjSystem ι D 𝒞) where
         (pcF P hij) (pcF P hjk) (pcFunctF P hij) (pcFunctF P hjk))
 
 /-- **The reflexive coherence iso of ANY base-change projection system is real.**  Transporting
-    `baseChangeIdNatIso` along `P.proj_refl i : P.proj (D.refl i) = Cat.id (pr i)` discharges the
+    `baseChangeIdNatIso` along `P.proj_refl i : P.proj (D.refl i) = 𝟙 (pr i)` discharges the
     `refl_iso` field for every `ProjSystem` — Sorry-free.  So `PseudoBaseChange` reduces to its
     `trans_iso` field alone: the reflexive half is NOT a blocker. -/
 def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
@@ -678,14 +682,14 @@ variable (L : LaxCatSystem.{u, w} ι D)
 /-- The chosen inverse of an iso (the `NatIso`/`IsIso` field is a `Prop`-existential, so extracting
     the inverse arrow as data is necessarily noncomputable — this is an interface limitation of the
     `IsIso := ∃ g, …` encoding, not a use of choice on mathematical content). -/
-noncomputable def isoInv {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) : Y ⟶ X :=
+noncomputable def isoInv {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) : Y ⟶ X :=
   Classical.choose h
 
-theorem isoInv_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
-    f ≫ isoInv h = Cat.id X := (Classical.choose_spec h).1
+theorem isoInv_comp {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
+    f ≫ isoInv h = 𝟙 X := (Classical.choose_spec h).1
 
-theorem inv_isoInv_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
-    isoInv h ≫ f = Cat.id Y := (Classical.choose_spec h).2
+theorem inv_isoInv_comp {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y} (h : IsIso f) :
+    isoInv h ≫ f = 𝟙 Y := (Classical.choose_spec h).2
 
 /-- The forward component of the `trans` coherence iso at an object, `F (trans hik hkm) x ⟶
     F hkm (F hik x)`: the "source coercion" that the pushed morphism's domain needs. -/
@@ -762,15 +766,15 @@ theorem pushHom_comp {i j l : ι} (x : L.A i) (y : L.A j) (z : L.A l) {k m : ι}
   unfold pushHom
   rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ _ f g]
   -- collapse `inv (transApp y) ≫ transApp y = id` in the middle.
-  simp only [Cat.assoc]
-  rw [← Cat.assoc (isoInv (transApp_isIso L hjk hkm y)), inv_isoInv_comp, Cat.id_comp]
+  simp only [CategoryTheory.Category.assoc]
+  rw [← CategoryTheory.Category.assoc (isoInv (transApp_isIso L hjk hkm y)), inv_isoInv_comp, CategoryTheory.Category.id_comp]
 
 /-- **The source-naturality characterisation of `pushHom`** (the decisive Phase-1 primitive).  By
     construction `pushHom g = transApp x ≫ map g ≫ inv (transApp y)`, so post-composing with the
     target collapse iso `transApp y` cancels its inverse, leaving `transApp x ≫ map g`.  This is the
-    clean equation that lets one COMPUTE `(pushHom g)` (and hence its `.f` underlying arrow) WITHOUT
+    clean equation that lets one COMPUTE `(pushHom g)` (and hence its `.left` underlying arrow) WITHOUT
     unfolding `isoInv`: the two collapse isos `transApp x`, `transApp y` are the concrete pullback
-    comparison isos, whose `.f` legs are characterised by the `transApp_f_*` lemmas. -/
+    comparison isos, whose `.left` legs are characterised by the `transApp_f_*` lemmas. -/
 theorem pushHom_transApp {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
     (g : L.F hik x ⟶ L.F hjk y) :
@@ -778,15 +782,15 @@ theorem pushHom_transApp {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
       = transApp L hik hkm x
         ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g := by
   unfold pushHom
-  rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
+  rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, inv_isoInv_comp, CategoryTheory.Category.comp_id]
 
 /-- `pushHom` preserves identities — the analogue of `homTr_id`.  `map id = id`, then `transApp x ≫
     inv (transApp x) = id`.  PROVEN from the bare structure — needs NO pseudofunctor coherence. -/
 theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le k m) :
-    pushHom L x x hik hik hkm (Cat.id (L.F hik x)) = Cat.id (L.F (D.trans hik hkm) x) := by
+    pushHom L x x hik hik hkm (𝟙 (L.F hik x)) = 𝟙 (L.F (D.trans hik hkm) x) := by
   unfold pushHom
   rw [@Functor.map_id (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm),
-    Cat.id_comp, isoInv_comp]
+    CategoryTheory.Category.id_comp, isoInv_comp]
 
 /-! ### Pseudofunctor coherence of the lax hom-transition
 
@@ -836,7 +840,8 @@ theorem nestApp3_isIso {i b c d : ι}
     (hib : D.le i b) (hbc : D.le b c) (hcd : D.le c d) (x : L.A i) :
     IsIso (nestApp3 L hib hbc hcd x) :=
   isIso_comp (transApp_isIso L (D.trans hib hbc) hcd x)
-    (@functor_preserves_iso _ _ _ _ _ (L.functF hcd) _ _ _ (transApp_isIso L hib hbc x))
+    (functor_preserves_iso (bundledFunctor (hF := L.functF hcd) (L.F hcd)) _
+      (transApp_isIso L hib hbc x))
 
 end LaxHom
 
@@ -884,7 +889,7 @@ theorem homInclL_compat {i j : ι} (x : L.A i) (y : L.A j)
 /-- The identity germ at `⟨i,x⟩`: the germ of `𝟙 (F (refl i) x)` at the trivial upper bound
     `⟨i, refl i, refl i⟩`. -/
 noncomputable def homIdL {i : ι} (x : L.A i) : HomColimL L hL x x :=
-  homInclL L hL x x ⟨i, D.refl i, D.refl i⟩ (Cat.id (L.F (D.refl i) x))
+  homInclL L hL x x ⟨i, D.refl i, D.refl i⟩ (𝟙 (L.F (D.refl i) x))
 
 /-! ### Composition at an explicit common bound, and bound-independence -/
 
@@ -1017,25 +1022,25 @@ noncomputable def compL {p q r : Obj L} (m : homL L hL p q) (n : homL L hL q r) 
 /-- Left identity at the raw level: `id ∘ f = f` (composing the identity germ with `f`). -/
 theorem homCompRawL_id_left {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
     (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq) :
-    homCompRawL L hL xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (Cat.id (L.F (D.refl ip) xp)) a f
+    homCompRawL L hL xp xp xq ⟨ip, D.refl ip, D.refl ip⟩ (𝟙 (L.F (D.refl ip) xp)) a f
       = homInclL L hL xp xq a f := by
   rw [homCompRawL_eq_compAtL L hL xp xp xq ⟨ip, D.refl ip, D.refl ip⟩
-        (Cat.id (L.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
+        (𝟙 (L.F (D.refl ip) xp)) a f a.1 a.2.1 (D.refl a.1)]
   unfold compAtL
   -- left push: `pushHom id = id` (`pushHom_id`); right push at `refl`: `pushHom f = f` (`push_refl`).
-  rw [pushHom_id L xp (D.refl ip) a.2.1, hL.push_refl xp xq a.2.1 a.2.2 f, Cat.id_comp]
+  rw [pushHom_id L xp (D.refl ip) a.2.1, hL.push_refl xp xq a.2.1 a.2.2 f, CategoryTheory.Category.id_comp]
   -- the remaining bound differs from `a` only in `D.le` proofs (irrelevant): defeq.
   rfl
 
 /-- Right identity at the raw level: `f ∘ id = f`. -/
 theorem homCompRawL_id_right {ip iq : ι} (xp : L.A ip) (xq : L.A iq)
     (a : UpperBound D ip iq) (f : L.F a.2.1 xp ⟶ L.F a.2.2 xq) :
-    homCompRawL L hL xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (Cat.id (L.F (D.refl iq) xq))
+    homCompRawL L hL xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩ (𝟙 (L.F (D.refl iq) xq))
       = homInclL L hL xp xq a f := by
   rw [homCompRawL_eq_compAtL L hL xp xq xq a f ⟨iq, D.refl iq, D.refl iq⟩
-        (Cat.id (L.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
+        (𝟙 (L.F (D.refl iq) xq)) a.1 (D.refl a.1) a.2.2]
   unfold compAtL
-  rw [pushHom_id L xq (D.refl iq) a.2.2, hL.push_refl xp xq a.2.1 a.2.2 f, Cat.comp_id]
+  rw [pushHom_id L xq (D.refl iq) a.2.2, hL.push_refl xp xq a.2.1 a.2.2 f, CategoryTheory.Category.comp_id]
   rfl
 
 /-- Left identity in `LaxColim L`: `idL ∘ m = m`. -/
@@ -1050,7 +1055,7 @@ theorem compL_id_right {p q : Obj L} (m : homL L hL p q) : compL L hL m (idL L h
 
 /-- Associativity in `LaxColim L`.  Mirrors the strict `colimComp_assoc`: push all three germ
     representatives to a single common bound `M`, where both bracketings reduce to one stage
-    composite `(F_M ≫ G_M) ≫ H_M` resp. `F_M ≫ (G_M ≫ H_M)`, equal by `Cat.assoc`.  The strict
+    composite `(F_M ≫ G_M) ≫ H_M` resp. `F_M ≫ (G_M ≫ H_M)`, equal by `CategoryTheory.Category.assoc`.  The strict
     `homTr_refl`/`homTr_comp` become `push_refl`/`pushHom_comp`. -/
 theorem compL_assoc {p q r s : Obj L}
     (m : homL L hL p q) (n : homL L hL q r) (k : homL L hL r s) :
@@ -1107,7 +1112,7 @@ theorem compL_assoc {p q r s : Obj L}
           rw [h_innerL]
     _ = homCompRawL L hL xp xr xs ub_pr (F_M ≫ G_M) c h := h_outerL
     _ = homInclL L hL xp xs ub_ps ((F_M ≫ G_M) ≫ H_M) := h_simpL
-    _ = homInclL L hL xp xs ub_ps (F_M ≫ (G_M ≫ H_M)) := by rw [Cat.assoc F_M G_M H_M]
+    _ = homInclL L hL xp xs ub_ps (F_M ≫ (G_M ≫ H_M)) := by rw [CategoryTheory.Category.assoc F_M G_M H_M]
     _ = homCompRawL L hL xp xq xs a f ub_qs (G_M ≫ H_M) := h_simpR.symm
     _ = compL L hL (Quotient.mk _ ⟨a, f⟩) (compAtL L hL xq xr xs b g c h M hbM hcM) := h_outerR.symm
     _ = compL L hL (Quotient.mk _ ⟨a, f⟩) (compL L hL (Quotient.mk _ ⟨b, g⟩) (Quotient.mk _ ⟨c, h⟩)) := by
@@ -1140,7 +1145,7 @@ end HomColim
   proved by pullback-`lift` uniqueness.  With this, §1.543 is proven Sorry-free. -/
 section BaseChangeCoherent
 
-variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
 variable {ι : Type u} {D : Directed ι}
 
 /-- The `.nat.app` underlying arrow of a base-map-transport of a `NatIso` of base-change functors:
@@ -1150,21 +1155,21 @@ theorem mpr_natiso_app {C E : 𝒞} {a b : E ⟶ C} (e : a = b)
     {G : Over C → Over E} [hG : Functor G]
     (N : @NatIso (Over C) _ (Over E) _ (baseChangeObj b) G _ hG) (X : Over C) :
     ((Eq.mpr (congrArg (fun z => @NatIso (Over C) _ (Over E) _ (baseChangeObj z) G _ hG) e) N).nat.app
-        X).f
-      = (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (N.nat.app X).f := by
+        X).left
+      = (eqToHom (congrArg (fun z => baseChangeObj z X) e)).left ≫ (N.nat.app X).left := by
   subst e
-  show (N.nat.app X).f = (eqToHom (rfl : baseChangeObj a X = _)).f ≫ (N.nat.app X).f
+  show (N.nat.app X).left = (eqToHom (rfl : baseChangeObj a X = _)).left ≫ (N.nat.app X).left
   rw [show ((eqToHom (rfl : baseChangeObj a X = baseChangeObj a X)) : baseChangeObj a X ⟶ _)
-        = Cat.id _ from rfl]
-  exact (Cat.id_comp _).symm
+        = 𝟙 _ from rfl]
+  exact (CategoryTheory.Category.id_comp _).symm
 
 /-- The `.nat.app` of the transported composite coherence iso `projTransIso`, computed via
     `eqToHom`-conjugation of the underlying `baseChangeTransNatIso`.  Generalises the internal
     `rw [P.proj_trans …]` transport so that the pushed-morphism arrows become explicit. -/
 private theorem projTransIso_app (P : ProjSystem ι D 𝒞) {i j k : ι}
     (hij : D.le i j) (hjk : D.le j k) (X : pcObj P i) :
-    (transApp (laxOfProjSystem' P) hij hjk X).f
-      = (eqToHom (congrArg (fun z => baseChangeObj z X) (P.proj_trans hij hjk))).f
+    (transApp (laxOfProjSystem' P) hij hjk X).left
+      = (eqToHom (congrArg (fun z => baseChangeObj z X) (P.proj_trans hij hjk))).left
           ≫ _transFwdf (P.proj hij) (P.proj hjk) X := by
   unfold transApp
   simp only [laxOfProjSystem', laxOfProjSystem, pseudoBaseChange, projTransIso, id_eq]
@@ -1174,30 +1179,30 @@ private theorem projTransIso_app (P : ProjSystem ι D 𝒞) {i j k : ι}
 /-- `eqToHom` between two base-change objects over equal base maps, post-composed with the chosen
     pullback's `π₂`, is the source `π₂` (the transport is the identity on pullbacks). -/
 theorem eqToHom_bc_π₂ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
-    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₂
+    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).left ≫ (_pb b X).cone.π₂
       = (_pb a X).cone.π₂ := by
   subst e
   rw [show (eqToHom (congrArg (fun z => baseChangeObj z X) (rfl : a = a))
-        : baseChangeObj a X ⟶ baseChangeObj a X) = Cat.id _ from rfl]
-  exact Cat.id_comp _
+        : baseChangeObj a X ⟶ baseChangeObj a X) = 𝟙 _ from rfl]
+  exact CategoryTheory.Category.id_comp _
 
 /-- Same, post-composed with the chosen pullback's `π₁`. -/
 theorem eqToHom_bc_π₁ {C E : 𝒞} {a b : E ⟶ C} (e : a = b) (X : Over C) :
-    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (_pb b X).cone.π₁
+    (eqToHom (congrArg (fun z => baseChangeObj z X) e)).left ≫ (_pb b X).cone.π₁
       = (_pb a X).cone.π₁ := by
   subst e
   rw [show (eqToHom (congrArg (fun z => baseChangeObj z X) (rfl : a = a))
-        : baseChangeObj a X ⟶ baseChangeObj a X) = Cat.id _ from rfl]
-  exact Cat.id_comp _
+        : baseChangeObj a X ⟶ baseChangeObj a X) = 𝟙 _ from rfl]
+  exact CategoryTheory.Category.id_comp _
 
 /-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₂` is the source `π₂`. -/
 private theorem baseChangeMap_f_π₂ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
-    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ :=
+    (baseChangeMap g m).left ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ :=
   (_pb g Y).lift_snd (baseChangeCone g m)
 
-/-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₁` is `π₁ ≫ m.f`. -/
+/-- `baseChangeMap`'s underlying arrow against the codomain pullback's `π₁` is `π₁ ≫ m.left`. -/
 theorem baseChangeMap_f_π₁ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
-    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.f :=
+    (baseChangeMap g m).left ≫ (_pb g Y).cone.π₁ = (_pb g X).cone.π₁ ≫ m.left :=
   (_pb g Y).lift_fst (baseChangeCone g m)
 
 /-- Two arrows into a chosen pullback agreeing on both projections are equal. -/
@@ -1205,9 +1210,9 @@ private theorem pb_hom_ext {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} (p : HasPu
     {Z : 𝒞} {u v : Z ⟶ p.cone.pt}
     (h₁ : u ≫ p.cone.π₁ = v ≫ p.cone.π₁) (h₂ : u ≫ p.cone.π₂ = v ≫ p.cone.π₂) : u = v := by
   rw [p.lift_uniq ⟨Z, u ≫ p.cone.π₁, u ≫ p.cone.π₂,
-        by rw [Cat.assoc, p.cone.w, Cat.assoc]⟩ u rfl rfl,
+        by rw [CategoryTheory.Category.assoc, p.cone.w, CategoryTheory.Category.assoc]⟩ u rfl rfl,
       p.lift_uniq ⟨Z, u ≫ p.cone.π₁, u ≫ p.cone.π₂,
-        by rw [Cat.assoc, p.cone.w, Cat.assoc]⟩ v h₁.symm h₂.symm]
+        by rw [CategoryTheory.Category.assoc, p.cone.w, CategoryTheory.Category.assoc]⟩ v h₁.symm h₂.symm]
 
 /-- The composite `eqToHom (proj_trans) ≫ _qInner (proj hik) (proj (refl)) x` is the identity on the
     pullback `baseChangeObj (P.proj hik) x` (the `trans`-iso's inner factorisation, at a reflexive
@@ -1215,17 +1220,17 @@ private theorem pb_hom_ext {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C} (p : HasPu
     reflexive coherence. -/
 private theorem qInner_refl_id (P : ProjSystem ι D 𝒞) {i : ι} {k : ι}
     (hik : D.le i k) (x : pcObj P i) :
-    (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik (D.refl k)))).f
+    (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik (D.refl k)))).left
         ≫ _qInner (P.proj hik) (P.proj (D.refl k)) x
-      = Cat.id (baseChangeObj (P.proj hik) x).dom := by
+      = 𝟙 (baseChangeObj (P.proj hik) x).left := by
   apply pb_hom_ext (_pb (P.proj hik) x)
-  · rw [Cat.assoc, _qInner_fst (P.proj hik) (P.proj (D.refl k)) x,
-        eqToHom_bc_π₁ (P.proj_trans hik (D.refl k)) x, Cat.id_comp]
+  · rw [CategoryTheory.Category.assoc, _qInner_fst (P.proj hik) (P.proj (D.refl k)) x,
+        eqToHom_bc_π₁ (P.proj_trans hik (D.refl k)) x, CategoryTheory.Category.id_comp]
   · have hr : (_pb (P.proj (D.refl k) ≫ P.proj hik) x).cone.π₂ ≫ P.proj (D.refl k)
         = (_pb (P.proj (D.refl k) ≫ P.proj hik) x).cone.π₂ := by
-      rw [P.proj_refl k, Cat.comp_id]
-    rw [Cat.assoc, _qInner_snd (P.proj hik) (P.proj (D.refl k)) x, hr,
-        eqToHom_bc_π₂ (P.proj_trans hik (D.refl k)) x, Cat.id_comp]
+      rw [P.proj_refl k, CategoryTheory.Category.comp_id]
+    rw [CategoryTheory.Category.assoc, _qInner_snd (P.proj hik) (P.proj (D.refl k)) x, hr,
+        eqToHom_bc_π₂ (P.proj_trans hik (D.refl k)) x, CategoryTheory.Category.id_comp]
 
 /-- The naturality-square reduction of `proj_push_refl`: pushing `g` along the reflexive bound
     intertwines the two `trans`-coherence forward maps. -/
@@ -1236,29 +1241,29 @@ private theorem proj_push_refl_key (P : ProjSystem ι D 𝒞)
     transApp (laxOfProjSystem' P) hik (D.refl k) x
       ≫ Functor.map (self := (laxOfProjSystem' P).functF (D.refl k)) g
       = g ≫ transApp (laxOfProjSystem' P) hjk (D.refl k) y := by
-  apply OverHom.ext
-  show (transApp (laxOfProjSystem' P) hik (D.refl k) x).f ≫ (baseChangeMap (P.proj (D.refl k)) g).f
-      = g.f ≫ (transApp (laxOfProjSystem' P) hjk (D.refl k) y).f
+  apply CategoryTheory.Over.OverMorphism.ext
+  show (transApp (laxOfProjSystem' P) hik (D.refl k) x).left ≫ (baseChangeMap (P.proj (D.refl k)) g).left
+      = g.left ≫ (transApp (laxOfProjSystem' P) hjk (D.refl k) y).left
   rw [projTransIso_app, projTransIso_app]
   apply pb_hom_ext (_pb (P.proj (D.refl k)) (baseChangeObj (P.proj hjk) y))
   · -- π₁ leg: reduces (via `_qInner`) to an equality of arrows into the pullback `bc (P.proj hjk) y`.
-    simp only [Cat.assoc]
+    simp only [CategoryTheory.Category.assoc]
     rw [baseChangeMap_f_π₁ (P.proj (D.refl k)) g]
-    rw [← Cat.assoc (_transFwdf (P.proj hik) (P.proj (D.refl k)) x),
+    rw [← CategoryTheory.Category.assoc (_transFwdf (P.proj hik) (P.proj (D.refl k)) x),
         _transFwd_outer_fst (P.proj hik) (P.proj (D.refl k)) x,
         _transFwd_outer_fst (P.proj hjk) (P.proj (D.refl k)) y]
-    -- goal: eqToHom.f ≫ _qInner gik r x ≫ g.f = g.f ≫ eqToHom.f ≫ _qInner gjk r y
+    -- goal: eqToHom.left ≫ _qInner gik r x ≫ g.left = g.left ≫ eqToHom.left ≫ _qInner gjk r y
     -- both inner factorisations collapse to the identity (`qInner_refl_id`).
-    rw [← Cat.assoc, qInner_refl_id P hik x, qInner_refl_id P hjk y]
-    exact (Cat.id_comp _).trans (Cat.comp_id _).symm
+    rw [← CategoryTheory.Category.assoc, qInner_refl_id P hik x, qInner_refl_id P hjk y]
+    exact (CategoryTheory.Category.id_comp _).trans (CategoryTheory.Category.comp_id _).symm
   · -- π₂ leg: both sides reduce to `(baseChangeObj (P.proj hik) x).hom`.
-    simp only [Cat.assoc]
+    simp only [CategoryTheory.Category.assoc]
     rw [baseChangeMap_f_π₂ (P.proj (D.refl k)) g,
         _transFwd_π₂ (P.proj hik) (P.proj (D.refl k)) x,
         eqToHom_bc_π₂ (P.proj_trans hik (D.refl k)) x,
         _transFwd_π₂ (P.proj hjk) (P.proj (D.refl k)) y,
         eqToHom_bc_π₂ (P.proj_trans hjk (D.refl k)) y]
-    exact (g.w).symm
+    exact (CategoryTheory.Over.w g).symm
 
 /-- `push_refl` for the base-change system. -/
 theorem proj_push_refl (P : ProjSystem ι D 𝒞)
@@ -1267,105 +1272,106 @@ theorem proj_push_refl (P : ProjSystem ι D 𝒞)
     (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
     pushHom (laxOfProjSystem' P) x y hik hjk (D.refl k) g = g := by
   unfold pushHom
-  rw [← Cat.assoc, proj_push_refl_key P x y hik hjk g, Cat.assoc, isoInv_comp, Cat.comp_id]
+  rw [← CategoryTheory.Category.assoc, proj_push_refl_key P x y hik hjk g, CategoryTheory.Category.assoc, isoInv_comp, CategoryTheory.Category.comp_id]
 
 /-- Right-cancellation of an isomorphism: if `a ≫ h = b ≫ h` and `h` is iso, then `a = b`.  Stated
     over an arbitrary category `𝒜` (the cancellation happens in a slice `L.A n`, not the base `𝒞`). -/
-private theorem iso_cancel_right {𝒜 : Type w} [Cat.{w} 𝒜] {X Y Y' : 𝒜} {a b : X ⟶ Y}
+private theorem iso_cancel_right {𝒜 : Type w} [CategoryTheory.Category.{w} 𝒜] {X Y Y' : 𝒜} {a b : X ⟶ Y}
     (h : Y ⟶ Y') (hh : IsIso h) (e : a ≫ h = b ≫ h) : a = b := by
   obtain ⟨h', hh1, _⟩ := hh
-  calc a = a ≫ (h ≫ h') := by rw [hh1, Cat.comp_id]
-    _ = (a ≫ h) ≫ h' := (Cat.assoc _ _ _).symm
+  calc a = a ≫ (h ≫ h') := by rw [hh1, CategoryTheory.Category.comp_id]
+    _ = (a ≫ h) ≫ h' := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (b ≫ h) ≫ h' := by rw [e]
-    _ = b ≫ (h ≫ h') := Cat.assoc _ _ _
-    _ = b := by rw [hh1, Cat.comp_id]
+    _ = b ≫ (h ≫ h') := CategoryTheory.Category.assoc _ _ _
+    _ = b := by rw [hh1, CategoryTheory.Category.comp_id]
 
 /-- `reassoc` form of `baseChangeMap_f_π₁`. -/
 private theorem baseChangeMap_f_π₁' {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y)
-    {W : 𝒞} (z : Y.dom ⟶ W) :
-    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₁ ≫ z = (_pb g X).cone.π₁ ≫ m.f ≫ z := by
-  rw [← Cat.assoc, baseChangeMap_f_π₁ g m, Cat.assoc]
+    {W : 𝒞} (z : Y.left ⟶ W) :
+    (baseChangeMap g m).left ≫ (_pb g Y).cone.π₁ ≫ z = (_pb g X).cone.π₁ ≫ m.left ≫ z := by
+  rw [← CategoryTheory.Category.assoc, baseChangeMap_f_π₁ g m, CategoryTheory.Category.assoc]
 
 /-- `reassoc` form of `baseChangeMap_f_π₂`. -/
 private theorem baseChangeMap_f_π₂' {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y)
     {W : 𝒞} (z : E ⟶ W) :
-    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ ≫ z = (_pb g X).cone.π₂ ≫ z := by
-  rw [← Cat.assoc, baseChangeMap_f_π₂ g m]
+    (baseChangeMap g m).left ≫ (_pb g Y).cone.π₂ ≫ z = (_pb g X).cone.π₂ ≫ z := by
+  rw [← CategoryTheory.Category.assoc, baseChangeMap_f_π₂ g m]
 
 /-- The outer `π₂`-leg of `transApp`'s underlying arrow: it is the composite pullback's `π₂` (the
     structure map to `pr m`).  Stated in `reassoc` form (trailing `≫ z`) so it applies as a `simp`
     lemma regardless of how the surrounding composite is associated. -/
 private theorem transApp_f_π₂ (P : ProjSystem ι D 𝒞) {i k m : ι} (hik : D.le i k) (hkm : D.le k m)
     (x : pcObj P i) {W : 𝒞} (z : P.pr m ⟶ W) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₂ ≫ z
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ z := by
-  rw [← Cat.assoc, projTransIso_app, Cat.assoc, Cat.assoc,
-      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
-      _transFwd_π₂ (P.proj hik) (P.proj hkm) x, ← Cat.assoc,
+  rw [← CategoryTheory.Category.assoc, projTransIso_app, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc,
+      ← CategoryTheory.Category.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
+      _transFwd_π₂ (P.proj hik) (P.proj hkm) x, ← CategoryTheory.Category.assoc,
       eqToHom_bc_π₂ (P.proj_trans hik hkm) x]
 
 /-- The deep `π₁ ≫ π₁`-leg of `transApp`'s underlying arrow projects to the composite pullback's
-    `π₁` (down to `x.dom`).  `reassoc` form. -/
+    `π₁` (down to `x.left`).  `reassoc` form. -/
 theorem transApp_f_π₁π₁ (P : ProjSystem ι D 𝒞) {i k m : ι}
-    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : x.dom ⟶ W) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : x.left ⟶ W) :
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
             ≫ (_pb (P.proj hik) x).cone.π₁ ≫ z
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₁ ≫ z := by
-  rw [projTransIso_app, Cat.assoc,
-      ← Cat.assoc ((_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁)
+  rw [projTransIso_app, CategoryTheory.Category.assoc,
+      ← CategoryTheory.Category.assoc ((_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁)
         ((_pb (P.proj hik) x).cone.π₁) z,
-      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
-      _transFwd_π₁ (P.proj hik) (P.proj hkm) x, ← Cat.assoc,
+      ← CategoryTheory.Category.assoc (_transFwdf (P.proj hik) (P.proj hkm) x),
+      _transFwd_π₁ (P.proj hik) (P.proj hkm) x, ← CategoryTheory.Category.assoc,
       eqToHom_bc_π₁ (P.proj_trans hik hkm) x]
 
 /-- The mixed `π₁ ≫ π₂`-leg of `transApp`'s underlying arrow: it is the composite pullback's `π₂`
     post-composed with the second projection `proj hkm` (the inner pasting square).  `reassoc` form. -/
 private theorem transApp_f_π₁π₂ (P : ProjSystem ι D 𝒞) {i k m : ι}
     (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) {W : 𝒞} (z : P.pr k ⟶ W) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
             ≫ (_pb (P.proj hik) x).cone.π₂ ≫ z
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ P.proj hkm ≫ z := by
-  rw [projTransIso_app, Cat.assoc,
-      ← Cat.assoc (_transFwdf (P.proj hik) (P.proj hkm) x)
+  rw [projTransIso_app, CategoryTheory.Category.assoc,
+      ← CategoryTheory.Category.assoc (_transFwdf (P.proj hik) (P.proj hkm) x)
         ((_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁),
       _transFwd_outer_fst (P.proj hik) (P.proj hkm) x,
-      ← Cat.assoc (_qInner (P.proj hik) (P.proj hkm) x),
-      _qInner_snd (P.proj hik) (P.proj hkm) x, Cat.assoc,
-      ← Cat.assoc (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik hkm))).f,
+      ← CategoryTheory.Category.assoc (_qInner (P.proj hik) (P.proj hkm) x),
+      _qInner_snd (P.proj hik) (P.proj hkm) x, CategoryTheory.Category.assoc,
+      ← CategoryTheory.Category.assoc (eqToHom (congrArg (fun z => baseChangeObj z x) (P.proj_trans hik hkm))).left,
       eqToHom_bc_π₂ (P.proj_trans hik hkm) x]
 
 /-- Terminal (`z = id`) form of `transApp_f_π₂`. -/
 private theorem transApp_f_π₂₀ (P : ProjSystem ι D 𝒞) {i k m : ι} (hik : D.le i k) (hkm : D.le k m)
     (x : pcObj P i) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₂
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ := by
-  have h := transApp_f_π₂ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+  have h := transApp_f_π₂ P hik hkm x (𝟙 _); rwa [CategoryTheory.Category.comp_id, CategoryTheory.Category.comp_id] at h
 
 /-- Terminal form of `transApp_f_π₁π₁`. -/
 private theorem transApp_f_π₁π₁₀ (P : ProjSystem ι D 𝒞) {i k m : ι}
     (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
             ≫ (_pb (P.proj hik) x).cone.π₁
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₁ := by
-  have h := transApp_f_π₁π₁ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+  have h := transApp_f_π₁π₁ P hik hkm x (𝟙 _)
+  simpa [CategoryTheory.Category.assoc] using h
 
 /-- Terminal form of `transApp_f_π₁π₂`. -/
 private theorem transApp_f_π₁π₂₀ (P : ProjSystem ι D 𝒞) {i k m : ι}
     (hik : D.le i k) (hkm : D.le k m) (x : pcObj P i) :
-    (transApp (laxOfProjSystem' P) hik hkm x).f
+    (transApp (laxOfProjSystem' P) hik hkm x).left
         ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁
             ≫ (_pb (P.proj hik) x).cone.π₂
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ ≫ P.proj hkm := by
-  have h := transApp_f_π₁π₂ P hik hkm x (Cat.id _); rwa [Cat.comp_id, Cat.comp_id] at h
+  have h := transApp_f_π₁π₂ P hik hkm x (𝟙 _); rwa [CategoryTheory.Category.comp_id, CategoryTheory.Category.comp_id] at h
 
 /-- Terminal form of `baseChangeMap_f_π₁'` (= `baseChangeMap_f_π₁`). -/
 private theorem baseChangeMap_f_π₂₀ {C E : 𝒞} (g : E ⟶ C) {X Y : Over C} (m : OverHom X Y) :
-    (baseChangeMap g m).f ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ := baseChangeMap_f_π₂ g m
+    (baseChangeMap g m).left ≫ (_pb g Y).cone.π₂ = (_pb g X).cone.π₂ := baseChangeMap_f_π₂ g m
 
 /-- **The `transApp` pentagon / 2-cocycle.**  Pushing the source along the composite `k ≤ m ≤ n`
     factors as the iterated push: `transApp (k≤m·n) ≫ transApp (m≤n)` equals
@@ -1380,11 +1386,11 @@ private theorem transApp_cocycle (P : ProjSystem ι D 𝒞) {i : ι} {k m n : ι
       = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
               (transApp (laxOfProjSystem' P) hik hkm x) := by
-  apply OverHom.ext
-  show (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x).f
-        ≫ (transApp (laxOfProjSystem' P) hkm hmn (baseChangeObj (P.proj hik) x)).f
-      = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x).f
-        ≫ (baseChangeMap (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x)).f
+  apply CategoryTheory.Over.OverMorphism.ext
+  show (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x).left
+        ≫ (transApp (laxOfProjSystem' P) hkm hmn (baseChangeObj (P.proj hik) x)).left
+      = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x).left
+        ≫ (baseChangeMap (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x)).left
   -- Abbreviation for the two stacked inner `transApp`s, projected leg-by-leg via the clean
   -- `transApp_f_*` lemmas.  The codomain is the triple pullback `bc hmn (bc hkm (bc hik x))`.
   -- Every leaf reduces both sides to the SAME composite-pullback projection (equal up to
@@ -1393,27 +1399,27 @@ private theorem transApp_cocycle (P : ProjSystem ι D 𝒞) {i : ι} {k m n : ι
   · -- π₁ leg: lands in the inner double pullback `bc hkm (bc hik x)`; nest twice more.
     apply pb_hom_ext (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x))
     · apply pb_hom_ext (_pb (P.proj hik) x)
-      · -- innermost π₁ → `x.dom`
-        simp only [Cat.assoc]
+      · -- innermost π₁ → `x.left`
+        simp only [CategoryTheory.Category.assoc]
         rw [transApp_f_π₁π₁ P hkm hmn (baseChangeObj (P.proj hik) x),
             transApp_f_π₁π₁₀ P hik (D.trans hkm hmn) x,
             baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
             transApp_f_π₁π₁₀ P hik hkm x, transApp_f_π₁π₁₀ P (D.trans hik hkm) hmn x]
       · -- innermost π₂ → `pr k`
-        simp only [Cat.assoc]
+        simp only [CategoryTheory.Category.assoc]
         rw [transApp_f_π₁π₁ P hkm hmn (baseChangeObj (P.proj hik) x),
             transApp_f_π₁π₂₀ P hik (D.trans hkm hmn) x,
             baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
             transApp_f_π₁π₂₀ P hik hkm x, transApp_f_π₁π₂ P (D.trans hik hkm) hmn x,
             P.proj_trans hkm hmn]
     · -- middle π₂ → `pr m`
-      simp only [Cat.assoc]
+      simp only [CategoryTheory.Category.assoc]
       rw [transApp_f_π₁π₂₀ P hkm hmn (baseChangeObj (P.proj hik) x),
           transApp_f_π₂ P hik (D.trans hkm hmn) x,
           baseChangeMap_f_π₁' (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
           transApp_f_π₂₀ P hik hkm x, transApp_f_π₁π₂₀ P (D.trans hik hkm) hmn x]
   · -- outer π₂ → `pr n`
-    simp only [Cat.assoc]
+    simp only [CategoryTheory.Category.assoc]
     rw [transApp_f_π₂₀ P hkm hmn (baseChangeObj (P.proj hik) x),
         transApp_f_π₂₀ P hik (D.trans hkm hmn) x,
         baseChangeMap_f_π₂₀ (P.proj hmn) (transApp (laxOfProjSystem' P) hik hkm x),
@@ -1453,14 +1459,14 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
       = (pushHom (laxOfProjSystem' P) x y hik hjk (D.trans hkm hmn) g
             ≫ transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y)
           ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y) :=
-        (Cat.assoc _ _ _).symm
+        (CategoryTheory.Category.assoc _ _ _).symm
     _ = (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
           ≫ Functor.map (self := (laxOfProjSystem' P).functF (D.trans hkm hmn)) g)
           ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y) := by rw [key]
     _ = transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
           ≫ (Functor.map (self := (laxOfProjSystem' P).functF (D.trans hkm hmn)) g
               ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y)) :=
-        Cat.assoc _ _ _
+        CategoryTheory.Category.assoc _ _ _
     _ = transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
           ≫ (transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hik x)
               ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
@@ -1468,7 +1474,7 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
     _ = (transApp (laxOfProjSystem' P) hik (D.trans hkm hmn) x
           ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hik x))
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
-              (Functor.map (self := (laxOfProjSystem' P).functF hkm) g) := (Cat.assoc _ _ _).symm
+              (Functor.map (self := (laxOfProjSystem' P).functF hkm) g) := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
               (transApp (laxOfProjSystem' P) hik hkm x))
@@ -1479,7 +1485,7 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
           ≫ (Functor.map (self := (laxOfProjSystem' P).functF hmn)
                 (transApp (laxOfProjSystem' P) hik hkm x)
               ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
-                  (Functor.map (self := (laxOfProjSystem' P).functF hkm) g)) := Cat.assoc _ _ _
+                  (Functor.map (self := (laxOfProjSystem' P).functF hkm) g)) := CategoryTheory.Category.assoc _ _ _
     _ = transApp (laxOfProjSystem' P) (D.trans hik hkm) hmn x
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
               (transApp (laxOfProjSystem' P) hik hkm x
@@ -1499,7 +1505,7 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
               (pushHom (laxOfProjSystem' P) x y hik hjk hkm g))
           ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
-              (transApp (laxOfProjSystem' P) hjk hkm y) := (Cat.assoc _ _ _).symm
+              (transApp (laxOfProjSystem' P) hjk hkm y) := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
             (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
           ≫ transApp (laxOfProjSystem' P) (D.trans hjk hkm) hmn y)
@@ -1509,65 +1515,65 @@ theorem proj_push_trans (P : ProjSystem ι D 𝒞)
             (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
           ≫ (transApp (laxOfProjSystem' P) (D.trans hjk hkm) hmn y
               ≫ Functor.map (self := (laxOfProjSystem' P).functF hmn)
-                  (transApp (laxOfProjSystem' P) hjk hkm y)) := Cat.assoc _ _ _
+                  (transApp (laxOfProjSystem' P) hjk hkm y)) := CategoryTheory.Category.assoc _ _ _
     _ = pushHom (laxOfProjSystem' P) x y (D.trans hik hkm) (D.trans hjk hkm) hmn
             (pushHom (laxOfProjSystem' P) x y hik hjk hkm g)
           ≫ (transApp (laxOfProjSystem' P) hjk (D.trans hkm hmn) y
               ≫ transApp (laxOfProjSystem' P) hkm hmn ((laxOfProjSystem' P).F hjk y)) := by
         rw [transApp_cocycle P hjk hkm hmn y]
 
-/-- **`.f`-projection characterisation of `pushHom` for the base-change system — the `π₂` (structure
+/-- **`.left`-projection characterisation of `pushHom` for the base-change system — the `π₂` (structure
     map) leg.**  The codomain `F (trans hjk hkm) y = baseChangeObj (proj (trans hjk hkm)) y` carries a
-    pullback whose `π₂` is its over-`(pr m)` structure map.  Post-composing `(pushHom g).f` with the
-    target collapse iso `(transApp hjk hkm y).f` lands in the nested pullback `bc hkm (bc hjk y)`,
+    pullback whose `π₂` is its over-`(pr m)` structure map.  Post-composing `(pushHom g).left` with the
+    target collapse iso `(transApp hjk hkm y).left` lands in the nested pullback `bc hkm (bc hjk y)`,
     whose outer `π₂` is `proj`-pullback projection; `pushHom_transApp` then collapses the whole thing
-    to the source side `(transApp hik hkm x).f ≫ (map g).f`.  Concretely this says `pushHom` preserves
+    to the source side `(transApp hik hkm x).left ≫ (map g).left`.  Concretely this says `pushHom` preserves
     the deepest `(pr m)`-projection, i.e. it is an over-`(pr m)` arrow on the nose. -/
 theorem proj_pushHom_f_π₂ (P : ProjSystem ι D 𝒞)
     {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m : ι}
     (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
     (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
-    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
+    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).left
         ≫ (_pb (P.proj (D.trans hjk hkm)) y).cone.π₂
       = (_pb (P.proj (D.trans hik hkm)) x).cone.π₂ := by
   -- post-compose `pushHom_transApp` with the `π₂`-leg of the target collapse iso; both reduce to the
   -- deepest projection via `transApp_f_π₂₀` and `baseChangeMap_f_π₂₀`.
-  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
-        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
-      = (transApp (laxOfProjSystem' P) hik hkm x).f
-        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
-    congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
+  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).left
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).left
+      = (transApp (laxOfProjSystem' P) hik hkm x).left
+        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).left :=
+    congrArg CommaMorphism.left (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
   have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₂) h
   simp only at h₂
-  rw [Cat.assoc, Cat.assoc, transApp_f_π₂₀ P hjk hkm y,
+  rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, transApp_f_π₂₀ P hjk hkm y,
       show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
         = baseChangeMap (P.proj hkm) g from rfl,
       baseChangeMap_f_π₂₀ (P.proj hkm) g, transApp_f_π₂₀ P hik hkm x] at h₂
   exact h₂
 
-/-- **`.f`-projection characterisation of `pushHom` for the base-change system — the `π₁` (content)
-    leg.**  The codomain pullback `(_pb (proj (trans hjk hkm)) y)`'s `π₁` reaches `y.dom`; `pushHom g`
-    intertwines it with the source pullback's `π₁` post-composed by the underlying `g.f`.  This is the
-    on-the-nose statement that base-change `pushHom` is "`g.f` on the fibre over the `y.dom` factor",
-    the content the §1.546 escape extracts.  Proven by post-composing `pushHom_transApp` (`.f`) with
+/-- **`.left`-projection characterisation of `pushHom` for the base-change system — the `π₁` (content)
+    leg.**  The codomain pullback `(_pb (proj (trans hjk hkm)) y)`'s `π₁` reaches `y.left`; `pushHom g`
+    intertwines it with the source pullback's `π₁` post-composed by the underlying `g.left`.  This is the
+    on-the-nose statement that base-change `pushHom` is "`g.left` on the fibre over the `y.left` factor",
+    the content the §1.546 escape extracts.  Proven by post-composing `pushHom_transApp` (`.left`) with
     the `π₁∘π₁`-path of the target collapse iso (`transApp_f_π₁π₁`) and `baseChangeMap_f_π₁`. -/
 theorem proj_pushHom_f_π₁ (P : ProjSystem ι D 𝒞)
     {i j : ι} (x : (laxOfProjSystem' P).A i) (y : (laxOfProjSystem' P).A j) {k m : ι}
     (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
     (g : (laxOfProjSystem' P).F hik x ⟶ (laxOfProjSystem' P).F hjk y) :
-    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
-        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
+    (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).left
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).left
           ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₁
-      = (transApp (laxOfProjSystem' P) hik hkm x).f
-          ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁ ≫ g.f := by
-  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
-        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
-      = (transApp (laxOfProjSystem' P) hik hkm x).f
-        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
-    congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
-  -- post-compose with the OUTER `π₁` (reaching `(F hjk y).dom = (bc (proj hjk) y).dom`).
+      = (transApp (laxOfProjSystem' P) hik hkm x).left
+          ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hik) x)).cone.π₁ ≫ g.left := by
+  have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).left
+        ≫ (transApp (laxOfProjSystem' P) hjk hkm y).left
+      = (transApp (laxOfProjSystem' P) hik hkm x).left
+        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).left :=
+    congrArg CommaMorphism.left (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
+  -- post-compose with the OUTER `π₁` (reaching `(F hjk y).left = (bc (proj hjk) y).left`).
   have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₁) h
-  simp only [Cat.assoc] at h₂
+  simp only [CategoryTheory.Category.assoc] at h₂
   rw [show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
         = baseChangeMap (P.proj hkm) g from rfl,
       baseChangeMap_f_π₁ (P.proj hkm) g] at h₂
@@ -1677,4 +1683,3 @@ Both are equalities of arrows between fixed pullback apices, proved by pullback-
 an honest category, and `PreRegular (ratCapCat P)` follows (`RatCapPreReg`/`RatCapStagePTC`/
 `RatCapHcanon`); §1.543 is proven.
 -/
-

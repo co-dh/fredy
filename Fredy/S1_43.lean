@@ -14,7 +14,7 @@ import Fredy.S1_42
 import Fredy.S1_45
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -464,10 +464,12 @@ theorem isIso_of_two_equalizers {𝒟 : Type u} [Cat.{v} 𝒟]
   refine ⟨n, ?_, ?_⟩
   · obtain ⟨_, _, huniq⟩ := hc c
     have e1 : (m ≫ n) ≫ c.map = c.map := by rw [Cat.assoc, hn, hm]
-    rw [huniq (m ≫ n) e1, huniq (Cat.id c.dom) (Cat.id_comp _)]
+    rw [huniq (m ≫ n) e1]
+    exact (huniq (Cat.id c.dom) (Cat.id_comp _)).symm
   · obtain ⟨_, _, huniq⟩ := hd d
     have e1 : (n ≫ m) ≫ d.map = d.map := by rw [Cat.assoc, hm, hn]
-    rw [huniq (n ≫ m) e1, huniq (Cat.id d.dom) (Cat.id_comp _)]
+    rw [huniq (n ≫ m) e1]
+    exact (huniq (Cat.id d.dom) (Cat.id_comp _)).symm
 
 /-- **§1.434 bridge.**  In a category with binary products, a cone
     `(E, m)` equalizing `f, g : A → B` is the equalizer of `f, g` iff the
@@ -570,7 +572,8 @@ theorem isIso_of_isEqualizer_id {𝒟 : Type u} [Cat.{v} 𝒟]
   refine ⟨n, ?_, hn⟩
   obtain ⟨_, _, huniq⟩ := heq (EqualizerCone.mk E m hm)
   have e1 : (m ≫ n) ≫ m = m := by rw [Cat.assoc, hn, Cat.comp_id]
-  rw [huniq (m ≫ n) e1, huniq (Cat.id E) (Cat.id_comp _)]
+  rw [huniq (m ≫ n) e1]
+  exact (huniq (Cat.id E) (Cat.id_comp _)).symm
 
 /-- Two pullback cones over the same cospan have a canonical comparison map
     that is an isomorphism (pullbacks are unique up to iso). -/
@@ -585,12 +588,14 @@ theorem isIso_of_two_pullbacks {𝒟 : Type u} [Cat.{v} 𝒟]
     obtain ⟨_, _, huniq⟩ := hc c
     have e1 : (u ≫ v) ≫ c.π₁ = c.π₁ := by rw [Cat.assoc, hv₁, hu₁]
     have e2 : (u ≫ v) ≫ c.π₂ = c.π₂ := by rw [Cat.assoc, hv₂, hu₂]
-    rw [huniq (u ≫ v) e1 e2, huniq (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)]
+    rw [huniq (u ≫ v) e1 e2]
+    exact (huniq (Cat.id c.pt) (Cat.id_comp _) (Cat.id_comp _)).symm
   · -- v ≫ u = id_d
     obtain ⟨_, _, huniq⟩ := hd d
     have e1 : (v ≫ u) ≫ d.π₁ = d.π₁ := by rw [Cat.assoc, hu₁, hv₁]
     have e2 : (v ≫ u) ≫ d.π₂ = d.π₂ := by rw [Cat.assoc, hu₂, hv₂]
-    rw [huniq (v ≫ u) e1 e2, huniq (Cat.id d.pt) (Cat.id_comp _) (Cat.id_comp _)]
+    rw [huniq (v ≫ u) e1 e2]
+    exact (huniq (Cat.id d.pt) (Cat.id_comp _) (Cat.id_comp _)).symm
 
 /-- A `Cone.IsPullback` can be transported along an isomorphism of its apex:
     if `c` is a pullback and `i : p ≅ c.pt` (with inverse `j`), then the cone

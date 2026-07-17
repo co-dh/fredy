@@ -50,8 +50,8 @@ noncomputable def stageHasImages (b : PreRegBundle.{u}) (hb0 : @HasImages b.carr
 /-- **§1.54 + §2.218 R3 — the REGULAR Capitalization Lemma.**  Every small REGULAR `A` admits a faithful
     representation into a REGULAR, CAPITAL `Ā`.  (Same cofinal construction as `capitalization_lemma`,
     upgraded with the per-stage images `stageHasImages`.) -/
-theorem capitalization_lemma_regular (A : Type u) [Cat.{u} A] [RegularCategory A] :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+theorem capitalization_lemma_regular (A : Type u) [CategoryTheory.Category.{u} A] [RegularCategory A] :
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   have hFD : ∀ (S : PreRegBundle.{u}),

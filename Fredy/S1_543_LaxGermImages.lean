@@ -35,7 +35,7 @@
 import Fredy.S1_543_RatCapHcanon
 import Fredy.S1_543_CatColimitRegular
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -57,7 +57,7 @@ variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
   whole composite is monic (mono preserved by iso pre/post-composition). -/
 theorem stageInclL_mono_of_stage
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        PreservesMono (bundledFunctor (hF := L.functF hij) (L.F hij)))
     {i : ι} {x y : L.A i} (m : x ⟶ y) (hm : @Monic (L.A i) (L.catA i) _ _ m) :
     @Monic (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL m) := by
   letI : Cat (Obj L) := laxColimCat L hL
@@ -74,9 +74,11 @@ theorem stageInclL_mono_of_stage
         ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y m
         ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
     mono_precomp_iso'
-      (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x))
+      (functor_preserves_iso (bundledFunctor (hF := L.functF hie) (L.F hie))
+        (reflApp L x) (reflApp_isIso L x))
       (mono_postcomp_iso' hmono_map
-        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+        (functor_preserves_iso (bundledFunctor (hF := L.functF hie) (L.F hie))
+          (isoInv (reflApp_isIso L y))
           ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
   exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie x)
     (mono_postcomp_iso' hbig
@@ -91,10 +93,10 @@ theorem objInclL_preserves_images
         @Functor.map _ _ _ _ _ (L.functF hij) x y p
           = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        PreservesMono (bundledFunctor (hF := L.functF hij) (L.F hij)))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
         @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+          (Subobject.map (bundledFunctor (hF := L.functF hij) (L.F hij)) (hmono hij)
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)]
     (i : ι) {a b : L.A i} (f : a ⟶ b) :

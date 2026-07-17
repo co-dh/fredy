@@ -16,10 +16,12 @@ import Fredy.S1_45
 import Fredy.S1_51
 import Fredy.S1_513_CoveringFamily
 
+open CategoryTheory
+
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -32,17 +34,17 @@ namespace Freyd
     regular and pre-regular categories.  In a pullback square the map opposite
     a cover is a cover; the square must be a pullback, not just commutative
     (in **Set** an empty corner over a commutative square defeats transfer). -/
-class PullbacksTransferCovers (𝒞 : Type u) [Cat.{v} 𝒞] where
+class PullbacksTransferCovers (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] where
   pullbacks_transfer_covers : ∀ {A B C : 𝒞} {f : A ⟶ B} {g : C ⟶ B}
     (c : Cone f g), c.IsPullback → Cover f → Cover c.π₂
 
 /-- A regular category: Cartesian, has images, pullbacks transfer covers (§1.52). -/
-class RegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+class RegularCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞,
     PullbacksTransferCovers 𝒞
 
 /-- A pre-regular category: Cartesian, pullbacks transfer covers (§1.52). -/
-class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+class PreRegularCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞,
     PullbacksTransferCovers 𝒞
 
@@ -51,7 +53,7 @@ class PreRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     directly, so this introduces no new data and merges cleanly with any other `PreRegularCategory`
     instance built from the same parents. -/
 instance (priority := 100) RegularCategory.toPreRegularCategory
-    {𝒞 : Type u} [Cat.{v} 𝒞] [RegularCategory 𝒞] : PreRegularCategory 𝒞 where
+    {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [RegularCategory 𝒞] : PreRegularCategory 𝒞 where
   toHasTerminal := inferInstance
   toHasBinaryProducts := inferInstance
   toHasPullbacks := inferInstance
@@ -135,26 +137,26 @@ def kpProdInv : prod S S ⟶ kernelPair (term S) := (_pb S).lift (_prodCone S)
 @[simp] theorem kpProdInv_fst : kpProdInv S ≫ kp₁ (f:=term S) = fst := (_pb S).lift_fst (_prodCone S)
 @[simp] theorem kpProdInv_snd : kpProdInv S ≫ kp₂ (f:=term S) = snd := (_pb S).lift_snd (_prodCone S)
 
-theorem kpProdIso_inv : kpProdIso S ≫ kpProdInv S = Cat.id (kernelPair (term S)) := by
+theorem kpProdIso_inv : kpProdIso S ≫ kpProdInv S = 𝟙 (kernelPair (term S)) := by
   let u := kpProdIso S ≫ kpProdInv S
   have hu_fst : u ≫ kp₁ (f:=term S) = kp₁ (f:=term S) := by
-    dsimp [u]; rw [Cat.assoc, kpProdInv_fst, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _]
+    dsimp [u]; rw [CategoryTheory.Category.assoc, kpProdInv_fst, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _]
   have hu_snd : u ≫ kp₂ (f:=term S) = kp₂ (f:=term S) := by
     dsimp [u]
-    rw [Cat.assoc, kpProdInv_snd, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _]
-  have h_id_lift : (_pb S).lift (_kpCone S) = Cat.id (kernelPair (term S)) :=
-    ((_pb S).lift_uniq (_kpCone S) (Cat.id _) (Cat.id_comp _) (Cat.id_comp _)).symm
+    rw [CategoryTheory.Category.assoc, kpProdInv_snd, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _]
+  have h_id_lift : (_pb S).lift (_kpCone S) = 𝟙 (kernelPair (term S)) :=
+    ((_pb S).lift_uniq (_kpCone S) (𝟙 _) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)).symm
   calc
     u = (_pb S).lift (_kpCone S) :=
       (_pb S).lift_uniq (_kpCone S) u hu_fst hu_snd
-    _ = Cat.id (kernelPair (term S)) := h_id_lift
+    _ = 𝟙 (kernelPair (term S)) := h_id_lift
 
-theorem kpProdInv_iso : kpProdInv S ≫ kpProdIso S = Cat.id (prod S S) := by
+theorem kpProdInv_iso : kpProdInv S ≫ kpProdIso S = 𝟙 (prod S S) := by
   have h := pair_uniq fst snd (kpProdInv S ≫ kpProdIso S)
-    (by rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _, kpProdInv_fst])
-    (by rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _, kpProdInv_snd])
-  have hid : pair fst snd = Cat.id (prod S S) :=
-    (pair_uniq fst snd (Cat.id (prod S S)) (by rw [Cat.id_comp]) (by rw [Cat.id_comp])).symm
+    (by rw [CategoryTheory.Category.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _, kpProdInv_fst])
+    (by rw [CategoryTheory.Category.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _, kpProdInv_snd])
+  have hid : pair fst snd = 𝟙 (prod S S) :=
+    (pair_uniq fst snd (𝟙 (prod S S)) (by rw [CategoryTheory.Category.id_comp]) (by rw [CategoryTheory.Category.id_comp])).symm
   rw [h, hid]
 
 theorem kpProdIso_isIso : IsIso (kpProdIso S) :=
@@ -165,24 +167,24 @@ theorem kpProdInv_isIso : IsIso (kpProdInv S) :=
 
 theorem kp_diag_prod : kp_diag (f:=term S) ≫ kpProdIso S = diag S := by
   let h := kp_diag (f:=term S) ≫ kpProdIso S
-  have hfst : h ≫ fst = Cat.id S := by
+  have hfst : h ≫ fst = 𝟙 S := by
     dsimp [h]
-    rw [Cat.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _,
-      show kp_diag (f:=term S) ≫ kp₁ (f:=term S) = Cat.id S from
+    rw [CategoryTheory.Category.assoc, show kpProdIso S ≫ fst = kp₁ (f:=term S) from fst_pair _ _,
+      show kp_diag (f:=term S) ≫ kp₁ (f:=term S) = 𝟙 S from
         (HasPullbacks.has (term S) (term S)).lift_fst (diagCone (f := term S))]
-  have hsnd : h ≫ snd = Cat.id S := by
+  have hsnd : h ≫ snd = 𝟙 S := by
     dsimp [h]
-    rw [Cat.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _,
-      show kp_diag (f:=term S) ≫ kp₂ (f:=term S) = Cat.id S from
+    rw [CategoryTheory.Category.assoc, show kpProdIso S ≫ snd = kp₂ (f:=term S) from snd_pair _ _,
+      show kp_diag (f:=term S) ≫ kp₂ (f:=term S) = 𝟙 S from
         (HasPullbacks.has (term S) (term S)).lift_snd (diagCone (f := term S))]
-  have h_eq := pair_uniq (Cat.id S) (Cat.id S) h hfst hsnd
+  have h_eq := pair_uniq (𝟙 S) (𝟙 S) h hfst hsnd
   simpa [h, diag] using h_eq
 
 theorem wellSupported_prod_self (S : 𝒞) (hws : WellSupported S) : WellSupported (prod S S) := by
   intro C m g hm hgm
   have h_diag_term : diag S ≫ term (prod S S) = term S := term_uniq _ _
   have h_factor : (diag S ≫ g) ≫ m = term S := by
-    rw [Cat.assoc, hgm, h_diag_term]
+    rw [CategoryTheory.Category.assoc, hgm, h_diag_term]
   exact hws m (diag S ≫ g) hm h_factor
 
 end
@@ -208,7 +210,7 @@ theorem capital_implies_one_projective
     have h_not_iso_diag : ¬ IsIso (diag A) := by
       intro hiso_diag; apply h_not_iso_kp
       have hkp : kp_diag (f:=term A) = diag A ≫ kpProdInv A := by
-        rw [← kp_diag_prod A, Cat.assoc, kpProdIso_inv A, Cat.comp_id]
+        rw [← kp_diag_prod A, CategoryTheory.Category.assoc, kpProdIso_inv A, CategoryTheory.Category.comp_id]
       rw [hkp]
       exact isIso_comp hiso_diag (kpProdInv_isIso A)
     have hm_diag : Monic (diag A) := diag_mono A
@@ -235,7 +237,7 @@ theorem capital_one_projective
     [hp : HasBinaryProducts 𝒞] [hpull : HasPullbacks 𝒞]
     (hcap : Capital (𝒞 := 𝒞))
     {A : 𝒞} {e : A ⟶ one} (he : Cover e) :
-    ∃ (s : one ⟶ A), s ≫ e = Cat.id one := by
+    ∃ (s : one ⟶ A), s ≫ e = 𝟙 one := by
   have hterm : e = term A := term_uniq e _
   subst hterm
   obtain ⟨s⟩ := capital_implies_one_projective hcap A he
@@ -310,7 +312,7 @@ theorem section_unique_up_to_iso_over_base
   finite products (terminal + binary products), equalizers, and covers (§1.52). -/
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES COVERS if it carries every cover to a cover. -/
-def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [CategoryTheory.Category.{v} 𝒞] [CategoryTheory.Category.{v} 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (f : A ⟶ B), Cover f → Cover (hF.map f)
 
@@ -318,7 +320,7 @@ def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v
     pre-regular categories preserving finite products, equalizers, and covers.
     (This is the standard notion; a functor preserving these necessarily
     preserves whatever images may exist.) -/
-structure RepOfPreReg {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
+structure RepOfPreReg {𝒞 𝒟 : Type u} [CategoryTheory.Category.{v} 𝒞] [CategoryTheory.Category.{v} 𝒟]
     [CartesianCategory 𝒞] [CartesianCategory 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] : Prop where
   cartesian  : CartesianFunctor F
@@ -362,7 +364,7 @@ theorem pts_covers_of_capital
   have hcov_π₂ : Cover (hpull.has f y).cone.π₂ := cover_pullback y hf
   obtain ⟨s, hs⟩ := capital_one_projective hcap hcov_π₂
   exact ⟨s ≫ (hpull.has f y).cone.π₁,
-         by rw [Cat.assoc, (hpull.has f y).cone.w, ← Cat.assoc, hs, Cat.id_comp]⟩
+         by rw [CategoryTheory.Category.assoc, (hpull.has f y).cone.w, ← CategoryTheory.Category.assoc, hs, CategoryTheory.Category.id_comp]⟩
 
 /-! ## §1.521 The functor category 𝒮^A is regular
 

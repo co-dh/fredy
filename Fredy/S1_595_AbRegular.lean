@@ -38,13 +38,13 @@ import Fredy.S1_51
 import Fredy.S1_52
 import Fredy.S1_56
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
 /-! ### §1.595 The forgetful functor `U : Ab(𝒞) → 𝒞`
 
@@ -86,7 +86,7 @@ theorem U_separatesMaps : SeparatesMaps (U (𝒞 := 𝒞)) := by
 theorem U_reflectsIso {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
     (_hiso : IsIso (instFunctorU.map f)) (g : B.carrier ⟶ A.carrier)
     (hg : IsHomAbelianGroupObject B A g)
-    (h1 : f.val ≫ g = Cat.id A.carrier) (h2 : g ≫ f.val = Cat.id B.carrier) :
+    (h1 : f.val ≫ g = 𝟙 A.carrier) (h2 : g ≫ f.val = 𝟙 B.carrier) :
     IsIso f :=
   ⟨⟨g, hg⟩, Subtype.ext h1, Subtype.ext h2⟩
 
@@ -99,11 +99,13 @@ theorem U_reflectsIso {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
 /-- §1.595: `U` REFLECTS monos.  If the carrier `f.val` is monic in `𝒞`, then `f` is
     monic in `Ab(𝒞)`: any two homs `p q : W → A` with `p ≫ f = q ≫ f` have equal carriers
     (`p.val ≫ f.val = q.val ≫ f.val`), so `p.val = q.val`, so `p = q`. -/
-theorem U_reflectsMono : ReflectsMono (U (𝒞 := 𝒞)) := by
+theorem U_reflectsMono : ReflectsMono (bundledFunctor (U (𝒞 := 𝒞))) := by
   intro A B f hf W p q hpq
   -- `hpq : p ≫ f = q ≫ f` in Ab(𝒞); take carriers.
-  have hval : p.val ≫ f.val = q.val ≫ f.val := congrArg Subtype.val hpq
-  exact Subtype.ext (hf p.val q.val hval)
+  have hval : (show HomAb W A from p).val ≫ (show HomAb A B from f).val =
+      (show HomAb W A from q).val ≫ (show HomAb A B from f).val :=
+    congrArg (fun k : HomAb W B => k.val) hpq
+  exact Subtype.ext (hf (show HomAb W A from p).val (show HomAb W A from q).val hval)
 
 /-! ### §1.595 `U` preserves the terminal object and binary products
 
@@ -212,7 +214,7 @@ private noncomputable def pbLift {T : 𝒞} (a : T ⟶ A.carrier) (b : T ⟶ B.c
 /-- The pullback projections are jointly monic (pullback lift-uniqueness). -/
 private theorem pb_jointly_monic {T : 𝒞} (u v : T ⟶ pbPt f g)
     (h₁ : u ≫ p₁ f g = v ≫ p₁ f g) (h₂ : u ≫ p₂ f g = v ≫ p₂ f g) : u = v := by
-  let c : Cone f.val g.val := ⟨T, v ≫ p₁ f g, v ≫ p₂ f g, by rw [Cat.assoc, Cat.assoc, pb_w]⟩
+  let c : Cone f.val g.val := ⟨T, v ≫ p₁ f g, v ≫ p₂ f g, by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, pb_w]⟩
   have hu : u = (pb f g).lift c := (pb f g).lift_uniq c u h₁ h₂
   have hv : v = (pb f g).lift c := (pb f g).lift_uniq c v rfl rfl
   rw [hu, hv]
@@ -238,7 +240,7 @@ private noncomputable def pbAdd : prod (pbPt f g) (pbPt f g) ⟶ pbPt f g :=
       -- push `f` through the `A`-sum, `g` through the `B`-sum, then use `pb_w` componentwise.
       rw [hom_preserves_add f.property (fst ≫ p₁ f g) (snd ≫ p₁ f g),
           hom_preserves_add g.property (fst ≫ p₂ f g) (snd ≫ p₂ f g)]
-      simp only [Cat.assoc, pb_w])
+      simp only [CategoryTheory.Category.assoc, pb_w])
 
 /-! ### Projections of the pullback operations
 
@@ -264,12 +266,12 @@ private noncomputable def pbAdd : prod (pbPt f g) (pbPt f g) ⟶ pbPt f g :=
     `(⟨u,w⟩ ≫ pbAdd) ≫ p₁ = ⟨u≫p₁, w≫p₁⟩ ≫ A.add` (and likewise `p₂`/`B`). -/
 private theorem pbAdd_proj_p₁ {S : 𝒞} (u w : S ⟶ pbPt f g) :
     (pair u w ≫ pbAdd f g) ≫ p₁ f g = pair (u ≫ p₁ f g) (w ≫ p₁ f g) ≫ A.add := by
-  rw [Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+  rw [CategoryTheory.Category.assoc, pbAdd_p₁, ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
       fst_pair, snd_pair]
 
 private theorem pbAdd_proj_p₂ {S : 𝒞} (u w : S ⟶ pbPt f g) :
     (pair u w ≫ pbAdd f g) ≫ p₂ f g = pair (u ≫ p₂ f g) (w ≫ p₂ f g) ≫ B.add := by
-  rw [Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+  rw [CategoryTheory.Category.assoc, pbAdd_p₂, ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
       fst_pair, snd_pair]
 
 /-- The pullback group object: carrier the 𝒞-pullback point, operations induced by
@@ -282,31 +284,31 @@ noncomputable def pullbackGObj : AbelianGroupObject 𝒞 where
   add := pbAdd f g
   add_zero := by
     refine pb_jointly_monic f g _ _ ?_ ?_
-    · rw [pbAdd_proj_p₁, Cat.id_comp]
+    · rw [pbAdd_proj_p₁, CategoryTheory.Category.id_comp]
       have e : (term (pbPt f g) ≫ pbZero f g) ≫ p₁ f g = term (pbPt f g) ≫ A.zero := by
-        rw [Cat.assoc, pbZero_p₁, ← Cat.assoc, term_uniq (term (pbPt f g) ≫ term one) (term _)]
+        rw [CategoryTheory.Category.assoc, pbZero_p₁, ← CategoryTheory.Category.assoc, term_uniq (term (pbPt f g) ≫ term one) (term _)]
       rw [e]; exact GElt.zero_add A (p₁ f g)
-    · rw [pbAdd_proj_p₂, Cat.id_comp]
+    · rw [pbAdd_proj_p₂, CategoryTheory.Category.id_comp]
       have e : (term (pbPt f g) ≫ pbZero f g) ≫ p₂ f g = term (pbPt f g) ≫ B.zero := by
-        rw [Cat.assoc, pbZero_p₂, ← Cat.assoc, term_uniq (term (pbPt f g) ≫ term one) (term _)]
+        rw [CategoryTheory.Category.assoc, pbZero_p₂, ← CategoryTheory.Category.assoc, term_uniq (term (pbPt f g) ≫ term one) (term _)]
       rw [e]; exact GElt.zero_add B (p₂ f g)
   add_neg := by
     refine pb_jointly_monic f g _ _ ?_ ?_
-    · rw [pbAdd_proj_p₁, Cat.id_comp, pbNeg_p₁, Cat.assoc, pbZero_p₁, ← Cat.assoc,
+    · rw [pbAdd_proj_p₁, CategoryTheory.Category.id_comp, pbNeg_p₁, CategoryTheory.Category.assoc, pbZero_p₁, ← CategoryTheory.Category.assoc,
           term_uniq (term (pbPt f g) ≫ term one) (term (pbPt f g))]
       exact GElt.neg_add A (p₁ f g)
-    · rw [pbAdd_proj_p₂, Cat.id_comp, pbNeg_p₂, Cat.assoc, pbZero_p₂, ← Cat.assoc,
+    · rw [pbAdd_proj_p₂, CategoryTheory.Category.id_comp, pbNeg_p₂, CategoryTheory.Category.assoc, pbZero_p₂, ← CategoryTheory.Category.assoc,
           term_uniq (term (pbPt f g) ≫ term one) (term (pbPt f g))]
       exact GElt.neg_add B (p₂ f g)
   add_assoc := by
     refine pb_jointly_monic f g _ _ ?_ ?_
-    · rw [pbAdd_proj_p₁, Cat.assoc, pbAdd_p₁, ← Cat.assoc, ab_pair_precomp,
+    · rw [pbAdd_proj_p₁, CategoryTheory.Category.assoc, pbAdd_p₁, ← CategoryTheory.Category.assoc, ab_pair_precomp,
           pbAdd_proj_p₁, pbAdd_proj_p₁]
-      simp only [Cat.assoc]
+      simp only [CategoryTheory.Category.assoc]
       exact GElt.add_assoc A (fst ≫ fst ≫ p₁ f g) (fst ≫ snd ≫ p₁ f g) (snd ≫ p₁ f g)
-    · rw [pbAdd_proj_p₂, Cat.assoc, pbAdd_p₂, ← Cat.assoc, ab_pair_precomp,
+    · rw [pbAdd_proj_p₂, CategoryTheory.Category.assoc, pbAdd_p₂, ← CategoryTheory.Category.assoc, ab_pair_precomp,
           pbAdd_proj_p₂, pbAdd_proj_p₂]
-      simp only [Cat.assoc]
+      simp only [CategoryTheory.Category.assoc]
       exact GElt.add_assoc B (fst ≫ fst ≫ p₂ f g) (fst ≫ snd ≫ p₂ f g) (snd ≫ p₂ f g)
   add_comm := by
     refine pb_jointly_monic f g _ _ ?_ ?_
@@ -338,10 +340,10 @@ theorem isHom_pbLift {D : AbelianGroupObject 𝒞} {a : D.carrier ⟶ A.carrier}
     IsHomAbelianGroupObject D (pullbackGObj f g) (pbLift f g a b h) := by
   unfold IsHomAbelianGroupObject
   refine pb_jointly_monic f g _ _ ?_ ?_
-  · rw [Cat.assoc, pbLift_p₁, ha, pullbackGObj_add, pbAdd_proj_p₁]
-    simp only [Cat.assoc, pbLift_p₁]
-  · rw [Cat.assoc, pbLift_p₂, hb, pullbackGObj_add, pbAdd_proj_p₂]
-    simp only [Cat.assoc, pbLift_p₂]
+  · rw [CategoryTheory.Category.assoc, pbLift_p₁, ha, pullbackGObj_add, pbAdd_proj_p₁]
+    simp only [CategoryTheory.Category.assoc, pbLift_p₁]
+  · rw [CategoryTheory.Category.assoc, pbLift_p₂, hb, pullbackGObj_add, pbAdd_proj_p₂]
+    simp only [CategoryTheory.Category.assoc, pbLift_p₂]
 
 /-- `p₁ ≫ f = p₂ ≫ g` as `Ab(𝒞)`-morphisms (carrier-level `pb_w`). -/
 theorem pbCone_w :
@@ -429,7 +431,7 @@ private noncomputable def eqAdd :
     --     = pair (fst ≫ em f g ≫ g.val) (snd ≫ em f g ≫ g.val) ≫ B.add
     -- follows by rewriting em f g ≫ f.val = em f g ≫ g.val in both slots.
     have : em f g ≫ f.val = em f g ≫ g.val := eqMap_eq f.val g.val
-    congr 2 <;> simp [Cat.assoc, this])
+    congr 2 <;> simp [CategoryTheory.Category.assoc, this])
 
 /-! Projection lemmas: each operation composes with `eqMap` to give the corresponding `A`-op. -/
 
@@ -446,7 +448,7 @@ private noncomputable def eqAdd :
 /-- Component lemma for the sum: `⟨u,w⟩ ≫ eqAdd ≫ eqMap = ⟨u≫eqMap, w≫eqMap⟩ ≫ A.add`. -/
 private theorem eqAdd_proj {S : 𝒞} (u w : S ⟶ eqObj f.val g.val) :
     (pair u w ≫ eqAdd f g) ≫ em f g = pair (u ≫ em f g) (w ≫ em f g) ≫ A.add := by
-  rw [Cat.assoc, eqAdd_em, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+  rw [CategoryTheory.Category.assoc, eqAdd_em, ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
       fst_pair, snd_pair]
 
 /-- The equalizer group object: carrier `eqObj f.val g.val`, operations induced above.
@@ -458,22 +460,22 @@ noncomputable def eqGObj : AbelianGroupObject 𝒞 where
   add := eqAdd f g
   add_zero := by
     apply em_mono f g
-    rw [eqAdd_proj, Cat.id_comp]
+    rw [eqAdd_proj, CategoryTheory.Category.id_comp]
     have e : (term (eqObj f.val g.val) ≫ eqZero f g) ≫ em f g
            = term (eqObj f.val g.val) ≫ A.zero := by
-      rw [Cat.assoc, eqZero_em, ← Cat.assoc,
+      rw [CategoryTheory.Category.assoc, eqZero_em, ← CategoryTheory.Category.assoc,
           term_uniq (term (eqObj f.val g.val) ≫ term one) (term _)]
     rw [e]; exact GElt.zero_add A (em f g)
   add_neg := by
     apply em_mono f g
-    rw [eqAdd_proj, Cat.id_comp, eqNeg_em, Cat.assoc, eqZero_em, ← Cat.assoc,
+    rw [eqAdd_proj, CategoryTheory.Category.id_comp, eqNeg_em, CategoryTheory.Category.assoc, eqZero_em, ← CategoryTheory.Category.assoc,
         term_uniq (term (eqObj f.val g.val) ≫ term one) (term _)]
     exact GElt.neg_add A (em f g)
   add_assoc := by
     apply em_mono f g
-    rw [eqAdd_proj, Cat.assoc, eqAdd_em, ← Cat.assoc, ab_pair_precomp,
+    rw [eqAdd_proj, CategoryTheory.Category.assoc, eqAdd_em, ← CategoryTheory.Category.assoc, ab_pair_precomp,
         eqAdd_proj, eqAdd_proj]
-    simp only [Cat.assoc]
+    simp only [CategoryTheory.Category.assoc]
     exact GElt.add_assoc A (fst ≫ fst ≫ em f g) (fst ≫ snd ≫ em f g) (snd ≫ em f g)
   add_comm := by
     apply em_mono f g
@@ -497,19 +499,19 @@ theorem isHom_eLift {D : AbelianGroupObject 𝒞} {k : D.carrier ⟶ A.carrier}
   -- After apply: (D.add ≫ eLift f g k h) ≫ em = (pair(...) ≫ eqGObj.add) ≫ em
   -- LHS = pair (fst ≫ k) (snd ≫ k) ≫ A.add = RHS.
   have lhs : (D.add ≫ eLift f g k h) ≫ em f g = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
-    rw [Cat.assoc, show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]; exact hk
+    rw [CategoryTheory.Category.assoc, show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]; exact hk
   have rhs : (pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ (eqGObj f g).add) ≫ em f g
            = pair (fst ≫ k) (snd ≫ k) ≫ A.add := by
-    rw [Cat.assoc, eqGObj_add, eqAdd_em, ← Cat.assoc, ab_pair_precomp]
+    rw [CategoryTheory.Category.assoc, eqGObj_add, eqAdd_em, ← CategoryTheory.Category.assoc, ab_pair_precomp]
     -- goal: pair (pair(fst≫eLift)(snd≫eLift) ≫ fst ≫ em) (pair(fst≫eLift)(snd≫eLift) ≫ snd ≫ em) ≫ A.add
     --     = pair (fst ≫ k) (snd ≫ k) ≫ A.add
     -- Use fst_pair: pair a b ≫ fst = a; snd_pair: pair a b ≫ snd = b.
-    -- After ← Cat.assoc at the pair applications: (pair ≫ fst) ≫ em = eLift ≫ em = k; similarly snd.
+    -- After ← CategoryTheory.Category.assoc at the pair applications: (pair ≫ fst) ≫ em = eLift ≫ em = k; similarly snd.
     have h1 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ fst ≫ em f g = fst ≫ k := by
-      rw [← Cat.assoc, fst_pair, Cat.assoc,
+      rw [← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc,
         show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]
     have h2 : pair (fst ≫ eLift f g k h) (snd ≫ eLift f g k h) ≫ snd ≫ em f g = snd ≫ k := by
-      rw [← Cat.assoc, snd_pair, Cat.assoc,
+      rw [← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc,
         show eLift f g k h ≫ em f g = k from eqLift_fac f.val g.val k h]
     rw [h1, h2]
   rw [lhs, rhs]
@@ -600,15 +602,15 @@ theorem isHom_of_carrier_iso {M B : AbelianGroupObject 𝒞} (m : M ⟶ B)
     -- After apply: goal is (B.add ≫ inv) ≫ m.val = (pair(fst≫inv)(snd≫inv) ≫ M.add) ≫ m.val.
     -- LHS = B.add (by hinv_r).  RHS = B.add (by m.property + hinv_r + pair_fst_snd).
     have lhs : (B.add ≫ inv) ≫ m.val = B.add := by
-      rw [Cat.assoc, hinv_r, Cat.comp_id]
+      rw [CategoryTheory.Category.assoc, hinv_r, CategoryTheory.Category.comp_id]
     have rhs : (pair (fst ≫ inv) (snd ≫ inv) ≫ M.add) ≫ m.val = B.add := by
       -- reassociate inner: pair(a)(b) ≫ (x ≫ m.val) = (pair(a)(b) ≫ x) ≫ m.val = ... ≫ m.val
       have fst_eq : pair (fst ≫ inv) (snd ≫ inv) ≫ (fst ≫ m.val) = fst ≫ inv ≫ m.val := by
-        rw [← Cat.assoc, fst_pair]; exact Cat.assoc _ _ _
+        rw [← CategoryTheory.Category.assoc, fst_pair]; exact CategoryTheory.Category.assoc _ _ _
       have snd_eq : pair (fst ≫ inv) (snd ≫ inv) ≫ (snd ≫ m.val) = snd ≫ inv ≫ m.val := by
-        rw [← Cat.assoc, snd_pair]; exact Cat.assoc _ _ _
-      rw [Cat.assoc, m.property, ← Cat.assoc, ab_pair_precomp, fst_eq, snd_eq, hinv_r]
-      simp only [Cat.comp_id, pair_fst_snd, Cat.id_comp]
+        rw [← CategoryTheory.Category.assoc, snd_pair]; exact CategoryTheory.Category.assoc _ _ _
+      rw [CategoryTheory.Category.assoc, m.property, ← CategoryTheory.Category.assoc, ab_pair_precomp, fst_eq, snd_eq, hinv_r]
+      simp only [CategoryTheory.Category.comp_id, pair_fst_snd, CategoryTheory.Category.id_comp]
     rw [lhs, rhs]
   exact ⟨⟨inv, hinv_hom⟩, Subtype.ext hinv_l, Subtype.ext hinv_r⟩
 
@@ -662,13 +664,13 @@ theorem coverProdLeft {A I X : 𝒞} {e : A ⟶ I} (he : Cover e) :
     refine ⟨pair d.π₁ (d.π₂ ≫ snd), ⟨fst_pair _ _, ?_⟩, ?_⟩
     · show pair d.π₁ (d.π₂ ≫ snd) ≫ pair (fst ≫ e) snd = d.π₂
       apply fst_snd_jointly_monic
-      · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair]; exact d.w
-      · rw [Cat.assoc, snd_pair, snd_pair]
+      · rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, fst_pair]; exact d.w
+      · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair]
     · intro v hv₁ hv₂
       have hv₂' : v ≫ pair (fst ≫ e) snd = d.π₂ := hv₂
       apply fst_snd_jointly_monic
       · rw [fst_pair]; exact hv₁
-      · rw [snd_pair, ← hv₂', Cat.assoc, snd_pair]
+      · rw [snd_pair, ← hv₂', CategoryTheory.Category.assoc, snd_pair]
   intro D m g hm hgm
   exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb he m g hm hgm
 
@@ -682,12 +684,12 @@ theorem coverProdRight {A I X : 𝒞} {e : A ⟶ I} (he : Cover e) :
     refine ⟨pair (d.π₂ ≫ fst) d.π₁, ⟨snd_pair _ _, ?_⟩, ?_⟩
     · show pair (d.π₂ ≫ fst) d.π₁ ≫ pair fst (snd ≫ e) = d.π₂
       apply fst_snd_jointly_monic
-      · rw [Cat.assoc, fst_pair, fst_pair]
-      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]; exact d.w
+      · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
+      · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair]; exact d.w
     · intro v hv₁ hv₂
       have hv₂' : v ≫ pair fst (snd ≫ e) = d.π₂ := hv₂
       apply fst_snd_jointly_monic
-      · rw [fst_pair, ← hv₂', Cat.assoc, fst_pair]
+      · rw [fst_pair, ← hv₂', CategoryTheory.Category.assoc, fst_pair]
       · rw [snd_pair]; exact hv₁
   intro D m g hm hgm
   exact PullbacksTransferCovers.pullbacks_transfer_covers _ hpb he m g hm hgm
@@ -699,8 +701,8 @@ theorem coverProdBoth {A I : 𝒞} {e : A ⟶ I} (he : Cover e) :
   have hfac : (pair (fst ≫ e) (snd : prod A A ⟶ A)) ≫ pair (fst : prod I A ⟶ I) (snd ≫ e)
       = pair (fst ≫ e) (snd ≫ e) := by
     apply fst_snd_jointly_monic
-    · rw [Cat.assoc, fst_pair, fst_pair, fst_pair]
-    · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, snd_pair]
+    · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair, fst_pair]
+    · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair, snd_pair]
   have hc : Cover ((pair (fst ≫ e) (snd : prod A A ⟶ A)) ≫ pair (fst : prod I A ⟶ I) (snd ≫ e)) :=
     cover_comp (coverProdLeft he) (coverProdRight he)
   rwa [hfac] at hc
@@ -747,8 +749,8 @@ theorem imArr_monic : Monic (imArr f) := (image f.val).monic
 noncomputable def imZero : (one : 𝒞) ⟶ imI f := A.zero ≫ imE f
 
 @[simp] theorem imZero_imArr : imZero f ≫ imArr f = term one ≫ B.zero := by
-  rw [imZero, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
-  have h1 : A.zero = term one ≫ A.zero := by rw [term_uniq (term one) (Cat.id one), Cat.id_comp]
+  rw [imZero, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
+  have h1 : A.zero = term one ≫ A.zero := by rw [term_uniq (term one) (𝟙 one), CategoryTheory.Category.id_comp]
   rw [h1]
   exact hom_preserves_zero f.property (term one)
 
@@ -762,11 +764,11 @@ theorem neg_descends :
     intro k
     calc (k ≫ (A.neg ≫ imE f)) ≫ imArr f
         = (k ≫ A.neg) ≫ f.val := by
-          rw [Cat.assoc, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
-            ← Cat.assoc]
+          rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
+            ← CategoryTheory.Category.assoc]
       _ = (k ≫ f.val) ≫ B.neg := hom_preserves_neg f.property k
       _ = (k ≫ imE f) ≫ (imArr f ≫ B.neg) := by
-          rw [← show imE f ≫ imArr f = f.val from image.lift_fac f.val]; simp only [Cat.assoc]
+          rw [← show imE f ≫ imArr f = f.val from image.lift_fac f.val]; simp only [CategoryTheory.Category.assoc]
   rw [key, key, kp_sq]
 
 /-- Negation of the image group object: the descent of `A.neg ≫ e` along the cover `e`. -/
@@ -781,12 +783,12 @@ theorem imE_imNeg : imE f ≫ imNeg f = A.neg ≫ imE f :=
 @[simp] theorem imNeg_imArr : imNeg f ≫ imArr f = imArr f ≫ B.neg := by
   -- `show` refolds imE so the goal is phrased with `imE f` and `rw [imE_imNeg]` matches
   apply cover_epi (show Cover (imE f) from image_lift_cover f.val)
-  rw [← Cat.assoc, imE_imNeg, Cat.assoc,
-    show imE f ≫ imArr f = f.val from image.lift_fac f.val, ← Cat.assoc,
+  rw [← CategoryTheory.Category.assoc, imE_imNeg, CategoryTheory.Category.assoc,
+    show imE f ≫ imArr f = f.val from image.lift_fac f.val, ← CategoryTheory.Category.assoc,
     show imE f ≫ imArr f = f.val from image.lift_fac f.val]
   -- goal: A.neg ≫ f.val = f.val ≫ B.neg
-  have := hom_preserves_neg f.property (Cat.id A.carrier)
-  rwa [Cat.id_comp, Cat.id_comp] at this
+  have := hom_preserves_neg f.property (𝟙 A.carrier)
+  rwa [CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp] at this
 
 /-- The product cover `ee := pair (fst≫e) (snd≫e) : A×A ⟶ I×I`. -/
 noncomputable def imEE : prod A.carrier A.carrier ⟶ prod (imI f) (imI f) :=
@@ -798,9 +800,9 @@ theorem imEE_cover : Cover (imEE f) := coverProdBoth (image_lift_cover f.val)
 @[simp] theorem imEE_snd : imEE f ≫ snd = snd ≫ imE f := by rw [imEE, snd_pair]
 
 theorem imEE_fst_imArr : imEE f ≫ fst ≫ imArr f = fst ≫ f.val := by
-  rw [← Cat.assoc, imEE_fst, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
+  rw [← CategoryTheory.Category.assoc, imEE_fst, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
 theorem imEE_snd_imArr : imEE f ≫ snd ≫ imArr f = snd ≫ f.val := by
-  rw [← Cat.assoc, imEE_snd, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
+  rw [← CategoryTheory.Category.assoc, imEE_snd, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val]
 
 /-- The descent equation for addition: `A.add ≫ e` equalizes the kernel pair of `ee`. -/
 theorem add_descends :
@@ -814,15 +816,15 @@ theorem add_descends :
     intro k
     have hlhs : (k ≫ (A.add ≫ imE f)) ≫ imArr f
         = pair (k ≫ fst ≫ f.val) (k ≫ snd ≫ f.val) ≫ B.add := by
-      rw [Cat.assoc, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
           show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
-          ← Cat.assoc, ab_pair_precomp]
+          ← CategoryTheory.Category.assoc, ab_pair_precomp]
     have hrhs : (k ≫ imEE f) ≫ (pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add)
         = pair (k ≫ fst ≫ f.val) (k ≫ snd ≫ f.val) ≫ B.add := by
-      rw [← Cat.assoc, ab_pair_precomp]
+      rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
       congr 2
-      · rw [Cat.assoc, imEE_fst_imArr]
-      · rw [Cat.assoc, imEE_snd_imArr]
+      · rw [CategoryTheory.Category.assoc, imEE_fst_imArr]
+      · rw [CategoryTheory.Category.assoc, imEE_snd_imArr]
     rw [hlhs, hrhs]
   rw [key, key, kp_sq]
 
@@ -839,9 +841,9 @@ theorem imEE_imAdd : imEE f ≫ imAdd f = A.add ≫ imE f :=
 @[simp] theorem imAdd_imArr :
     imAdd f ≫ imArr f = pair (fst ≫ imArr f) (snd ≫ imArr f) ≫ B.add := by
   apply cover_epi (imEE_cover f)
-  rw [← Cat.assoc, imEE_imAdd, Cat.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
+  rw [← CategoryTheory.Category.assoc, imEE_imAdd, CategoryTheory.Category.assoc, show imE f ≫ imArr f = f.val from image.lift_fac f.val,
       show A.add ≫ f.val = pair (fst ≫ f.val) (snd ≫ f.val) ≫ B.add from f.property,
-      ← Cat.assoc, ab_pair_precomp]
+      ← CategoryTheory.Category.assoc, ab_pair_precomp]
   -- RHS now: pair (imEE f ≫ fst ≫ imArr) (imEE f ≫ snd ≫ imArr) ≫ B.add
   congr 2
   · rw [imEE_fst_imArr]
@@ -850,7 +852,7 @@ theorem imEE_imAdd : imEE f ≫ imAdd f = A.add ≫ imE f :=
 /-- **Component lemma** for the image sum: `(⟨u,w⟩ ≫ imAdd) ≫ m = ⟨u≫m, w≫m⟩ ≫ B.add`. -/
 theorem imAdd_proj {S : 𝒞} (u w : S ⟶ imI f) :
     (pair u w ≫ imAdd f) ≫ imArr f = pair (u ≫ imArr f) (w ≫ imArr f) ≫ B.add := by
-  rw [Cat.assoc, imAdd_imArr, ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
+  rw [CategoryTheory.Category.assoc, imAdd_imArr, ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
       fst_pair, snd_pair]
 
 /-! The group axioms on `imI`, each proved by monicity of `m` from the axioms of `B`,
@@ -864,20 +866,20 @@ noncomputable def imageGObj : AbelianGroupObject 𝒞 where
   add := imAdd f
   add_zero := by
     apply imArr_monic f
-    rw [imAdd_proj, Cat.id_comp]
+    rw [imAdd_proj, CategoryTheory.Category.id_comp]
     have e : (term (imI f) ≫ imZero f) ≫ imArr f = term (imI f) ≫ B.zero := by
-      rw [Cat.assoc, imZero_imArr, ← Cat.assoc, term_uniq (term (imI f) ≫ term one) (term _)]
+      rw [CategoryTheory.Category.assoc, imZero_imArr, ← CategoryTheory.Category.assoc, term_uniq (term (imI f) ≫ term one) (term _)]
     rw [e]; exact GElt.zero_add B (imArr f)
   add_neg := by
     apply imArr_monic f
-    rw [imAdd_proj, Cat.id_comp, imNeg_imArr, Cat.assoc, imZero_imArr, ← Cat.assoc,
+    rw [imAdd_proj, CategoryTheory.Category.id_comp, imNeg_imArr, CategoryTheory.Category.assoc, imZero_imArr, ← CategoryTheory.Category.assoc,
         term_uniq (term (imI f) ≫ term one) (term (imI f))]
     exact GElt.neg_add B (imArr f)
   add_assoc := by
     apply imArr_monic f
-    rw [imAdd_proj, Cat.assoc, imAdd_imArr, ← Cat.assoc, ab_pair_precomp,
+    rw [imAdd_proj, CategoryTheory.Category.assoc, imAdd_imArr, ← CategoryTheory.Category.assoc, ab_pair_precomp,
         imAdd_proj, imAdd_proj]
-    simp only [Cat.assoc]
+    simp only [CategoryTheory.Category.assoc]
     exact GElt.add_assoc B (fst ≫ fst ≫ imArr f) (fst ≫ snd ≫ imArr f) (snd ≫ imArr f)
   add_comm := by
     apply imArr_monic f
@@ -985,12 +987,12 @@ theorem abImageSub_min {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
   have ht_hom : IsHomAbelianGroupObject (imageGObj f) S.dom t := by
     apply hSmono
     -- LHS: (imageGObj.add ≫ t) ≫ m = imAdd ≫ (t≫m) = imAdd ≫ imArr = ⟨fst≫imArr,snd≫imArr⟩≫B.add
-    rw [Cat.assoc, hti, imageGObj_add, imAdd_imArr]
+    rw [CategoryTheory.Category.assoc, hti, imageGObj_add, imAdd_imArr]
     -- RHS: (⟨fst≫t,snd≫t⟩ ≫ S.dom.add) ≫ m = ⟨fst≫t,snd≫t⟩ ≫ ⟨fst≫m,snd≫m⟩ ≫ B.add
-    rw [Cat.assoc, S.arr.property, ← Cat.assoc, ab_pair_precomp]
+    rw [CategoryTheory.Category.assoc, S.arr.property, ← CategoryTheory.Category.assoc, ab_pair_precomp]
     congr 2
-    · rw [← Cat.assoc, fst_pair, Cat.assoc, hti]
-    · rw [← Cat.assoc, snd_pair, Cat.assoc, hti]
+    · rw [← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc, hti]
+    · rw [← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc, hti]
   exact ⟨⟨t, ht_hom⟩, Subtype.ext ht⟩
 
 /-- §1.595: `abImageSub f` IS the image of `f` in `Ab(𝒞)`. -/
@@ -1049,16 +1051,16 @@ theorem ab_pullbacks_transfer_covers {A B C : AbelianGroupObject 𝒞} {f : A �
   obtain ⟨φ, ⟨hφ₁, hφ₂⟩, _⟩ := P.cone_isPullback c
   obtain ⟨ψ, ⟨hψ₁, hψ₂⟩, _⟩ := hc P.cone
   -- φ, ψ are mutually inverse (joint monicity of `c` resp. `P`).
-  have hφψ : φ ≫ ψ = Cat.id c.pt := by
-    have e1 : (φ ≫ ψ) ≫ c.π₁ = c.π₁ := by rw [Cat.assoc, hψ₁, hφ₁]
-    have e2 : (φ ≫ ψ) ≫ c.π₂ = c.π₂ := by rw [Cat.assoc, hψ₂, hφ₂]
+  have hφψ : φ ≫ ψ = 𝟙 c.pt := by
+    have e1 : (φ ≫ ψ) ≫ c.π₁ = c.π₁ := by rw [CategoryTheory.Category.assoc, hψ₁, hφ₁]
+    have e2 : (φ ≫ ψ) ≫ c.π₂ = c.π₂ := by rw [CategoryTheory.Category.assoc, hψ₂, hφ₂]
     obtain ⟨u, _, huniq⟩ := hc c
-    exact (huniq _ e1 e2).trans (huniq _ (Cat.id_comp _) (Cat.id_comp _)).symm
-  have hψφ : ψ ≫ φ = Cat.id P.cone.pt := by
-    have e1 : (ψ ≫ φ) ≫ P.cone.π₁ = P.cone.π₁ := by rw [Cat.assoc, hφ₁, hψ₁]
-    have e2 : (ψ ≫ φ) ≫ P.cone.π₂ = P.cone.π₂ := by rw [Cat.assoc, hφ₂, hψ₂]
+    exact (huniq _ e1 e2).trans (huniq _ (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)).symm
+  have hψφ : ψ ≫ φ = 𝟙 P.cone.pt := by
+    have e1 : (ψ ≫ φ) ≫ P.cone.π₁ = P.cone.π₁ := by rw [CategoryTheory.Category.assoc, hφ₁, hψ₁]
+    have e2 : (ψ ≫ φ) ≫ P.cone.π₂ = P.cone.π₂ := by rw [CategoryTheory.Category.assoc, hφ₂, hψ₂]
     obtain ⟨u, _, huniq⟩ := P.cone_isPullback P.cone
-    exact (huniq _ e1 e2).trans (huniq _ (Cat.id_comp _) (Cat.id_comp _)).symm
+    exact (huniq _ e1 e2).trans (huniq _ (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)).symm
   -- `c.π₂ = φ ≫ P.cone.π₂` (hφ₂); `φ` iso, so `Cover c.π₂ ⟸ Cover P.cone.π₂`.
   have hcanon : Cover P.cone.π₂ := by
     -- carrier `P.cone.π₂.val = (HasPullbacks.has f.val g.val).cone.π₂`, a 𝒞-cover by 𝒞-PTC.
@@ -1182,23 +1184,23 @@ theorem carRel_comp_le {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
        = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA
     have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc,
+      rw [← CategoryTheory.Category.assoc,
         show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
         hspanval]
     have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc, image.lift_fac]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
     rw [hL, hR]
   · show AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB
        = image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB
     have hL : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc,
+      rw [← CategoryTheory.Category.assoc,
         show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
         hspanval]
     have hR : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB = carSpan ≫ snd := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc, image.lift_fac]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
     rw [hL, hR]
 
 /-- The reverse direction of `carRel_comp_le`: `carRelGen (R ⊚ S) ⊂ carRelGen R ⊚ carRelGen S`.
@@ -1219,10 +1221,10 @@ theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
        = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA
     have hL : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colA = carSpan ≫ fst := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc, image.lift_fac]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
     have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colA = carSpan ≫ fst := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ fst) = carSpan ≫ fst
-      rw [← Cat.assoc,
+      rw [← CategoryTheory.Category.assoc,
         show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
         hspanval]
     rw [hL, hR]
@@ -1230,10 +1232,10 @@ theorem carRel_comp_ge {A B C : AbelianGroupObject 𝒞} (R : BinRel (AbelianGro
        = AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB
     have hL : image.lift carSpan ≫ (carRelGen R ⊚ carRelGen S).colB = carSpan ≫ snd := by
       show image.lift carSpan ≫ ((image carSpan).arr ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc, image.lift_fac]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
     have hR : AbImage.imE abSpan ≫ (carRelGen (R ⊚ S)).colB = carSpan ≫ snd := by
       show AbImage.imE abSpan ≫ (AbImage.imArr abSpan ≫ snd) = carSpan ≫ snd
-      rw [← Cat.assoc,
+      rw [← CategoryTheory.Category.assoc,
         show AbImage.imE abSpan ≫ AbImage.imArr abSpan = abSpan.val from image.lift_fac abSpan.val,
         hspanval]
     rw [hL, hR]
@@ -1260,26 +1262,26 @@ theorem carRel_reflect {A B : AbelianGroupObject 𝒞} {E S : BinRel (AbelianGro
   have hSjm : MonicPair S.colA.val S.colB.val := (carRelGen S).isMonicPair
   have hwhom : IsHomAbelianGroupObject E.src S.src w := by
     apply hSjm
-    · rw [Cat.assoc, hwA',
+    · rw [CategoryTheory.Category.assoc, hwA',
           show E.src.add ≫ E.colA.val
             = pair (fst ≫ E.colA.val) (snd ≫ E.colA.val) ≫ A.add from E.colA.property,
-          Cat.assoc,
+          CategoryTheory.Category.assoc,
           show S.src.add ≫ S.colA.val
             = pair (fst ≫ S.colA.val) (snd ≫ S.colA.val) ≫ A.add from S.colA.property,
-          ← Cat.assoc, ab_pair_precomp]
+          ← CategoryTheory.Category.assoc, ab_pair_precomp]
       congr 2
-      · rw [← Cat.assoc, fst_pair, Cat.assoc, hwA']
-      · rw [← Cat.assoc, snd_pair, Cat.assoc, hwA']
-    · rw [Cat.assoc, hwB',
+      · rw [← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc, hwA']
+      · rw [← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc, hwA']
+    · rw [CategoryTheory.Category.assoc, hwB',
           show E.src.add ≫ E.colB.val
             = pair (fst ≫ E.colB.val) (snd ≫ E.colB.val) ≫ B.add from E.colB.property,
-          Cat.assoc,
+          CategoryTheory.Category.assoc,
           show S.src.add ≫ S.colB.val
             = pair (fst ≫ S.colB.val) (snd ≫ S.colB.val) ≫ B.add from S.colB.property,
-          ← Cat.assoc, ab_pair_precomp]
+          ← CategoryTheory.Category.assoc, ab_pair_precomp]
       congr 2
-      · rw [← Cat.assoc, fst_pair, Cat.assoc, hwB']
-      · rw [← Cat.assoc, snd_pair, Cat.assoc, hwB']
+      · rw [← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc, hwB']
+      · rw [← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc, hwB']
   exact ⟨⟨⟨w, hwhom⟩, Subtype.ext hwA', Subtype.ext hwB'⟩⟩
 
 /-- §1.595: the carrier equivalence relation of an `Ab(𝒞)`-equivalence-relation `E` is
@@ -1327,9 +1329,9 @@ theorem legs_agree (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
   have heA' : he ≫ (graph q ⊚ (graph q)°).colA = E.colA.val := heA
   have heB' : he ≫ (graph q ⊚ (graph q)°).colB = E.colB.val := heB
   calc E.colA.val ≫ q = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA']
-    _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+    _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := CategoryTheory.Category.assoc _ _ _
     _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
-    _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+    _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
     _ = E.colB.val ≫ q := by rw [heB']
 
 include hbracket in
@@ -1343,7 +1345,7 @@ theorem kfac {T : 𝒞} (u v : T ⟶ A.carrier) (huv : u ≫ q = v ≫ q) :
   have hl1 : (HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ kp₁ (f := q) = u := kp_lift_p₁ u v huv
   have hl2 : (HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ kp₂ (f := q) = v := kp_lift_p₂ u v huv
   exact ⟨(HasPullbacks.has q q).lift ⟨T, u, v, huv⟩ ≫ κ,
-    by rw [Cat.assoc, hκA']; exact hl1, by rw [Cat.assoc, hκB']; exact hl2⟩
+    by rw [CategoryTheory.Category.assoc, hκA']; exact hl1, by rw [CategoryTheory.Category.assoc, hκB']; exact hl2⟩
 
 include hbracket in
 /-- The negation descends: `A.neg ≫ q` coequalizes the kernel pair of `q`.  (The `q`-equal pair
@@ -1354,22 +1356,22 @@ theorem neg_descends (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
   have hlegs := legs_agree E q hEqq
   obtain ⟨e, heA, heB⟩ := kfac E q hbracket (kp₁ (f:=q)) (kp₂ (f:=q)) kp_sq
   have hcolA : E.src.neg ≫ E.colA.val = E.colA.val ≫ A.neg := by
-    have := hom_preserves_neg E.colA.property (Cat.id E.src.carrier)
-    rwa [Cat.id_comp, Cat.id_comp] at this
+    have := hom_preserves_neg E.colA.property (𝟙 E.src.carrier)
+    rwa [CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp] at this
   have hcolB : E.src.neg ≫ E.colB.val = E.colB.val ≫ A.neg := by
-    have := hom_preserves_neg E.colB.property (Cat.id E.src.carrier)
-    rwa [Cat.id_comp, Cat.id_comp] at this
+    have := hom_preserves_neg E.colB.property (𝟙 E.src.carrier)
+    rwa [CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp] at this
   have hcong : (E.colA.val ≫ A.neg) ≫ q = (E.colB.val ≫ A.neg) ≫ q := by
     calc (E.colA.val ≫ A.neg) ≫ q = (E.src.neg ≫ E.colA.val) ≫ q := by rw [hcolA]
-      _ = E.src.neg ≫ (E.colA.val ≫ q) := Cat.assoc _ _ _
+      _ = E.src.neg ≫ (E.colA.val ≫ q) := CategoryTheory.Category.assoc _ _ _
       _ = E.src.neg ≫ (E.colB.val ≫ q) := by rw [hlegs]
-      _ = (E.src.neg ≫ E.colB.val) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (E.src.neg ≫ E.colB.val) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (E.colB.val ≫ A.neg) ≫ q := by rw [hcolB]
   calc kp₁ (f := q) ≫ (A.neg ≫ q)
       = (e ≫ E.colA.val) ≫ (A.neg ≫ q) := by rw [heA]
-    _ = e ≫ ((E.colA.val ≫ A.neg) ≫ q) := by simp only [Cat.assoc]
+    _ = e ≫ ((E.colA.val ≫ A.neg) ≫ q) := by simp only [CategoryTheory.Category.assoc]
     _ = e ≫ ((E.colB.val ≫ A.neg) ≫ q) := by rw [hcong]
-    _ = (e ≫ E.colB.val) ≫ (A.neg ≫ q) := by simp only [Cat.assoc]
+    _ = (e ≫ E.colB.val) ≫ (A.neg ≫ q) := by simp only [CategoryTheory.Category.assoc]
     _ = kp₂ (f := q) ≫ (A.neg ≫ q) := by rw [heB]
 
 include hbracket in
@@ -1381,23 +1383,23 @@ theorem add_cong (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°))
     (h1 : u ≫ (fst ≫ q) = w ≫ (fst ≫ q)) (h2 : u ≫ (snd ≫ q) = w ≫ (snd ≫ q)) :
     (u ≫ A.add) ≫ q = (w ≫ A.add) ≫ q := by
   have hlegs := legs_agree E q hEqq
-  obtain ⟨e1, he1A, he1B⟩ := kfac E q hbracket (u ≫ fst) (w ≫ fst) (by rw [Cat.assoc, Cat.assoc]; exact h1)
-  obtain ⟨e2, he2A, he2B⟩ := kfac E q hbracket (u ≫ snd) (w ≫ snd) (by rw [Cat.assoc, Cat.assoc]; exact h2)
+  obtain ⟨e1, he1A, he1B⟩ := kfac E q hbracket (u ≫ fst) (w ≫ fst) (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact h1)
+  obtain ⟨e2, he2A, he2B⟩ := kfac E q hbracket (u ≫ snd) (w ≫ snd) (by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact h2)
   let eAdd : T ⟶ E.src.carrier := pair e1 e2 ≫ (E.src).add
   have heAddA : eAdd ≫ E.colA.val = u ≫ A.add := by
     show (pair e1 e2 ≫ E.src.add) ≫ E.colA.val = u ≫ A.add
     rw [hom_preserves_add E.colA.property e1 e2, he1A, he2A,
         show pair (u ≫ fst) (u ≫ snd) = u ≫ pair fst snd from (ab_pair_precomp u fst snd).symm,
-        pair_fst_snd, Cat.comp_id]
+        pair_fst_snd, CategoryTheory.Category.comp_id]
   have heAddB : eAdd ≫ E.colB.val = w ≫ A.add := by
     show (pair e1 e2 ≫ E.src.add) ≫ E.colB.val = w ≫ A.add
     rw [hom_preserves_add E.colB.property e1 e2, he1B, he2B,
         show pair (w ≫ fst) (w ≫ snd) = w ≫ pair fst snd from (ab_pair_precomp w fst snd).symm,
-        pair_fst_snd, Cat.comp_id]
+        pair_fst_snd, CategoryTheory.Category.comp_id]
   calc (u ≫ A.add) ≫ q = (eAdd ≫ E.colA.val) ≫ q := by rw [heAddA]
-    _ = eAdd ≫ (E.colA.val ≫ q) := Cat.assoc _ _ _
+    _ = eAdd ≫ (E.colA.val ≫ q) := CategoryTheory.Category.assoc _ _ _
     _ = eAdd ≫ (E.colB.val ≫ q) := by rw [hlegs]
-    _ = (eAdd ≫ E.colB.val) ≫ q := (Cat.assoc _ _ _).symm
+    _ = (eAdd ≫ E.colB.val) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (w ≫ A.add) ≫ q := by rw [heAddB]
 
 include hbracket in
@@ -1409,13 +1411,13 @@ theorem add_descends (hEqq : carRelGen E ⊂ (graph q ⊚ (graph q)°)) :
            = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ pair (fst ≫ q) (snd ≫ q) := kp_sq
   have hf : kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ (fst ≫ q)
           = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ (fst ≫ q) := by
-    have h := congrArg (· ≫ fst) hsq; simp only [Cat.assoc, fst_pair] at h; exact h
+    have h := congrArg (· ≫ fst) hsq; simp only [CategoryTheory.Category.assoc, fst_pair] at h; exact h
   have hs : kp₁ (f := pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q)) ≫ (snd ≫ q)
           = kp₂ (f := pair (fst ≫ q) (snd ≫ q)) ≫ (snd ≫ q) := by
-    have h := congrArg (· ≫ snd) hsq; simp only [Cat.assoc, snd_pair] at h; exact h
+    have h := congrArg (· ≫ snd) hsq; simp only [CategoryTheory.Category.assoc, snd_pair] at h; exact h
   have hmain := add_cong E q hbracket hEqq
     (kp₁ (f := pair (fst ≫ q) (snd ≫ q))) (kp₂ (f := pair (fst ≫ q) (snd ≫ q))) hf hs
-  rw [Cat.assoc, Cat.assoc] at hmain
+  rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc] at hmain
   exact hmain
 
 /-! The descended group operations on `Q` (mirroring `imageGObj`, but along the cover `q`). -/
@@ -1447,9 +1449,9 @@ theorem qq_Qadd_proj {S : 𝒞} (s t : S ⟶ A.carrier) :
     pair (s ≫ q) (t ≫ q) ≫ Qadd E q hqcov hbracket hEqq = (pair s t ≫ A.add) ≫ q := by
   have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
     rw [ab_pair_precomp]; congr 1
-    · rw [← Cat.assoc, fst_pair]
-    · rw [← Cat.assoc, snd_pair]
-  rw [hrw, Cat.assoc, qq_Qadd, ← Cat.assoc]
+    · rw [← CategoryTheory.Category.assoc, fst_pair]
+    · rw [← CategoryTheory.Category.assoc, snd_pair]
+  rw [hrw, CategoryTheory.Category.assoc, qq_Qadd, ← CategoryTheory.Category.assoc]
 
 /-- The triple cover `⟨fst≫⟨fst≫q,snd≫q⟩, snd≫q⟩ : (A.car×A.car)×A.car ↠ (Q×Q)×Q`.  Built from
     `coverProdLeft`/`coverProdRight`/`cover_comp`; needed for the `add_assoc` axiom cancellation. -/
@@ -1461,8 +1463,8 @@ theorem tripleCover (hq : Cover q) :
               ≫ pair (fst : prod (prod Q Q) A.carrier ⟶ prod Q Q) (snd ≫ q)
             = pair (fst ≫ pair (fst ≫ q) (snd ≫ q)) (snd ≫ q) := by
     apply fst_snd_jointly_monic
-    · rw [Cat.assoc, fst_pair, fst_pair, fst_pair]
-    · rw [Cat.assoc, snd_pair, snd_pair, ← Cat.assoc, snd_pair]
+    · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair, fst_pair]
+    · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair, ← CategoryTheory.Category.assoc, snd_pair]
   intro D m g hm hgm
   refine cover_comp (coverProdLeft (X := A.carrier) (coverProdBoth hq))
     (coverProdRight (X := prod Q Q) hq) m g hm ?_
@@ -1481,9 +1483,9 @@ theorem quotAddAssoc (Qadd : prod Q Q ⟶ Q)
     intro S s t
     have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
       rw [ab_pair_precomp]; congr 1
-      · rw [← Cat.assoc, fst_pair]
-      · rw [← Cat.assoc, snd_pair]
-    rw [hrw, Cat.assoc, hadd, ← Cat.assoc]
+      · rw [← CategoryTheory.Category.assoc, fst_pair]
+      · rw [← CategoryTheory.Category.assoc, snd_pair]
+    rw [hrw, CategoryTheory.Category.assoc, hadd, ← CategoryTheory.Category.assoc]
   have key : ∀ (x y z : prod (prod A.carrier A.carrier) A.carrier ⟶ A.carrier),
       pair (pair (x ≫ q) (y ≫ q) ≫ Qadd) (z ≫ q) ≫ Qadd
         = (pair (pair x y ≫ A.add) z ≫ A.add) ≫ q := fun x y z => by
@@ -1499,21 +1501,21 @@ theorem quotAddAssoc (Qadd : prod Q Q ⟶ Q)
         (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)
         ≫ (pair (fst (A := prod Q Q) (B := Q) ≫ Qadd) snd ≫ Qadd)
       = pair (pair ((fst ≫ fst) ≫ q) ((fst ≫ snd) ≫ q) ≫ Qadd) (snd ≫ q) ≫ Qadd := by
-    rw [← Cat.assoc, ab_pair_precomp]
+    rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
     congr 2
-    · simp only [Cat.assoc, fst_pair]
-      rw [← Cat.assoc, ab_pair_precomp]; simp only [Cat.assoc, fst_pair, snd_pair]
+    · simp only [CategoryTheory.Category.assoc, fst_pair]
+      rw [← CategoryTheory.Category.assoc, ab_pair_precomp]; simp only [CategoryTheory.Category.assoc, fst_pair, snd_pair]
     · rw [snd_pair]
   have hRHS : pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
         (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)
         ≫ (pair (fst (A := prod Q Q) (B := Q) ≫ fst) (pair (fst ≫ snd) snd ≫ Qadd) ≫ Qadd)
       = pair ((fst ≫ fst) ≫ q) (pair ((fst ≫ snd) ≫ q) (snd ≫ q) ≫ Qadd) ≫ Qadd := by
-    rw [← Cat.assoc, ab_pair_precomp]
+    rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
     congr 2
-    · rw [← Cat.assoc]; simp only [Cat.assoc, fst_pair]
-    · rw [← Cat.assoc, ab_pair_precomp]
+    · rw [← CategoryTheory.Category.assoc]; simp only [CategoryTheory.Category.assoc, fst_pair]
+    · rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
       congr 2
-      · rw [← Cat.assoc]; simp only [Cat.assoc, fst_pair, snd_pair]
+      · rw [← CategoryTheory.Category.assoc]; simp only [CategoryTheory.Category.assoc, fst_pair, snd_pair]
       · rw [snd_pair]
   rw [hLHS, hRHS, key (fst ≫ fst) (fst ≫ snd) snd, key2 (fst ≫ fst) (fst ≫ snd) snd,
       hffsnd, A.add_assoc]
@@ -1524,7 +1526,7 @@ theorem quotAddComm (Qadd : prod Q Q ⟶ Q)
     (hq : Cover q) :
     pair (snd : prod Q Q ⟶ Q) fst ≫ Qadd = Qadd := by
   apply cover_epi (coverProdBoth hq)
-  rw [← Cat.assoc]
+  rw [← CategoryTheory.Category.assoc]
   have hqqsf : pair (fst ≫ q) (snd ≫ q : prod A.carrier A.carrier ⟶ Q) ≫ pair (snd : prod Q Q ⟶ Q) fst
              = pair (snd ≫ q) (fst ≫ q) := by rw [ab_pair_precomp, fst_pair, snd_pair]
   have proj : ∀ {S : 𝒞} (s t : S ⟶ A.carrier),
@@ -1532,9 +1534,9 @@ theorem quotAddComm (Qadd : prod Q Q ⟶ Q)
     intro S s t
     have hrw : pair (s ≫ q) (t ≫ q) = pair s t ≫ pair (fst ≫ q) (snd ≫ q) := by
       rw [ab_pair_precomp]; congr 1
-      · rw [← Cat.assoc, fst_pair]
-      · rw [← Cat.assoc, snd_pair]
-    rw [hrw, Cat.assoc, hadd, ← Cat.assoc]
+      · rw [← CategoryTheory.Category.assoc, fst_pair]
+      · rw [← CategoryTheory.Category.assoc, snd_pair]
+    rw [hrw, CategoryTheory.Category.assoc, hadd, ← CategoryTheory.Category.assoc]
   rw [hqqsf, proj snd fst, hadd, A.add_comm]
 
 /-- §1.595: the quotient group object `Q` carrying the descended `zero/neg/add`.  Each axiom is
@@ -1547,27 +1549,27 @@ noncomputable def quotGObj : AbelianGroupObject 𝒞 where
   add := Qadd E q hqcov hbracket hEqq
   add_zero := by
     apply cover_epi hqcov
-    rw [Cat.comp_id, ← Cat.assoc, ab_pair_precomp, Cat.comp_id]
+    rw [CategoryTheory.Category.comp_id, ← CategoryTheory.Category.assoc, ab_pair_precomp, CategoryTheory.Category.comp_id]
     have e1 : q ≫ term Q ≫ Qzero q = (term A.carrier ≫ A.zero) ≫ q := by
       show q ≫ term Q ≫ (A.zero ≫ q) = (term A.carrier ≫ A.zero) ≫ q
-      rw [← Cat.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [Cat.assoc]
+      rw [← CategoryTheory.Category.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [CategoryTheory.Category.assoc]
     rw [e1, show pair ((term A.carrier ≫ A.zero) ≫ q) q
-          = pair ((term A.carrier ≫ A.zero) ≫ q) ((Cat.id A.carrier) ≫ q) by rw [Cat.id_comp],
-        qq_Qadd_proj E q hqcov hbracket hEqq (term A.carrier ≫ A.zero) (Cat.id A.carrier),
-        A.add_zero, Cat.id_comp]
+          = pair ((term A.carrier ≫ A.zero) ≫ q) ((𝟙 A.carrier) ≫ q) by rw [CategoryTheory.Category.id_comp],
+        qq_Qadd_proj E q hqcov hbracket hEqq (term A.carrier ≫ A.zero) (𝟙 A.carrier),
+        A.add_zero, CategoryTheory.Category.id_comp]
   add_neg := by
     apply cover_epi hqcov
-    rw [← Cat.assoc, ab_pair_precomp, Cat.comp_id]
+    rw [← CategoryTheory.Category.assoc, ab_pair_precomp, CategoryTheory.Category.comp_id]
     -- pair (q ≫ Qneg) q ≫ Qadd = q ≫ term Q ≫ Qzero
     rw [q_Qneg E q hqcov hbracket hEqq]
-    rw [show pair (A.neg ≫ q) q = pair (A.neg ≫ q) ((Cat.id A.carrier) ≫ q) by rw [Cat.id_comp]]
-    rw [show A.neg ≫ q = (Cat.id A.carrier ≫ A.neg) ≫ q by rw [Cat.id_comp]]
-    rw [qq_Qadd_proj E q hqcov hbracket hEqq (Cat.id A.carrier ≫ A.neg) (Cat.id A.carrier)]
+    rw [show pair (A.neg ≫ q) q = pair (A.neg ≫ q) ((𝟙 A.carrier) ≫ q) by rw [CategoryTheory.Category.id_comp]]
+    rw [show A.neg ≫ q = (𝟙 A.carrier ≫ A.neg) ≫ q by rw [CategoryTheory.Category.id_comp]]
+    rw [qq_Qadd_proj E q hqcov hbracket hEqq (𝟙 A.carrier ≫ A.neg) (𝟙 A.carrier)]
     -- (pair (id≫A.neg) id ≫ A.add) ≫ q = q ≫ term Q ≫ (A.zero ≫ q)
-    rw [show pair (Cat.id A.carrier ≫ A.neg) (Cat.id A.carrier)
-          = pair A.neg (Cat.id A.carrier) by rw [Cat.id_comp], A.add_neg]
+    rw [show pair (𝟙 A.carrier ≫ A.neg) (𝟙 A.carrier)
+          = pair A.neg (𝟙 A.carrier) by rw [CategoryTheory.Category.id_comp], A.add_neg]
     show (term A.carrier ≫ A.zero) ≫ q = q ≫ term Q ≫ (A.zero ≫ q)
-    rw [← Cat.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [Cat.assoc]
+    rw [← CategoryTheory.Category.assoc q (term Q), term_uniq (q ≫ term Q) (term A.carrier)]; simp only [CategoryTheory.Category.assoc]
   add_assoc :=
     quotAddAssoc q (Qadd E q hqcov hbracket hEqq) (qq_Qadd E q hqcov hbracket hEqq) hqcov
   add_comm :=
@@ -1597,14 +1599,14 @@ theorem carRel_level_le :
   refine rel_le_trans (carRel_comp_ge (graph (qHom E q hqcov hbracket hEqq))
     ((graph (qHom E q hqcov hbracket hEqq))°)) ?_
   -- carRelGen (graph qHom) ⊚ carRelGen (graph qHom°) = graph q ⊚ graph q° (defeq via qHom_val)
-  exact ⟨⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩⟩
+  exact ⟨⟨𝟙 _, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩⟩
 
 theorem carRel_level_ge :
     (graph q ⊚ (graph q)°)
       ⊂ carRelGen (graph (qHom E q hqcov hbracket hEqq) ⊚ (graph (qHom E q hqcov hbracket hEqq))°) := by
   refine rel_le_trans ?_ (carRel_comp_le (graph (qHom E q hqcov hbracket hEqq))
     ((graph (qHom E q hqcov hbracket hEqq))°))
-  exact ⟨⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩⟩
+  exact ⟨⟨𝟙 _, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩⟩
 
 /-- §1.595: `E ⊂ graph qHom ⊚ (graph qHom)°` in `Ab(𝒞)`.  Reflect (`carRel_reflect`) the carrier
     containment `carRelGen E ⊂ carRelGen (level qHom)`, obtained from `hEqq` (`carRelGen E ⊂ level q`)

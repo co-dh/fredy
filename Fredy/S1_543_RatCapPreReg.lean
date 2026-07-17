@@ -21,7 +21,7 @@
 -/
 import Fredy.S1_543_LaxColimitPreReg
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -30,15 +30,15 @@ namespace Freyd.LaxColim
 universe u w
 
 variable {ι : Type u} {D : Directed ι}
-variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
 
 /-! ## The base-change adjunction `Σ_g ⊣ g*` on the underlying-arrow level
 
   For `g : C ⟶ D`, base-change `baseChangeObj g : Over D → Over C` sends `W` to the pullback
   `W ×_D C` with structure map `π₂`.  A slice map `u : z ⟶ baseChangeObj g W` in `Over C` is an
-  arrow `u.f : z.dom ⟶ (W ×_D C).pt` with `u.f ≫ π₂ = z.hom`.  Post-composing `u.f` with `π₁`
+  arrow `u.left : z.dom ⟶ (W ×_D C).pt` with `u.left ≫ π₂ = z.hom`.  Post-composing `u.left` with `π₁`
   gives an arrow `z.dom ⟶ W.dom`, and the pullback square turns the over-`C` law into the over-`D`
-  law `(u.f ≫ π₁) ≫ W.hom = z.hom ≫ g`.  This is the adjunction transpose; we package its two
+  law `(u.left ≫ π₁) ≫ W.hom = z.hom ≫ g`.  This is the adjunction transpose; we package its two
   directions as `bcRight`/`bcLeft` and prove they are mutually inverse, plus the naturality we need
   (it intertwines post-composition `· ≫ baseChangeMap g m` with `· ≫ m`). -/
 section BaseChangeAdj
@@ -50,53 +50,55 @@ variable {C D : 𝒞} (g : C ⟶ D)
 abbrev bcPB (W : Over D) : HasPullback W.hom g := HasPullbacks.has W.hom g
 
 /-- **Transpose (right→left): `(z ⟶ g* W) → (reindexObj g z ⟶ W)`.**  Post-compose with `π₁`.  The
-    over-`D` law is the pullback square: `(u.f ≫ π₁) ≫ W.hom = u.f ≫ (π₂ ≫ g) = z.hom ≫ g`. -/
+    over-`D` law is the pullback square: `(u.left ≫ π₁) ≫ W.hom = u.left ≫ (π₂ ≫ g) = z.hom ≫ g`. -/
 def bcTranspose {z : Over C} {W : Over D} (u : z ⟶ baseChangeObj g W) :
     reindexObj g z ⟶ W :=
-  ⟨u.f ≫ (bcPB g W).cone.π₁, by
-    show (u.f ≫ (bcPB g W).cone.π₁) ≫ W.hom = z.hom ≫ g
-    rw [Cat.assoc, (bcPB g W).cone.w, ← Cat.assoc]
-    show (u.f ≫ (bcPB g W).cone.π₂) ≫ g = z.hom ≫ g
-    rw [show u.f ≫ (bcPB g W).cone.π₂ = z.hom from u.w]⟩
+  CategoryTheory.Over.homMk (u.left ≫ (bcPB g W).cone.π₁) (by
+    show (u.left ≫ (bcPB g W).cone.π₁) ≫ W.hom = z.hom ≫ g
+    rw [CategoryTheory.Category.assoc, (bcPB g W).cone.w, ← CategoryTheory.Category.assoc]
+    show (u.left ≫ (bcPB g W).cone.π₂) ≫ g = z.hom ≫ g
+    rw [show u.left ≫ (bcPB g W).cone.π₂ = z.hom from CategoryTheory.Over.w u])
 
-/-- **Transpose (left→right): `(reindexObj g z ⟶ W) → (z ⟶ g* W)`.**  Lift the cone `(a.f, z.hom)`
-    into the pullback `W ×_D C`; the cone commutes because `a.f ≫ W.hom = z.hom ≫ g` (the over-`D`
+/-- **Transpose (left→right): `(reindexObj g z ⟶ W) → (z ⟶ g* W)`.**  Lift the cone `(a.left, z.hom)`
+    into the pullback `W ×_D C`; the cone commutes because `a.left ≫ W.hom = z.hom ≫ g` (the over-`D`
     law).  The lift's `π₂`-leg is `z.hom`, the over-`C` law. -/
 def bcLift {z : Over C} {W : Over D} (a : reindexObj g z ⟶ W) :
     z ⟶ baseChangeObj g W :=
-  ⟨(bcPB g W).lift ⟨z.dom, a.f, z.hom, by
-      show a.f ≫ W.hom = z.hom ≫ g; exact a.w⟩,
-    (bcPB g W).lift_snd _⟩
+  CategoryTheory.Over.homMk ((bcPB g W).lift ⟨z.left, a.left, z.hom, by
+      show a.left ≫ W.hom = z.hom ≫ g; exact CategoryTheory.Over.w a⟩)
+    ((bcPB g W).lift_snd _)
 
 @[simp] theorem bcTranspose_f {z : Over C} {W : Over D} (u : z ⟶ baseChangeObj g W) :
-    (bcTranspose g u).f = u.f ≫ (bcPB g W).cone.π₁ := rfl
+    (bcTranspose g u).left = u.left ≫ (bcPB g W).cone.π₁ := rfl
 
 /-- `bcLift ∘ bcTranspose = id` (over `C`): both arrows lift the same pullback cone, by
     `lift_uniq`. -/
 theorem bcLift_bcTranspose {z : Over C} {W : Over D} (u : z ⟶ baseChangeObj g W) :
     bcLift g (bcTranspose g u) = u :=
-  OverHom.ext ((bcPB g W).lift_uniq
-    ⟨z.dom, (bcTranspose g u).f, z.hom, (bcTranspose g u).w⟩ u.f rfl u.w).symm
+  CategoryTheory.Over.OverMorphism.ext ((bcPB g W).lift_uniq
+    ⟨z.left, (bcTranspose g u).left, z.hom, CategoryTheory.Over.w (bcTranspose g u)⟩
+      u.left rfl (CategoryTheory.Over.w u)).symm
 
-/-- `bcTranspose ∘ bcLift = id` (over `D`): the lift's `π₁`-leg is `a.f`, by `lift_fst`. -/
+/-- `bcTranspose ∘ bcLift = id` (over `D`): the lift's `π₁`-leg is `a.left`, by `lift_fst`. -/
 theorem bcTranspose_bcLift {z : Over C} {W : Over D} (a : reindexObj g z ⟶ W) :
     bcTranspose g (bcLift g a) = a :=
-  OverHom.ext ((bcPB g W).lift_fst _)
+  CategoryTheory.Over.OverMorphism.ext (by
+    exact (bcPB g W).lift_fst _)
 
 /-- **Naturality of the transpose.**  Post-composing in `Over D` with `m : W ⟶ W'` corresponds to
     post-composing in `Over C` with `baseChangeMap g m`: `bcTranspose (u ⊚ g*m) = bcTranspose u ⊚ m`.
-    (Both underlying arrows are `u.f ≫ π₁ˣ ≫ ...`; the base-change map's `π₁`-leg is `lift_fst`.) -/
+    (Both underlying arrows are `u.left ≫ π₁ˣ ≫ ...`; the base-change map's `π₁`-leg is `lift_fst`.) -/
 theorem bcTranspose_natural {z : Over C} {W W' : Over D} (u : z ⟶ baseChangeObj g W)
     (m : W ⟶ W') :
     bcTranspose g (u ⊚ baseChangeMap g m) = bcTranspose g u ⊚ m := by
-  apply OverHom.ext
-  show (u.f ≫ (baseChangeMap g m).f) ≫ (bcPB g W').cone.π₁
-      = (u.f ≫ (bcPB g W).cone.π₁) ≫ m.f
-  show (u.f ≫ (bcPB g W').lift (baseChangeCone g m)) ≫ (bcPB g W').cone.π₁
-      = (u.f ≫ (bcPB g W).cone.π₁) ≫ m.f
-  rw [Cat.assoc, (bcPB g W').lift_fst (baseChangeCone g m)]
-  show u.f ≫ ((bcPB g W).cone.π₁ ≫ m.f) = (u.f ≫ (bcPB g W).cone.π₁) ≫ m.f
-  rw [Cat.assoc]
+  apply CategoryTheory.Over.OverMorphism.ext
+  show (u.left ≫ (baseChangeMap g m).left) ≫ (bcPB g W').cone.π₁
+      = (u.left ≫ (bcPB g W).cone.π₁) ≫ m.left
+  show (u.left ≫ (bcPB g W').lift (baseChangeCone g m)) ≫ (bcPB g W').cone.π₁
+      = (u.left ≫ (bcPB g W).cone.π₁) ≫ m.left
+  rw [CategoryTheory.Category.assoc, (bcPB g W').lift_fst (baseChangeCone g m)]
+  show u.left ≫ ((bcPB g W).cone.π₁ ≫ m.left) = (u.left ≫ (bcPB g W).cone.π₁) ≫ m.left
+  rw [CategoryTheory.Category.assoc]
 
 /-- **Base-change reflects equality of maps into `g* W`.**  If two maps `u v : z ⟶ g* W` have equal
     transposes, they are equal (the transpose is injective, being one half of a bijection). -/
@@ -207,7 +209,7 @@ private theorem fibreEq_mono {i : ι} {A B : Over (P.pr i)} (f g : A ⟶ B) (z :
   let E := (HasEqualizers.eq A B f g)
   -- the cone whose map is `s ≫ eqMap`; both `s` and `t` are its lift.
   have he : (s ≫ eqMap f g) ≫ f = (s ≫ eqMap f g) ≫ g := by
-    rw [Cat.assoc, Cat.assoc, eqMap_eq f g]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, eqMap_eq f g]
   let c : EqualizerCone f g := ⟨z, s ≫ eqMap f g, he⟩
   have hs : s = E.lift c := E.uniq c s rfl
   have ht : t = E.lift c := E.uniq c t h.symm

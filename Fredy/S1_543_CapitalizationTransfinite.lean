@@ -58,7 +58,7 @@ import Fredy.S1_543_Capitalization
 
 namespace Freyd
 
-open Colim
+open CategoryTheory Colim
 
 universe u
 
@@ -69,7 +69,7 @@ universe u
     `st.step A` is **well-pointed** in `st.T` (the book's `WellPointed`, S1_52.lean).  This is the
     field `CapStep` lacks; the concrete `nextStep` satisfies it only when its inner enumeration is
     cofinal over the well-supported objects (obstruction (2)). -/
-def StepWellPoints {S : Type u} [Cat.{u} S] [PreRegularCategory S] (st : CapStep S) : Prop :=
+def StepWellPoints {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S] (st : CapStep S) : Prop :=
   letI : Cat st.T := st.catT
   letI : PreRegularCategory st.T := st.preT
   ∀ A : S, WellSupported A → WellPointed (st.step A)
@@ -111,29 +111,29 @@ def StageRelCap {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u
     isomorphism.  Forward: a factor `y` makes `(y, 1_B) : B → c.pt` a section of `c.π₂`, and since
     `f` mono forces `c.π₂` mono (pullback of a mono is mono), a split-mono section makes `c.π₂` iso.
     Backward: `y := c.π₂⁻¹ ≫ c.π₁` factors `g` (using the square `c.w` and `π₂⁻¹ ≫ π₂ = 1`). -/
-theorem factor_iff_pullback_π₂_iso {𝒞 : Type u} [Cat.{u} 𝒞] {A B C : 𝒞}
+theorem factor_iff_pullback_π₂_iso {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] {A B C : 𝒞}
     {f : A ⟶ C} {g : B ⟶ C} (hf : Monic f) (c : Cone f g) (hpb : c.IsPullback) :
     (∃ y : B ⟶ A, y ≫ f = g) ↔ IsIso c.π₂ := by
   constructor
   · rintro ⟨y, hy⟩
     -- `(y, 1_B)` is a cone over `(f, g)`; its lift `s : B → c.pt` is a section of `c.π₂`.
-    obtain ⟨s, ⟨hs₁, hs₂⟩, _⟩ := hpb ⟨B, y, Cat.id B, by rw [hy, Cat.id_comp]⟩
+    obtain ⟨s, ⟨hs₁, hs₂⟩, _⟩ := hpb ⟨B, y, 𝟙 B, by rw [hy, CategoryTheory.Category.id_comp]⟩
     -- `c.π₂` is monic: pullback of the mono `f`.  `u ≫ π₂ = v ≫ π₂` and the square give
     -- `u ≫ π₁ = v ≫ π₁` (cancel `f`), so `u = v` by the pullback's uniqueness.
     have hπ₂mono : Monic c.π₂ := by
       intro W u v huv
       have h₁ : u ≫ c.π₁ = v ≫ c.π₁ := by
         apply hf
-        rw [Cat.assoc, c.w, ← Cat.assoc, huv, Cat.assoc, ← c.w, Cat.assoc]
-      obtain ⟨_, _, huniq⟩ := hpb ⟨W, u ≫ c.π₁, u ≫ c.π₂, by rw [Cat.assoc, c.w, Cat.assoc]⟩
+        rw [CategoryTheory.Category.assoc, c.w, ← CategoryTheory.Category.assoc, huv, CategoryTheory.Category.assoc, ← c.w, CategoryTheory.Category.assoc]
+      obtain ⟨_, _, huniq⟩ := hpb ⟨W, u ≫ c.π₁, u ≫ c.π₂, by rw [CategoryTheory.Category.assoc, c.w, CategoryTheory.Category.assoc]⟩
       rw [huniq u rfl rfl, huniq v h₁.symm huv.symm]
     -- `s ≫ c.π₂ = 1_B` (`hs₂`), so `c.π₂` is split mono; a monic split mono is iso.
     refine ⟨s, ?_, hs₂⟩
     -- `c.π₂ ≫ s = 1` from `(c.π₂ ≫ s) ≫ c.π₂ = c.π₂ = 1 ≫ c.π₂` and `c.π₂` mono.
-    exact hπ₂mono _ _ (by rw [Cat.assoc, hs₂, Cat.comp_id, Cat.id_comp])
+    exact hπ₂mono _ _ (by rw [CategoryTheory.Category.assoc, hs₂, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp])
   · rintro ⟨inv, hinv₁, hinv₂⟩
     -- `y := inv ≫ c.π₁` factors `g`: `y ≫ f = inv ≫ (π₁ ≫ f) = inv ≫ (π₂ ≫ g) = (inv ≫ π₂) ≫ g = g`.
-    exact ⟨inv ≫ c.π₁, by rw [Cat.assoc, c.w, ← Cat.assoc, hinv₂, Cat.id_comp]⟩
+    exact ⟨inv ≫ c.π₁, by rw [CategoryTheory.Category.assoc, c.w, ← CategoryTheory.Category.assoc, hinv₂, CategoryTheory.Category.id_comp]⟩
 
 variable {ι : Type u} {D : Directed ι}
 
@@ -190,12 +190,12 @@ theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [
   have hcc_pb : cc.IsPullback :=
     objIncl_preserves_pullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift K g g
   -- the two collapse equations of the colimit diagonal `homInclObj Ls.δ` against `cc`
-  have e₁ : Ls.δ ≫ P.cone.π₁ = Cat.id x := Ls.δ₁
-  have e₂ : Ls.δ ≫ P.cone.π₂ = Cat.id x := Ls.δ₂
-  have hδ₁ : homInclObj C hC Ls.δ ≫ cc.π₁ = Cat.id (C.objIncl K x) := by
+  have e₁ : Ls.δ ≫ P.cone.π₁ = 𝟙 x := Ls.δ₁
+  have e₂ : Ls.δ ≫ P.cone.π₂ = 𝟙 x := Ls.δ₂
+  have hδ₁ : homInclObj C hC Ls.δ ≫ cc.π₁ = 𝟙 (C.objIncl K x) := by
     show colimComp C hC (homInclObj C hC Ls.δ) (homInclObj C hC P.cone.π₁) = _
     rw [← homInclObj_comp C hC Ls.δ P.cone.π₁, e₁]; exact homInclObj_id C hC x
-  have hδ₂ : homInclObj C hC Ls.δ ≫ cc.π₂ = Cat.id (C.objIncl K x) := by
+  have hδ₂ : homInclObj C hC Ls.δ ≫ cc.π₂ = 𝟙 (C.objIncl K x) := by
     show colimComp C hC (homInclObj C hC Ls.δ) (homInclObj C hC P.cone.π₂) = _
     rw [← homInclObj_comp C hC Ls.δ P.cone.π₂, e₂]; exact homInclObj_id C hC x
   -- `homInclObj g` mono ⇒ colimit level diagonal `homInclObj Ls.δ` iso (`mono_iff_level_diag_iso`)
@@ -208,10 +208,10 @@ theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [
     -- `cc.π₁ ≫ homInclObj Ls.δ = id`: both are the unique self-lift of the pullback cone `cc`.
     have hπ : cc.π₁ = cc.π₂ := hm _ _ cc.w
     obtain ⟨_, _, huniq⟩ := hcc_pb cc
-    have hid : Cat.id cc.pt = _ := huniq (Cat.id cc.pt) (Cat.id_comp _) (Cat.id_comp _)
+    have hid : 𝟙 cc.pt = _ := huniq (𝟙 cc.pt) (CategoryTheory.Category.id_comp _) (CategoryTheory.Category.id_comp _)
     have hcomp : cc.π₁ ≫ homInclObj C hC Ls.δ = _ := huniq (cc.π₁ ≫ homInclObj C hC Ls.δ)
-      (by rw [Cat.assoc, hδ₁, Cat.comp_id])
-      (by rw [Cat.assoc, hδ₂, Cat.comp_id, hπ])
+      (by rw [CategoryTheory.Category.assoc, hδ₁, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, hδ₂, CategoryTheory.Category.comp_id, hπ])
     rw [hcomp, ← hid]
   -- iso-reflection (`hcons`) brings it to the stage diagonal; `Ls.δ` iso ⇒ `g` mono
   have hLsδ : IsIso Ls.δ := homInclObj_isIso_reflects C hC hcons Ls.δ hLcδ
@@ -400,7 +400,7 @@ theorem wellPointed_of_stage
     the residual is confined to that one lemma plus the explicit `hstage` premise (the cofinal-coverage
     obligation, not hidden in a `Sorry`). -/
 theorem tower_capital_of_cofinal
-    (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+    (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     (ccs : CofinalCapStep.{u}) (b : PreRegBundle.{u})
     (ht : ∀ i, HasTerminal ((towerSystem b ccs.step).A i))
     (htpres : ∀ {i j} (hij : uliftNatDirected.le i j),
@@ -532,7 +532,7 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
     (`capitalization_of_capData`) consumes.  Verbatim generalization of `capData_of_tower` to an
     arbitrary cofinal directed system; the only remaining input is exhibiting such a system together
     with its stage-pointing witness `hstage`. -/
-theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+theorem capData_of_cofinalSystem (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
     (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
@@ -592,7 +592,7 @@ theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     `capitalization_of_capData_regular_of_covers`).  The `hi` is the last structural ingredient that
     upgrades the capital target from pre-regular to regular; it is threaded HERE at the generic
     cofinal-system level (every concrete tower supplies it from its per-stage `stepImages`). -/
-theorem capitalization_regular_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
+theorem capitalization_regular_of_cofinalSystem (A : Type u) [CategoryTheory.Category.{u} A] [PreRegularCategory A]
     {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
     (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
@@ -635,7 +635,7 @@ theorem capitalization_regular_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreReg
           colimitPreRegular C hC ht htpres hp hppres hppres_pair he hepres hepres_lift hcanon
         WellSupported X →
         StageRelCap C ht (colimOut C X).1 (colimOut C X).2) :
-    ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
+    ∃ (Ā : Type u) (hC : CategoryTheory.Category.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
       ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
   -- Build the pre-regular `CapData` AS A RECORD LITERAL (not via `capData_of_cofinalSystem`'s

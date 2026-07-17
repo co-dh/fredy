@@ -15,7 +15,7 @@ import Fredy.S1_43
 import Fredy.S1_45
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -638,8 +638,11 @@ theorem prodEndo_faithful_of_prodEndoBB_faithful [HasBinaryProducts 𝒞] (B : �
     intro X Y f hf
     apply hBB_refl f
     -- We have `map_B f` iso; apply functor `prodEndo B` once more to get `map_B (map_B f)` iso.
+    obtain ⟨i, hi₁, hi₂⟩ := hf
     have hff : IsIso ((prodEndoIsFunctor B).map ((prodEndoIsFunctor B).map f)) :=
-      functor_preserves_iso (F := prodEndo B) ((prodEndoIsFunctor B).map f) hf
+      ⟨(prodEndoIsFunctor B).map i,
+        by rw [← (prodEndoIsFunctor B).map_comp, hi₁, (prodEndoIsFunctor B).map_id],
+        by rw [← (prodEndoIsFunctor B).map_comp, hi₂, (prodEndoIsFunctor B).map_id]⟩
     -- `map_{B×B} f = assoc_X ≫ map_B(map_B f) ≫ assoc_Y⁻¹` (from naturality; assoc_Y iso).
     obtain ⟨βY, hβY1, hβY2⟩ := prodAssocBB_iso B Y
     have hconj : (prodEndoIsFunctor (prod B B)).map f

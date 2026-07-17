@@ -26,11 +26,11 @@ import Fredy.S1_56
 import Fredy.S1_58
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 /-! ## §1.59 Abelian categories
@@ -66,7 +66,7 @@ def IsZeroObject (Z : 𝒞) [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] 
     (`add_eq_addL`, `add_eq_addR`).  From these the middle-two interchange,
     commutativity and associativity follow by Freyd's Eckmann–Hilton argument —
     none of it is postulated (see `middle_two_interchange` below). -/
-class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+class HalfAdditiveCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasCoterminator 𝒞, HasBinaryCoproducts 𝒞 where
   /-- Zero morphism A → 0 → B through the zero object (0 ≅ 1). -/
   zeroHom : ∀ (A B : 𝒞), A ⟶ B
@@ -78,8 +78,8 @@ class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
       This is the key horn sentence expressing that products = coproducts. -/
   prod_coprod_coincide : ∀ (A B : 𝒞),
     IsIso (HasBinaryCoproducts.case
-        (pair (Cat.id A) (zeroHom A B))
-        (pair (zeroHom B A) (Cat.id B)) :
+        (pair (𝟙 A) (zeroHom A B))
+        (pair (zeroHom B A) (𝟙 B)) :
       HasBinaryCoproducts.coprod A B ⟶ prod A B)
   /-- The abelian-monoid addition on Hom(A,B), induced by products = coproducts. -/
   add : ∀ {A B : 𝒞}, (A ⟶ B) → (A ⟶ B) → (A ⟶ B)
@@ -92,7 +92,7 @@ class HalfAdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
       `x +_R y = pair x y ≫ Φ⁻¹ ≫ ∇`, with `∇ = case id id`. -/
   add_eq_addR : ∀ {A B : 𝒞} (x y : A ⟶ B),
     add x y = pair x y ≫ (prod_coprod_coincide B B).choose ≫
-      HasBinaryCoproducts.case (Cat.id B) (Cat.id B)
+      HasBinaryCoproducts.case (𝟙 B) (𝟙 B)
 
 /-- In a half-additive category, each Hom(A,B) carries the structure's addition. -/
 def homAdd [inst : HalfAdditiveCategory 𝒞] {A B : 𝒞} : (A ⟶ B) → (A ⟶ B) → (A ⟶ B) :=
@@ -114,7 +114,7 @@ private theorem add_addL {A B : 𝒞} (x y : A ⟶ B) :
 
 /-- `add` in product form (eq. 1.1'), with the local name for `Φ⁻¹`. -/
 private theorem add_addR {A B : 𝒞} (x y : A ⟶ B) :
-    inst.add x y = pair x y ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B) :=
+    inst.add x y = pair x y ≫ Φinv B B ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B) :=
   inst.add_eq_addR x y
 
 /-- Pre-composition collapses a `pair`: `w ≫ pair x y = pair (w≫x) (w≫y)`
@@ -122,7 +122,7 @@ private theorem add_addR {A B : 𝒞} (x y : A ⟶ B) :
 private theorem comp_pair {W X A B : 𝒞} (w : W ⟶ X) (x : X ⟶ A) (y : X ⟶ B) :
     w ≫ pair x y = pair (w ≫ x) (w ≫ y) :=
   pair_uniq (w ≫ x) (w ≫ y) (w ≫ pair x y)
-    (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])
+    (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])
 
 /-- **Matrix middle-four interchange** (pure (co)product universality, no iso):
     `case (pair a b) (pair c d) = pair (case a c) (case b d)` as maps `A+A → B×B`.
@@ -139,17 +139,17 @@ private theorem case_pair_swap {A B : 𝒞} (a b c d : A ⟶ B) :
 
 /-- `Φ ≫ Φ⁻¹ = id` on the coproduct (the δ-matrix iso), stated with the local name. -/
 private theorem Φ_Φinv (A B : 𝒞) :
-    HasBinaryCoproducts.case (pair (Cat.id A) (inst.zeroHom A B))
-        (pair (inst.zeroHom B A) (Cat.id B)) ≫ Φinv A B
-      = Cat.id (HasBinaryCoproducts.coprod A B) :=
+    HasBinaryCoproducts.case (pair (𝟙 A) (inst.zeroHom A B))
+        (pair (inst.zeroHom B A) (𝟙 B)) ≫ Φinv A B
+      = 𝟙 (HasBinaryCoproducts.coprod A B) :=
   (inst.prod_coprod_coincide A B).choose_spec.1
 
 /-- Right-associated cancellation `Φ ≫ Φ⁻¹ ≫ g = g`. -/
 private theorem Φ_Φinv_comp {A B X : 𝒞}
     (g : HasBinaryCoproducts.coprod A B ⟶ X) :
-    HasBinaryCoproducts.case (pair (Cat.id A) (inst.zeroHom A B))
-        (pair (inst.zeroHom B A) (Cat.id B)) ≫ Φinv A B ≫ g = g := by
-  rw [← Cat.assoc, Φ_Φinv, Cat.id_comp]
+    HasBinaryCoproducts.case (pair (𝟙 A) (inst.zeroHom A B))
+        (pair (inst.zeroHom B A) (𝟙 B)) ≫ Φinv A B ≫ g = g := by
+  rw [← CategoryTheory.Category.assoc, Φ_Φinv, CategoryTheory.Category.id_comp]
 
 /-- Right unit `add f 0 = f` (eq. 1.1'): the second pair-slot is killed by `Φ⁻¹`. -/
 theorem add_zero {A B : 𝒞} (f : A ⟶ B) : inst.add f (inst.zeroHom A B) = f := by
@@ -157,22 +157,22 @@ theorem add_zero {A B : 𝒞} (f : A ⟶ B) : inst.add f (inst.zeroHom A B) = f 
   -- pair f 0 = f ≫ inl ≫ Φ : factor through inl, whose Φ-image is pair id 0.
   have h1 : pair f (inst.zeroHom A B)
       = f ≫ HasBinaryCoproducts.inl ≫ HasBinaryCoproducts.case
-          (pair (Cat.id B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (Cat.id B)) := by
-    rw [HasBinaryCoproducts.case_inl, comp_pair, Cat.comp_id, inst.zeroHom_comp_left]
+          (pair (𝟙 B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (𝟙 B)) := by
+    rw [HasBinaryCoproducts.case_inl, comp_pair, CategoryTheory.Category.comp_id, inst.zeroHom_comp_left]
   rw [h1]
-  simp only [Cat.assoc]
-  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inl, Cat.comp_id]
+  simp only [CategoryTheory.Category.assoc]
+  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inl, CategoryTheory.Category.comp_id]
 
 /-- Left unit `add 0 f = f` (eq. 1.1'), dual to `add_zero`. -/
 theorem zero_add {A B : 𝒞} (f : A ⟶ B) : inst.add (inst.zeroHom A B) f = f := by
   rw [add_addR]
   have h1 : pair (inst.zeroHom A B) f
       = f ≫ HasBinaryCoproducts.inr ≫ HasBinaryCoproducts.case
-          (pair (Cat.id B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (Cat.id B)) := by
-    rw [HasBinaryCoproducts.case_inr, comp_pair, Cat.comp_id, inst.zeroHom_comp_left]
+          (pair (𝟙 B) (inst.zeroHom B B)) (pair (inst.zeroHom B B) (𝟙 B)) := by
+    rw [HasBinaryCoproducts.case_inr, comp_pair, CategoryTheory.Category.comp_id, inst.zeroHom_comp_left]
   rw [h1]
-  simp only [Cat.assoc]
-  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inr, Cat.comp_id]
+  simp only [CategoryTheory.Category.assoc]
+  rw [Φ_Φinv_comp, HasBinaryCoproducts.case_inr, CategoryTheory.Category.comp_id]
 
 /-- **Middle-two interchange law** (§1.591): `(u + v) + (x + y) = (u + x) + (v + y)`.
 
@@ -192,28 +192,28 @@ theorem middle_two_interchange {A B : 𝒞} (u v x y : A ⟶ B) :
   -- The common δ-matrix composite both sides reduce to.
   let M : A ⟶ B :=
     diag A ≫ Φinv A A ≫ pair (HasBinaryCoproducts.case u x) (HasBinaryCoproducts.case v y)
-      ≫ Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)
+      ≫ Φinv B B ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B)
   -- LHS: outer +_L, inner +_R, then post-composition collapses the outer `case` + case_pair_swap.
   have hLHS : inst.add (inst.add u v) (inst.add x y) = M := by
     show inst.add (inst.add u v) (inst.add x y) = _
     have hcc1 : HasBinaryCoproducts.case (pair u v) (pair x y) ≫
-        (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)) =
+        (Φinv B B ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B)) =
         HasBinaryCoproducts.case
-          (pair u v ≫ (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B)))
-          (pair x y ≫ (Φinv B B ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B))) :=
+          (pair u v ≫ (Φinv B B ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B)))
+          (pair x y ≫ (Φinv B B ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B))) :=
       HasBinaryCoproducts.case_uniq _ _ _
-        (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl])
-        (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr])
+        (by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inl])
+        (by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inr])
     rw [add_addL (inst.add u v) (inst.add x y), add_addR u v, add_addR x y,
         ← hcc1, case_pair_swap u v x y]
   -- RHS: outer +_R, inner +_L, then comp_pair.
   have hRHS : inst.add (inst.add u x) (inst.add v y) = M := by
     show inst.add (inst.add u x) (inst.add v y) = _
     rw [add_addR (inst.add u x) (inst.add v y), add_addL u x, add_addL v y,
-        ← Cat.assoc (diag A), ← Cat.assoc (diag A),
+        ← CategoryTheory.Category.assoc (diag A), ← CategoryTheory.Category.assoc (diag A),
         ← comp_pair (diag A ≫ Φinv A A) (HasBinaryCoproducts.case u x)
           (HasBinaryCoproducts.case v y),
-        Cat.assoc, Cat.assoc]
+        CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
   rw [hLHS, hRHS]
 
 /-- Commutativity of `add` (Eckmann–Hilton, `u=y=0` in middle-two interchange). -/
@@ -231,7 +231,7 @@ theorem add_assoc {A B : 𝒞} (u x y : A ⟶ B) :
     From `add` in product form (eq. 1.1') and `comp_pair`. -/
 theorem comp_add {W A B : 𝒞} (h : W ⟶ A) (x y : A ⟶ B) :
     h ≫ inst.add x y = inst.add (h ≫ x) (h ≫ y) := by
-  rw [add_addR, add_addR, ← Cat.assoc, ← Cat.assoc, comp_pair, Cat.assoc]
+  rw [add_addR, add_addR, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, comp_pair, CategoryTheory.Category.assoc]
 
 /-- Right distributivity `(x + y) ≫ k = (x≫k) + (y≫k)` (post-composition is additive).
     From `add` in coproduct form (eq. 1.1) and post-composition collapsing `case`. -/
@@ -239,9 +239,9 @@ theorem add_comp {A B C : 𝒞} (x y : A ⟶ B) (k : B ⟶ C) :
     inst.add x y ≫ k = inst.add (x ≫ k) (y ≫ k) := by
   have hcc2 : HasBinaryCoproducts.case x y ≫ k = HasBinaryCoproducts.case (x ≫ k) (y ≫ k) :=
     HasBinaryCoproducts.case_uniq _ _ _
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inl])
-      (by rw [← Cat.assoc, HasBinaryCoproducts.case_inr])
-  rw [add_addL, add_addL, Cat.assoc, Cat.assoc, hcc2]
+      (by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inl])
+      (by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inr])
+  rw [add_addL, add_addL, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hcc2]
 
 /-- The SHEAR (elementary) matrix `(1 x; 0 1) : A×B → A×B` (§1.591).
 
@@ -258,17 +258,17 @@ theorem shear_comp {A B : 𝒞} (x y : A ⟶ B) :
     shear x ≫ shear y = shear (inst.add x y) := by
   refine (pair_uniq _ _ _ ?_ ?_).trans
     (pair_uniq _ _ (shear (inst.add x y)) rfl rfl).symm
-  · rw [Cat.assoc, show shear y ≫ fst = fst from fst_pair _ _,
+  · rw [CategoryTheory.Category.assoc, show shear y ≫ fst = fst from fst_pair _ _,
         show shear x ≫ fst = fst from fst_pair _ _,
         show shear (inst.add x y) ≫ fst = fst from fst_pair _ _]
-  · rw [Cat.assoc, show shear y ≫ snd = inst.add (fst ≫ y) snd from snd_pair _ _, comp_add,
-        ← Cat.assoc, show shear x ≫ fst = fst from fst_pair _ _,
+  · rw [CategoryTheory.Category.assoc, show shear y ≫ snd = inst.add (fst ≫ y) snd from snd_pair _ _, comp_add,
+        ← CategoryTheory.Category.assoc, show shear x ≫ fst = fst from fst_pair _ _,
         show shear x ≫ snd = inst.add (fst ≫ x) snd from snd_pair _ _,
         add_assoc, add_comm (fst ≫ y) (fst ≫ x), ← comp_add,
         show shear (inst.add x y) ≫ snd = inst.add (fst ≫ inst.add x y) snd from snd_pair _ _]
 
 /-- `shear 0 = id`: the trivial shear is the identity. -/
-theorem shear_zero {A B : 𝒞} : shear (inst.zeroHom A B) = Cat.id (prod A B) := by
+theorem shear_zero {A B : 𝒞} : shear (inst.zeroHom A B) = 𝟙 (prod A B) := by
   rw [shear, inst.zeroHom_comp_left, zero_add, pair_fst_snd]
 
 end HalfAdditiveCategory
@@ -276,7 +276,7 @@ end HalfAdditiveCategory
 /-- ADDITIVE CATEGORY (§1.591): half-additive with additive inverses.
     Every hom-set (A,B) is an abelian group: each f : A → B has a (unique)
     additive inverse g : A → B satisfying f + g = 0_{A,B}. -/
-class AdditiveCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
+class AdditiveCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends HalfAdditiveCategory 𝒞 where
   /-- Additive inverses exist: every f : A → B has a g with f + g = zeroHom A B. -/
   addInv : ∀ {A B : 𝒞} (f : A ⟶ B), ∃ g : A ⟶ B, add f g = zeroHom A B
 
@@ -308,22 +308,22 @@ theorem shear_isIso_of_addInv
     `w = j₁ ≫ inv` with `w ≫ fst = 1` (Freyd's "`y = 1`") and `x + (w ≫ snd) = 0`
     (Freyd's "`u + x = 0`").  Thus `w ≫ snd` is the additive inverse `−x`. -/
 theorem shear_inv_extract {A B : 𝒞} (x : A ⟶ B)
-    (inv : prod A B ⟶ prod A B) (h : inv ≫ shear x = Cat.id (prod A B)) :
-    (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ fst = Cat.id A ∧
-    inst.add x ((pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ snd) = inst.zeroHom A B := by
+    (inv : prod A B ⟶ prod A B) (h : inv ≫ shear x = 𝟙 (prod A B)) :
+    (pair (𝟙 A) (inst.zeroHom A B) ≫ inv) ≫ fst = 𝟙 A ∧
+    inst.add x ((pair (𝟙 A) (inst.zeroHom A B) ≫ inv) ≫ snd) = inst.zeroHom A B := by
   -- j₁ = ⟨1,0⟩ is the first injection; w = j₁ ≫ inv.  Mathlib-free, so no `set`.
   -- key : w ≫ shear x = j₁  (since inv ≫ shear x = id).
-  have key : (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ shear x
-      = pair (Cat.id A) (inst.zeroHom A B) := by rw [Cat.assoc, h, Cat.comp_id]
+  have key : (pair (𝟙 A) (inst.zeroHom A B) ≫ inv) ≫ shear x
+      = pair (𝟙 A) (inst.zeroHom A B) := by rw [CategoryTheory.Category.assoc, h, CategoryTheory.Category.comp_id]
   -- y = 1 : first projection of w
-  have hy : (pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ fst = Cat.id A := by
-    rw [← show shear x ≫ fst = fst from fst_pair _ _, ← Cat.assoc, key, fst_pair]
+  have hy : (pair (𝟙 A) (inst.zeroHom A B) ≫ inv) ≫ fst = 𝟙 A := by
+    rw [← show shear x ≫ fst = fst from fst_pair _ _, ← CategoryTheory.Category.assoc, key, fst_pair]
   refine ⟨hy, ?_⟩
   -- u + x = 0 : second projection equation, expanded by distributivity
-  have hs : ((pair (Cat.id A) (inst.zeroHom A B) ≫ inv) ≫ shear x) ≫ snd
+  have hs : ((pair (𝟙 A) (inst.zeroHom A B) ≫ inv) ≫ shear x) ≫ snd
       = inst.zeroHom A B := by rw [key, snd_pair]
-  rw [Cat.assoc, show shear x ≫ snd = inst.add (fst ≫ x) snd from snd_pair _ _, comp_add,
-      ← Cat.assoc, hy, Cat.id_comp] at hs
+  rw [CategoryTheory.Category.assoc, show shear x ≫ snd = inst.add (fst ≫ x) snd from snd_pair _ _, comp_add,
+      ← CategoryTheory.Category.assoc, hy, CategoryTheory.Category.id_comp] at hs
   exact hs
 
 /-- **Backward direction.** If every shear is an isomorphism, every hom has an
@@ -350,7 +350,7 @@ end HalfAdditiveCategory
   A → 0 → B.  Zero morphisms form a two-sided ideal. -/
 
 /-- A ZERO OBJECT: terminal = coterminal (§1.591). -/
-class HasZeroObject (𝒞 : Type u) [Cat.{v} 𝒞] extends HasTerminal 𝒞, HasCoterminator 𝒞 where
+class HasZeroObject (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends HasTerminal 𝒞, HasCoterminator 𝒞 where
   zero_eq_one : (one : 𝒞) = coterm
 
 /-- The zero morphism A → B factors through the zero object. -/
@@ -362,7 +362,7 @@ def zeroMorphism [HasZeroObject 𝒞] (A B : 𝒞) : A ⟶ B :=
 theorem zero_morphism_comp [HasZeroObject 𝒞] {A B C : 𝒞} (f : A ⟶ B) (g : B ⟶ C) :
     f ≫ zeroMorphism B C = zeroMorphism A C := by
   dsimp [zeroMorphism]
-  rw [← Cat.assoc]
+  rw [← CategoryTheory.Category.assoc]
   rw [term_uniq (f ≫ term B) (term A)]
 
 /-- Left-ideal half of §1.591: `0 ≫ g = 0`.  Maps out of the zero object are unique
@@ -370,7 +370,7 @@ theorem zero_morphism_comp [HasZeroObject 𝒞] {A B C : 𝒞} (f : A ⟶ B) (g 
 theorem zeroMorphism_comp_left [HasZeroObject 𝒞] {A B C : 𝒞} (g : B ⟶ C) :
     zeroMorphism A B ≫ g = zeroMorphism A C := by
   dsimp [zeroMorphism]
-  rw [Cat.assoc]
+  rw [CategoryTheory.Category.assoc]
   congr 1
   -- both sides are `one → C`; since `one = coterm`, maps out of `one` are unique
   -- (coterminal uniqueness transported), so the two tails coincide.
@@ -431,7 +431,7 @@ def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
   pointed sets form a half-additive non-additive category violating them).  We
   therefore extend `AdditiveCategory` (= `HalfAdditiveCategory` + `addInv`), so
   every `f : A ⟶ B` has a `g` with `add f g = zeroHom A B`. -/
-class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
+class AbelianCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     extends RegularCategory 𝒞, AdditiveCategory 𝒞, HasZeroObject 𝒞,
             HasEqualizers 𝒞, HasCoequalizers 𝒞 where
   all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm
@@ -442,7 +442,7 @@ class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
   copies.  Stating §1.593 against `IsExactStructure` (instead of `Nonempty (AbelianCategory 𝒞)`)
   keeps BOTH sides of the iff anchored to the SAME chosen zero/kernel/cokernel data, so the
   reverse direction is well-typed (see the note on the theorem below). -/
-def IsExactStructure (𝒞 : Type u) [Cat.{v} 𝒞]
+def IsExactStructure (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] : Prop :=
   ∀ {A B : 𝒞} (x : A ⟶ B),
     ∃ (θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x)),
@@ -557,7 +557,7 @@ theorem monic_kernel_of_cokernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [Has
   -- `m ≫ f = 0` (since `m = h0 ≫ kernelMap f` and `kernelMap f ≫ f = 0`).
   have hmf : m ≫ f = zeroMorphism A C := by
     calc m ≫ f = (h0 ≫ kernelMap f) ≫ f := by rw [hh0fac]
-      _ = h0 ≫ (kernelMap f ≫ f) := Cat.assoc _ _ _
+      _ = h0 ≫ (kernelMap f ≫ f) := CategoryTheory.Category.assoc _ _ _
       _ = h0 ≫ (kernelMap f ≫ zeroMorphism B C) := by rw [kernelMap_eq f]
       _ = h0 ≫ zeroMorphism (Kernel f) C := by
             rw [zero_morphism_comp (kernelMap f) (zeroMorphism B C)]
@@ -575,9 +575,9 @@ theorem monic_kernel_of_cokernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [Has
         = kernelMap (cokernelMap m) ≫ zeroMorphism B (Cokernel m) := kernelMap_eq _
     calc kernelMap (cokernelMap m) ≫ f
         = kernelMap (cokernelMap m) ≫ (cokernelMap m ≫ fbar) := by rw [hfbar]
-      _ = (kernelMap (cokernelMap m) ≫ cokernelMap m) ≫ fbar := (Cat.assoc _ _ _).symm
+      _ = (kernelMap (cokernelMap m) ≫ cokernelMap m) ≫ fbar := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (kernelMap (cokernelMap m) ≫ zeroMorphism B (Cokernel m)) ≫ fbar := by rw [hk0]
-      _ = kernelMap (cokernelMap m) ≫ (zeroMorphism B (Cokernel m) ≫ fbar) := Cat.assoc _ _ _
+      _ = kernelMap (cokernelMap m) ≫ (zeroMorphism B (Cokernel m) ≫ fbar) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap (cokernelMap m) ≫ zeroMorphism B C := by rw [zeroMorphism_comp_left]
   let lift_f : Kernel (cokernelMap m) ⟶ Kernel f :=
     eqLift f (zeroMorphism B C) (kernelMap (cokernelMap m)) hkf0
@@ -588,20 +588,20 @@ theorem monic_kernel_of_cokernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [Has
   let v : Kernel (cokernelMap m) ⟶ A := lift_f ≫ h0inv
   have hv : v ≫ m = kernelMap (cokernelMap m) := by
     calc v ≫ m = (lift_f ≫ h0inv) ≫ (h0 ≫ kernelMap f) := by rw [hh0fac]
-      _ = lift_f ≫ (h0inv ≫ h0) ≫ kernelMap f := by rw [Cat.assoc, Cat.assoc]
-      _ = lift_f ≫ kernelMap f := by rw [hh0inv2, Cat.id_comp]
+      _ = lift_f ≫ (h0inv ≫ h0) ≫ kernelMap f := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = lift_f ≫ kernelMap f := by rw [hh0inv2, CategoryTheory.Category.id_comp]
       _ = kernelMap (cokernelMap m) := hlift_f
   -- `w` and `v` are mutually inverse (both legs cancel against the monos `m`, `kernelMap`).
   have hmono_k : Monic (kernelMap (cokernelMap m)) :=
     eqMap_mono' (cokernelMap m) (zeroMorphism B (Cokernel m))
-  have hwv : w ≫ v = Cat.id A := by
-    apply hm; rw [Cat.assoc, hv, hw, Cat.id_comp]
-  have hvw : v ≫ w = Cat.id (Kernel (cokernelMap m)) := by
-    apply hmono_k; rw [Cat.assoc, hw, hv, Cat.id_comp]
+  have hwv : w ≫ v = 𝟙 A := by
+    apply hm; rw [CategoryTheory.Category.assoc, hv, hw, CategoryTheory.Category.id_comp]
+  have hvw : v ≫ w = 𝟙 (Kernel (cokernelMap m)) := by
+    apply hmono_k; rw [CategoryTheory.Category.assoc, hw, hv, CategoryTheory.Category.id_comp]
   exact ⟨w, ⟨v, hwv, hvw⟩, hw⟩
 
 theorem abelian_iff_regular_additive_all_normal
-    (𝒞 : Type u) [Cat.{v} 𝒞]
+    (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] :
     (∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm) ↔
@@ -625,7 +625,7 @@ theorem abelian_iff_regular_additive_all_normal
     -- `kernelMap x ≫ xbar = 0` (cancel against the mono `i`).
     have hkx_xbar : kernelMap x ≫ xbar = zeroMorphism (Kernel x) (Kernel (cokernelMap x)) := by
       apply hi_mono
-      calc (kernelMap x ≫ xbar) ≫ i = kernelMap x ≫ (xbar ≫ i) := Cat.assoc _ _ _
+      calc (kernelMap x ≫ xbar) ≫ i = kernelMap x ≫ (xbar ≫ i) := CategoryTheory.Category.assoc _ _ _
         _ = kernelMap x ≫ x := by rw [hxbar]
         _ = kernelMap x ≫ zeroMorphism A B := kernelMap_eq x
         _ = zeroMorphism (Kernel x) B := zero_morphism_comp (kernelMap x) x
@@ -638,7 +638,7 @@ theorem abelian_iff_regular_additive_all_normal
     let θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x) := coco.desc xbar hxbar_pair
     have hpθ : p ≫ θ = xbar := coco.fac xbar hxbar_pair
     have hfac : p ≫ θ ≫ i = x := by
-      rw [← Cat.assoc, hpθ, hxbar]
+      rw [← CategoryTheory.Category.assoc, hpθ, hxbar]
     -- STEP 2: `⟨Im, i⟩` is an IMAGE of `x` (uses the all-normal hypothesis for minimality).
     let Im : Subobject 𝒞 B := ⟨Kernel (cokernelMap x), i, hi_mono⟩
     have hIm_allows : Allows Im x := ⟨xbar, hxbar⟩
@@ -650,7 +650,7 @@ theorem abelian_iff_regular_additive_all_normal
       have hx_killed : x ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
         calc x ≫ cokernelMap S.arr
             = (g ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
-          _ = g ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+          _ = g ≫ (S.arr ≫ cokernelMap S.arr) := CategoryTheory.Category.assoc _ _ _
           _ = g ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
           _ = zeroMorphism A (Cokernel S.arr) :=
                 zero_morphism_comp g (zeroMorphism S.dom (Cokernel S.arr))
@@ -665,9 +665,9 @@ theorem abelian_iff_regular_additive_all_normal
         have hk0 : i ≫ cokernelMap x = i ≫ zeroMorphism B (Cokernel x) := kernelMap_eq _
         calc i ≫ cokernelMap S.arr
             = i ≫ (cokernelMap x ≫ t) := by rw [ht]
-          _ = (i ≫ cokernelMap x) ≫ t := (Cat.assoc _ _ _).symm
+          _ = (i ≫ cokernelMap x) ≫ t := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (i ≫ zeroMorphism B (Cokernel x)) ≫ t := by rw [hk0]
-          _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := Cat.assoc _ _ _
+          _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := CategoryTheory.Category.assoc _ _ _
           _ = i ≫ zeroMorphism B (Cokernel S.arr) := by rw [zeroMorphism_comp_left]
       let lift_k : Kernel (cokernelMap x) ⟶ Kernel (cokernelMap S.arr) :=
         eqLift (cokernelMap S.arr) (zeroMorphism B (Cokernel S.arr)) i hi_killed
@@ -681,8 +681,8 @@ theorem abelian_iff_regular_additive_all_normal
         calc (lift_k ≫ hinv) ≫ S.arr
             = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
           _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by
-                rw [Cat.assoc, Cat.assoc]
-          _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+                rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+          _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, CategoryTheory.Category.id_comp]
           _ = i := hlift_k⟩
     -- STEP 3: `θ` is a COVER (comparison of two images of `x`).
     -- The canonical comparison `c : (image x).dom → Im` with `c ≫ i = (image x).arr` is iso.
@@ -694,16 +694,16 @@ theorem abelian_iff_regular_additive_all_normal
     -- `image.lift x ≫ c = p ≫ θ` (both compose with the mono `i` to give `x`).
     have hlc_eq : image.lift x ≫ c = p ≫ θ := by
       apply hi_mono
-      calc (image.lift x ≫ c) ≫ i = image.lift x ≫ (c ≫ i) := Cat.assoc _ _ _
+      calc (image.lift x ≫ c) ≫ i = image.lift x ≫ (c ≫ i) := CategoryTheory.Category.assoc _ _ _
         _ = image.lift x ≫ (image x).arr := by rw [hc]
         _ = x := image.lift_fac x
         _ = p ≫ θ ≫ i := hfac.symm
-        _ = (p ≫ θ) ≫ i := (Cat.assoc _ _ _).symm
+        _ = (p ≫ θ) ≫ i := (CategoryTheory.Category.assoc _ _ _).symm
     have hpθ_cover : Cover (p ≫ θ) := hlc_eq ▸ hlc_cover
     -- `θ` itself is a cover: any mono `θ` factors through is a mono `p ≫ θ` factors through.
     have hθ_cover : Cover θ := by
       intro K mm gg hmm hgg
-      exact hpθ_cover mm (p ≫ gg) hmm (by rw [Cat.assoc, hgg])
+      exact hpθ_cover mm (p ≫ gg) hmm (by rw [CategoryTheory.Category.assoc, hgg])
     -- STEP 4: `θ` is MONIC.  `kt := ker θ`; pull `kt` back along the cover `p`.
     let kt : Kernel θ ⟶ Cokernel (kernelMap x) := kernelMap θ
     have hp_cover : Cover p := coeq_map_is_cover coco
@@ -719,9 +719,9 @@ theorem abelian_iff_regular_additive_all_normal
     have hπ₁x : pb.cone.π₁ ≫ x = zeroMorphism pb.cone.pt B := by
       calc pb.cone.π₁ ≫ x
           = pb.cone.π₁ ≫ (p ≫ θ ≫ i) := congrArg (pb.cone.π₁ ≫ ·) hfac.symm
-        _ = (pb.cone.π₁ ≫ p) ≫ (θ ≫ i) := by rw [Cat.assoc]
+        _ = (pb.cone.π₁ ≫ p) ≫ (θ ≫ i) := by rw [CategoryTheory.Category.assoc]
         _ = (pb.cone.π₂ ≫ kt) ≫ (θ ≫ i) := by rw [hpbw]
-        _ = pb.cone.π₂ ≫ ((kt ≫ θ) ≫ i) := by rw [Cat.assoc, Cat.assoc]
+        _ = pb.cone.π₂ ≫ ((kt ≫ θ) ≫ i) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
         _ = pb.cone.π₂ ≫ (zeroMorphism (Kernel θ) (Kernel (cokernelMap x)) ≫ i) := by rw [hktθ]
         _ = pb.cone.π₂ ≫ zeroMorphism (Kernel θ) B := by rw [zeroMorphism_comp_left i]
         _ = zeroMorphism pb.cone.pt B :=
@@ -738,7 +738,7 @@ theorem abelian_iff_regular_additive_all_normal
     have hπ₂kt0 : pb.cone.π₂ ≫ kt = zeroMorphism pb.cone.pt (Cokernel (kernelMap x)) := by
       calc pb.cone.π₂ ≫ kt = pb.cone.π₁ ≫ p := hpbw.symm
         _ = (lift_kx ≫ kernelMap x) ≫ p := by rw [hlift_kx]
-        _ = lift_kx ≫ (kernelMap x ≫ p) := Cat.assoc _ _ _
+        _ = lift_kx ≫ (kernelMap x ≫ p) := CategoryTheory.Category.assoc _ _ _
         _ = lift_kx ≫ zeroMorphism (Kernel x) (Cokernel (kernelMap x)) := by rw [hkxp]
         _ = zeroMorphism pb.cone.pt (Cokernel (kernelMap x)) :=
               zero_morphism_comp lift_kx (zeroMorphism (Kernel x) (Cokernel (kernelMap x)))
@@ -791,21 +791,21 @@ theorem abelian_iff_regular_additive_all_normal
             = kernelMap m ≫ zeroMorphism A B := kernelMap_eq m
           _ = zeroMorphism (Kernel m) B := zero_morphism_comp (kernelMap m) m
           _ = zeroMorphism (Kernel m) A ≫ m := (zeroMorphism_comp_left m).symm
-    have hcofac : kernelMap m ≫ Cat.id A = zeroMorphism (Kernel m) A ≫ Cat.id A := by rw [hk0]
+    have hcofac : kernelMap m ≫ 𝟙 A = zeroMorphism (Kernel m) A ≫ 𝟙 A := by rw [hk0]
     let co := HasCoequalizers.coeq (kernelMap m) (zeroMorphism (Kernel m) A)
-    let r : Cokernel (kernelMap m) ⟶ A := co.desc (Cat.id A) hcofac
-    have hmr : cokernelMap (kernelMap m) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
-    have hrm : r ≫ cokernelMap (kernelMap m) = Cat.id (Cokernel (kernelMap m)) := by
+    let r : Cokernel (kernelMap m) ⟶ A := co.desc (𝟙 A) hcofac
+    have hmr : cokernelMap (kernelMap m) ≫ r = 𝟙 A := co.fac (𝟙 A) hcofac
+    have hrm : r ≫ cokernelMap (kernelMap m) = 𝟙 (Cokernel (kernelMap m)) := by
       have key : ∀ k : Cokernel (kernelMap m) ⟶ Cokernel (kernelMap m),
           cokernelMap (kernelMap m) ≫ k = cokernelMap (kernelMap m) →
           k = co.desc (cokernelMap (kernelMap m)) co.eq :=
         fun k hk => co.uniq (cokernelMap (kernelMap m)) co.eq k hk
-      rw [key (r ≫ cokernelMap (kernelMap m)) (by rw [← Cat.assoc, hmr, Cat.id_comp]),
-          key (Cat.id _) (by rw [Cat.comp_id])]
+      rw [key (r ≫ cokernelMap (kernelMap m)) (by rw [← CategoryTheory.Category.assoc, hmr, CategoryTheory.Category.id_comp]),
+          key (𝟙 _) (by rw [CategoryTheory.Category.comp_id])]
     have hc_iso : IsIso (cokernelMap (kernelMap m)) := ⟨r, hmr, hrm⟩
     obtain ⟨θ, hθ, hfac⟩ := hexact m
     exact ⟨Cokernel m, cokernelMap m, cokernelMap (kernelMap m) ≫ θ,
-      isIso_comp hc_iso hθ, by rw [Cat.assoc]; exact hfac⟩
+      isIso_comp hc_iso hθ, by rw [CategoryTheory.Category.assoc]; exact hfac⟩
 
 /-! ## §1.594 Effective regular additive ⇔ abelian
 
@@ -815,7 +815,7 @@ theorem abelian_iff_regular_additive_all_normal
     (i.e., is the level/kernel-pair of some cover/quotient).  This is the
     effective-quotients axiom (§1.568): the content that distinguishes an
     effective regular category from a plain regular one. -/
-class EffectiveRegular (𝒞 : Type u) [Cat.{v} 𝒞] extends RegularCategory 𝒞 where
+class EffectiveRegular (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends RegularCategory 𝒞 where
   effective : ∀ {A : 𝒞} (E : BinRel 𝒞 A A), EquivalenceRelation E → IsEffective E
 
 /-! ### §1.594 additive helper layer: negation and subtraction
@@ -917,20 +917,20 @@ noncomputable def malRel [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞
     -- hA : f ≫ snd = g ≫ snd ;  hB : f ≫ (−m·fst + snd) = g ≫ (−m·fst + snd)
     -- Expand hB:  (f≫fst)≫neg m + f≫snd = (g≫fst)≫neg m + g≫snd.
     have e1 : f ≫ (add (fst ≫ neg m) snd) = add ((f ≫ fst) ≫ neg m) (f ≫ snd) := by
-      rw [comp_add, ← Cat.assoc]
+      rw [comp_add, ← CategoryTheory.Category.assoc]
     have e2 : g ≫ (add (fst ≫ neg m) snd) = add ((g ≫ fst) ≫ neg m) (g ≫ snd) := by
-      rw [comp_add, ← Cat.assoc]
+      rw [comp_add, ← CategoryTheory.Category.assoc]
     rw [e1, e2, hA] at hB
     -- Right-cancel the common summand `g ≫ snd`: (f≫fst)≫neg m = (g≫fst)≫neg m.
     have hcancel : (f ≫ fst) ≫ neg m = (g ≫ fst) ≫ neg m := add_right_cancel hB
     -- so f≫fst = g≫fst by neg m monic.
     have hfst : f ≫ fst = g ≫ fst := neg_mono hm _ _ hcancel
     -- f, g agree on both projections of prod A B ⟹ f = g.
-    calc f = f ≫ pair (fst : prod A B ⟶ A) snd := by rw [pair_fst_snd, Cat.comp_id]
+    calc f = f ≫ pair (fst : prod A B ⟶ A) snd := by rw [pair_fst_snd, CategoryTheory.Category.comp_id]
       _ = pair (f ≫ fst) (f ≫ snd) := by rw [comp_pair]
       _ = pair (g ≫ fst) (g ≫ snd) := by rw [hfst, hA]
       _ = g ≫ pair fst snd := by rw [comp_pair]
-      _ = g := by rw [pair_fst_snd, Cat.comp_id]
+      _ = g := by rw [pair_fst_snd, CategoryTheory.Category.comp_id]
 
 open HalfAdditiveCategory in
 /-- **§1.594 Mal'cev step (reflexivity).** `1 ⊂ malRel m`: the diagonal `b ~ b`
@@ -938,12 +938,12 @@ open HalfAdditiveCategory in
 theorem malRel_refl [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
     (m : A ⟶ B) (hm : Monic m) :
     ∃ (h : B ⟶ (malRel m hm).src),
-      h ≫ (malRel m hm).colA = Cat.id B ∧ h ≫ (malRel m hm).colB = Cat.id B := by
-  refine ⟨pair (zeroHom B A) (Cat.id B), ?_, ?_⟩
-  · show pair (zeroHom B A) (Cat.id B) ≫ snd = Cat.id B
+      h ≫ (malRel m hm).colA = 𝟙 B ∧ h ≫ (malRel m hm).colB = 𝟙 B := by
+  refine ⟨pair (zeroHom B A) (𝟙 B), ?_, ?_⟩
+  · show pair (zeroHom B A) (𝟙 B) ≫ snd = 𝟙 B
     rw [snd_pair]
-  · show pair (zeroHom B A) (Cat.id B) ≫ add (fst ≫ neg m) snd = Cat.id B
-    rw [comp_add, ← Cat.assoc, fst_pair, snd_pair, zeroHom_comp_right, zero_add]
+  · show pair (zeroHom B A) (𝟙 B) ≫ add (fst ≫ neg m) snd = 𝟙 B
+    rw [comp_add, ← CategoryTheory.Category.assoc, fst_pair, snd_pair, zeroHom_comp_right, zero_add]
 
 open HalfAdditiveCategory in
 /-- **§1.594 Mal'cev step (symmetry).** `malRel m ⊂ (malRel m)°`.  If `b ~ b'` via
@@ -955,7 +955,7 @@ theorem malRel_symm [AdditiveCategory 𝒞] [HasPullbacks 𝒞] {A B : 𝒞}
   refine ⟨⟨pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd), ?_, ?_⟩⟩
   · -- s ≫ (malRel)°.colA = (malRel)°.colA is malRel.colB = add (fst≫neg m) snd; need = malRel.colA = snd
     show pair (neg (fst : prod A B ⟶ A)) (add (fst ≫ neg m) snd) ≫ add (fst ≫ neg m) snd = snd
-    rw [comp_add, ← Cat.assoc, fst_pair, snd_pair]
+    rw [comp_add, ← CategoryTheory.Category.assoc, fst_pair, snd_pair]
     -- (neg fst)≫neg m = neg (fst≫neg m) = neg (neg (fst≫m)) = fst≫m
     rw [neg_comp, comp_neg, neg_neg, add_assoc]
     -- now: add (add (fst≫m) (neg (fst≫m))) snd  →  add 0 snd = snd
@@ -988,18 +988,18 @@ theorem malRel_trans [AdditiveCategory 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
   have hspan : w ≫ pair E.colA E.colB = span := by
     apply pair_uniq
     · -- w ≫ E.colA = w ≫ snd = π₁ ≫ snd = π₁ ≫ E.colA = span ≫ fst
-      rw [Cat.assoc, fst_pair]
+      rw [CategoryTheory.Category.assoc, fst_pair]
       show w ≫ snd = pb.cone.π₁ ≫ E.colA
       rw [show w ≫ snd = pb.cone.π₁ ≫ snd from by rw [snd_pair]]
       rfl
     · -- w ≫ E.colB = span ≫ snd = π₂ ≫ E.colB
-      rw [Cat.assoc, snd_pair]
+      rw [CategoryTheory.Category.assoc, snd_pair]
       show w ≫ add (fst ≫ neg m) snd = pb.cone.π₂ ≫ E.colB
-      rw [comp_add, ← Cat.assoc]
+      rw [comp_add, ← CategoryTheory.Category.assoc]
       show add ((w ≫ fst) ≫ neg m) (w ≫ snd) = pb.cone.π₂ ≫ add (fst ≫ neg m) snd
       rw [show w ≫ fst = add (pb.cone.π₁ ≫ fst) (pb.cone.π₂ ≫ fst) from fst_pair _ _,
           show w ≫ snd = pb.cone.π₁ ≫ snd from snd_pair _ _,
-          add_comp, comp_add, ← Cat.assoc]
+          add_comp, comp_add, ← CategoryTheory.Category.assoc]
       -- LHS: ((π₁≫fst)≫neg m + (π₂≫fst)≫neg m) + π₁≫snd
       -- RHS: (π₂≫fst)≫neg m + π₂≫snd, and π₂≫snd = π₂≫E.colA = π₁≫E.colB = (π₁≫fst)≫neg m + π₁≫snd
       have hms : pb.cone.π₂ ≫ snd =
@@ -1010,7 +1010,7 @@ theorem malRel_trans [AdditiveCategory 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
           _ = pb.cone.π₁ ≫ E.colB := h.symm
           _ = pb.cone.π₁ ≫ add (fst ≫ neg m) snd := rfl
           _ = add ((pb.cone.π₁ ≫ fst) ≫ neg m) (pb.cone.π₁ ≫ snd) := by
-                rw [comp_add, ← Cat.assoc]
+                rw [comp_add, ← CategoryTheory.Category.assoc]
       rw [hms]
       -- ((π₁f)nm + (π₂f)nm) + π₁s  =  (π₂f)nm + ((π₁f)nm + π₁s)
       rw [← add_assoc, add_assoc ((pb.cone.π₁ ≫ fst) ≫ neg m) ((pb.cone.π₂ ≫ fst) ≫ neg m),
@@ -1020,10 +1020,10 @@ theorem malRel_trans [AdditiveCategory 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞
   refine ⟨⟨k, ?_, ?_⟩⟩
   · -- k ≫ E.colA = (malRel⊚malRel).colA
     show k ≫ E.colA = (image span).arr ≫ fst
-    calc k ≫ E.colA = (k ≫ pair E.colA E.colB) ≫ fst := by rw [Cat.assoc, fst_pair]
+    calc k ≫ E.colA = (k ≫ pair E.colA E.colB) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair]
       _ = (image span).arr ≫ fst := by rw [hk]
   · show k ≫ E.colB = (image span).arr ≫ snd
-    calc k ≫ E.colB = (k ≫ pair E.colA E.colB) ≫ snd := by rw [Cat.assoc, snd_pair]
+    calc k ≫ E.colB = (k ≫ pair E.colA E.colB) ≫ snd := by rw [CategoryTheory.Category.assoc, snd_pair]
       _ = (image span).arr ≫ snd := by rw [hk]
 
 open HalfAdditiveCategory in
@@ -1081,11 +1081,11 @@ theorem compose_prods_indep {A B C : 𝒞}
   · -- both `colA` legs reduce to `pb.π₁ ≫ R.colA`.
     show @image.lift 𝒞 _ _ _ _ _ ≫ ((@image 𝒞 _ _ _ _ _).arr ≫ @fst 𝒞 _ hp₂ _ _)
        = @image.lift 𝒞 _ _ _ _ span₁ ≫ ((@image 𝒞 _ _ _ _ span₁).arr ≫ @fst 𝒞 _ hp₁ _ _)
-    rw [← Cat.assoc, ← Cat.assoc, image.lift_fac, image.lift_fac,
+    rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, image.lift_fac, image.lift_fac,
         @fst_pair 𝒞 _ hp₂, @fst_pair 𝒞 _ hp₁]
   · show @image.lift 𝒞 _ _ _ _ _ ≫ ((@image 𝒞 _ _ _ _ _).arr ≫ @snd 𝒞 _ hp₂ _ _)
        = @image.lift 𝒞 _ _ _ _ span₁ ≫ ((@image 𝒞 _ _ _ _ span₁).arr ≫ @snd 𝒞 _ hp₁ _ _)
-    rw [← Cat.assoc, ← Cat.assoc, image.lift_fac, image.lift_fac,
+    rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, image.lift_fac, image.lift_fac,
         @snd_pair 𝒞 _ hp₂, @snd_pair 𝒞 _ hp₁]
 
 -- `level_legs_comp` (the level-legs-collapse-the-cover bridge) was relocated to S1_56
@@ -1093,7 +1093,7 @@ theorem compose_prods_indep {A B C : 𝒞}
 
 open HalfAdditiveCategory in
 theorem effective_regular_additive_is_abelian
-    (𝒞 : Type u) [Cat.{v} 𝒞]
+    (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
     ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm := by
   intro A B m hm
@@ -1123,9 +1123,9 @@ theorem effective_regular_additive_is_abelian
              = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := by rw [level_legs_comp q]
     calc (malRel m hm).colA ≫ q
         = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA]
-      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := CategoryTheory.Category.assoc _ _ _
       _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
-      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (malRel m hm).colB ≫ q := by rw [heB]
   -- STEP 3: `m ≫ q = 0`.  `(malRel).colA = snd`, `(malRel).colB = add (fst ≫ neg m) snd`.
   -- Cancel the common `snd ≫ q`, get `(fst ≫ neg m) ≫ q = 0`; section `fst` to drop `fst`,
@@ -1143,15 +1143,15 @@ theorem effective_regular_additive_is_abelian
       rw [zero_add]
       exact h1.symm
     -- precompose by the section `s = ⟨id, 0⟩ : A → A⊕B` (so `s ≫ fst = id`).
-    have hsfst : (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ fst = Cat.id A := fst_pair _ _
+    have hsfst : (pair (𝟙 A) (zeroHom A B) : A ⟶ prod A B) ≫ fst = 𝟙 A := fst_pair _ _
     have h3 : neg m ≫ q = zeroHom A Q := by
       calc neg m ≫ q
-          = (Cat.id A ≫ neg m) ≫ q := by rw [Cat.id_comp]
-        _ = (((pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ fst) ≫ neg m) ≫ q := by rw [hsfst]
-        _ = (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B)
+          = (𝟙 A ≫ neg m) ≫ q := by rw [CategoryTheory.Category.id_comp]
+        _ = (((pair (𝟙 A) (zeroHom A B) : A ⟶ prod A B) ≫ fst) ≫ neg m) ≫ q := by rw [hsfst]
+        _ = (pair (𝟙 A) (zeroHom A B) : A ⟶ prod A B)
               ≫ (((fst : prod A B ⟶ A) ≫ neg m) ≫ q) := by
-              rw [← Cat.assoc, ← Cat.assoc]
-        _ = (pair (Cat.id A) (zeroHom A B) : A ⟶ prod A B) ≫ zeroHom (prod A B) Q := by rw [h2]
+              rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
+        _ = (pair (𝟙 A) (zeroHom A B) : A ⟶ prod A B) ≫ zeroHom (prod A B) Q := by rw [h2]
         _ = zeroHom A Q := zeroHom_comp_left _
     -- `neg m ≫ q = neg (m ≫ q)`, and `neg X = 0 → X = 0` (apply `neg`, use `neg_neg`, `neg 0 = 0`).
     have h4 : neg (m ≫ q) = zeroHom A Q := by rw [← neg_comp]; exact h3
@@ -1187,27 +1187,27 @@ theorem effective_regular_additive_is_abelian
   -- `t ≫ colA = kernelMap q`,  `t ≫ colB = 0`.
   have htA : t ≫ (malRel m hm).colA = kernelMap q := by
     show (cpt ≫ image.lift spanq ≫ hk) ≫ (malRel m hm).colA = kernelMap q
-    rw [Cat.assoc, Cat.assoc, hkA]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hkA]
     show cpt ≫ (image.lift spanq ≫ (graph q ⊚ (graph q)°).colA) = kernelMap q
     show cpt ≫ (image.lift spanq ≫ ((image spanq).arr ≫ fst)) = kernelMap q
     rw [show image.lift spanq ≫ ((image spanq).arr ≫ fst)
-          = (image.lift spanq ≫ (image spanq).arr) ≫ fst from (Cat.assoc _ _ _).symm,
+          = (image.lift spanq ≫ (image spanq).arr) ≫ fst from (CategoryTheory.Category.assoc _ _ _).symm,
         image.lift_fac]
     show cpt ≫ (spanq ≫ fst) = kernelMap q
     rw [show spanq ≫ fst = pbq.cone.π₁ ≫ (graph q).colA from fst_pair _ _]
-    show cpt ≫ pbq.cone.π₁ ≫ Cat.id B = kernelMap q
-    exact (congrArg (cpt ≫ ·) (Cat.comp_id pbq.cone.π₁)).trans hcpt1
+    show cpt ≫ pbq.cone.π₁ ≫ 𝟙 B = kernelMap q
+    exact (congrArg (cpt ≫ ·) (CategoryTheory.Category.comp_id pbq.cone.π₁)).trans hcpt1
   have htB : t ≫ (malRel m hm).colB = zeroMorphism (Kernel q) B := by
     show (cpt ≫ image.lift spanq ≫ hk) ≫ (malRel m hm).colB = _
-    rw [Cat.assoc, Cat.assoc, hkB]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hkB]
     show cpt ≫ (image.lift spanq ≫ ((image spanq).arr ≫ snd)) = _
     rw [show image.lift spanq ≫ ((image spanq).arr ≫ snd)
-          = (image.lift spanq ≫ (image spanq).arr) ≫ snd from (Cat.assoc _ _ _).symm,
+          = (image.lift spanq ≫ (image spanq).arr) ≫ snd from (CategoryTheory.Category.assoc _ _ _).symm,
         image.lift_fac]
     show cpt ≫ (spanq ≫ snd) = _
     rw [show spanq ≫ snd = pbq.cone.π₂ ≫ ((graph q)°).colB from snd_pair _ _]
-    show cpt ≫ pbq.cone.π₂ ≫ Cat.id B = _
-    exact (congrArg (cpt ≫ ·) (Cat.comp_id pbq.cone.π₂)).trans hcpt2
+    show cpt ≫ pbq.cone.π₂ ≫ 𝟙 B = _
+    exact (congrArg (cpt ≫ ·) (CategoryTheory.Category.comp_id pbq.cone.π₂)).trans hcpt2
   -- `r := t ≫ fst` factors `kernelMap q` through `m`:  `r ≫ m = kernelMap q`.
   let r : Kernel q ⟶ A := t ≫ fst
   have hrm : r ≫ m = kernelMap q := by
@@ -1217,7 +1217,7 @@ theorem effective_regular_additive_is_abelian
     have htb : add ((t ≫ (fst : prod A B ⟶ A)) ≫ neg m) (t ≫ (snd : prod A B ⟶ B))
         = zeroMorphism (Kernel q) B := by
       have : t ≫ add ((fst : prod A B ⟶ A) ≫ neg m) snd = zeroMorphism (Kernel q) B := htB
-      rwa [comp_add, ← Cat.assoc] at this
+      rwa [comp_add, ← CategoryTheory.Category.assoc] at this
     -- from `add X (kernelMap q) = 0` get `kernelMap q = neg X`, with `X = (t≫fst)≫neg m`.
     rw [hts] at htb
     -- `kernelMap q = neg ((t≫fst)≫neg m) = (t≫fst)≫m`.
@@ -1231,16 +1231,16 @@ theorem effective_regular_additive_is_abelian
   refine ⟨Q, q, h, ⟨r, ?_, ?_⟩, hhfac⟩
   · -- `h ≫ r = id A`:  `(h ≫ r) ≫ m = h ≫ (r ≫ m) = h ≫ kernelMap q = m = id ≫ m`, `m` monic.
     apply hm
-    calc (h ≫ r) ≫ m = h ≫ (r ≫ m) := Cat.assoc _ _ _
+    calc (h ≫ r) ≫ m = h ≫ (r ≫ m) := CategoryTheory.Category.assoc _ _ _
       _ = h ≫ kernelMap q := by rw [hrm]
       _ = m := hhfac
-      _ = Cat.id A ≫ m := (Cat.id_comp m).symm
+      _ = 𝟙 A ≫ m := (CategoryTheory.Category.id_comp m).symm
   · -- `r ≫ h = id (Kernel q)`:  `(r ≫ h) ≫ kernelMap q = r ≫ m = kernelMap q`, `kernelMap q` monic.
     apply eqMap_mono' q (zeroMorphism B Q)
-    calc (r ≫ h) ≫ kernelMap q = r ≫ (h ≫ kernelMap q) := Cat.assoc _ _ _
+    calc (r ≫ h) ≫ kernelMap q = r ≫ (h ≫ kernelMap q) := CategoryTheory.Category.assoc _ _ _
       _ = r ≫ m := by rw [hhfac]
       _ = kernelMap q := hrm
-      _ = Cat.id (Kernel q) ≫ kernelMap q := (Cat.id_comp _).symm
+      _ = 𝟙 (Kernel q) ≫ kernelMap q := (CategoryTheory.Category.id_comp _).symm
 
 /-! ## §1.594 Coequalizers in an effective regular additive category
 
@@ -1263,23 +1263,23 @@ theorem kernelPairRel_le_level [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasP
   let span : pb.cone.pt ⟶ prod A A :=
     pair (pb.cone.π₁ ≫ (graph q).colA) (pb.cone.π₂ ≫ ((graph q)°).colB)
   refine relLe_of_cover_factor (X := kernelPairRel q) (Y := graph q ⊚ (graph q)°)
-    (Cat.id (kernelPair q)) (iso_cover _ ⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩)
+    (𝟙 (kernelPair q)) (iso_cover _ ⟨𝟙 _, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩)
     (w ≫ image.lift span) ?_ ?_
-  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colA = Cat.id _ ≫ (kernelPairRel q).colA
-    rw [Cat.id_comp]
+  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colA = 𝟙 _ ≫ (kernelPairRel q).colA
+    rw [CategoryTheory.Category.id_comp]
     show (w ≫ image.lift span) ≫ ((image span).arr ≫ fst) = kp₁ (f:=q)
     have hsf : image.lift span ≫ ((image span).arr ≫ fst) = span ≫ fst := by
-      rw [← Cat.assoc, image.lift_fac]
-    rw [Cat.assoc, hsf, show span ≫ fst = pb.cone.π₁ ≫ (graph q).colA from fst_pair _ _,
-        show (pb.cone.π₁ ≫ (graph q).colA) = pb.cone.π₁ from Cat.comp_id _]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
+    rw [CategoryTheory.Category.assoc, hsf, show span ≫ fst = pb.cone.π₁ ≫ (graph q).colA from fst_pair _ _,
+        show (pb.cone.π₁ ≫ (graph q).colA) = pb.cone.π₁ from CategoryTheory.Category.comp_id _]
     exact hw1
-  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colB = Cat.id _ ≫ (kernelPairRel q).colB
-    rw [Cat.id_comp]
+  · show (w ≫ image.lift span) ≫ (graph q ⊚ (graph q)°).colB = 𝟙 _ ≫ (kernelPairRel q).colB
+    rw [CategoryTheory.Category.id_comp]
     show (w ≫ image.lift span) ≫ ((image span).arr ≫ snd) = kp₂ (f:=q)
     have hss : image.lift span ≫ ((image span).arr ≫ snd) = span ≫ snd := by
-      rw [← Cat.assoc, image.lift_fac]
-    rw [Cat.assoc, hss, show span ≫ snd = pb.cone.π₂ ≫ ((graph q)°).colB from snd_pair _ _,
-        show (pb.cone.π₂ ≫ ((graph q)°).colB) = pb.cone.π₂ from Cat.comp_id _]
+      rw [← CategoryTheory.Category.assoc, image.lift_fac]
+    rw [CategoryTheory.Category.assoc, hss, show span ≫ snd = pb.cone.π₂ ≫ ((graph q)°).colB from snd_pair _ _,
+        show (pb.cone.π₂ ≫ ((graph q)°).colB) = pb.cone.π₂ from CategoryTheory.Category.comp_id _]
     exact hw2
 
 open HalfAdditiveCategory in
@@ -1290,7 +1290,7 @@ theorem malRel_legs_comp [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZer
     {X : 𝒞} (k : B ⟶ X) (hmk : m ≫ k = zeroMorphism A X) :
     (malRel m hm).colA ≫ k = (malRel m hm).colB ≫ k := by
   show (snd : prod A B ⟶ B) ≫ k = add ((fst : prod A B ⟶ A) ≫ neg m) snd ≫ k
-  rw [add_comp, Cat.assoc ((fst : prod A B ⟶ A)) (neg m) k, neg_comp,
+  rw [add_comp, CategoryTheory.Category.assoc ((fst : prod A B ⟶ A)) (neg m) k, neg_comp,
       show m ≫ k = zeroHom A X by rw [hmk, zeroHom_eq_zeroMorphism'],
       neg_zero, zeroHom_comp_left, zero_add]
 
@@ -1302,7 +1302,7 @@ open HalfAdditiveCategory in
     UMP (`cover_is_coequalizer_of_level`) supplies `desc/fac/uniq`, every `k` equalizing `f, g`
     killing `m` hence equalizing the kernel pair of `q` (via `malRel_legs_comp`). -/
 noncomputable def additive_has_coequalizers
-    (𝒞 : Type u) [Cat.{v} 𝒞]
+    (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
     HasCoequalizers 𝒞 := by
   letI hPB : HasPullbacks 𝒞 := EffectiveRegular.toRegularCategory.toHasPullbacks
@@ -1331,9 +1331,9 @@ noncomputable def additive_has_coequalizers
     have key : he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := by
       rw [level_legs_comp q]
     calc (malRel m hm).colA ≫ q = (he ≫ (graph q ⊚ (graph q)°).colA) ≫ q := by rw [heA]
-      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := Cat.assoc _ _ _
+      _ = he ≫ ((graph q ⊚ (graph q)°).colA ≫ q) := CategoryTheory.Category.assoc _ _ _
       _ = he ≫ ((graph q ⊚ (graph q)°).colB ≫ q) := key
-      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (Cat.assoc _ _ _).symm
+      _ = (he ≫ (graph q ⊚ (graph q)°).colB) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (malRel m hm).colB ≫ q := by rw [heB]
   have hmq : m ≫ q = zeroMorphism (image d).dom Q := by
     have h1 : (snd : prod (image d).dom B ⟶ B) ≫ q
@@ -1346,17 +1346,17 @@ noncomputable def additive_has_coequalizers
         = zeroHom (prod (image d).dom B) Q := by
       apply add_right_cancel (Y := (snd : prod (image d).dom B ⟶ B) ≫ q)
       rw [zero_add]; exact h1.symm
-    have hsfst : (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
-        : (image d).dom ⟶ prod (image d).dom B) ≫ fst = Cat.id (image d).dom := fst_pair _ _
+    have hsfst : (pair (𝟙 (image d).dom) (zeroHom (image d).dom B)
+        : (image d).dom ⟶ prod (image d).dom B) ≫ fst = 𝟙 (image d).dom := fst_pair _ _
     have h3 : neg m ≫ q = zeroHom (image d).dom Q := by
-      calc neg m ≫ q = (Cat.id (image d).dom ≫ neg m) ≫ q := by rw [Cat.id_comp]
-        _ = (((pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+      calc neg m ≫ q = (𝟙 (image d).dom ≫ neg m) ≫ q := by rw [CategoryTheory.Category.id_comp]
+        _ = (((pair (𝟙 (image d).dom) (zeroHom (image d).dom B)
               : (image d).dom ⟶ prod (image d).dom B) ≫ fst) ≫ neg m) ≫ q := by rw [hsfst]
-        _ = (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+        _ = (pair (𝟙 (image d).dom) (zeroHom (image d).dom B)
               : (image d).dom ⟶ prod (image d).dom B)
               ≫ (((fst : prod (image d).dom B ⟶ (image d).dom) ≫ neg m) ≫ q) := by
-              rw [← Cat.assoc, ← Cat.assoc]
-        _ = (pair (Cat.id (image d).dom) (zeroHom (image d).dom B)
+              rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
+        _ = (pair (𝟙 (image d).dom) (zeroHom (image d).dom B)
               : (image d).dom ⟶ prod (image d).dom B) ≫ zeroHom (prod (image d).dom B) Q := by rw [h2]
         _ = zeroHom (image d).dom Q := zeroHom_comp_left _
     have h4 : neg (m ≫ q) = zeroHom (image d).dom Q := by rw [← neg_comp]; exact h3
@@ -1366,7 +1366,7 @@ noncomputable def additive_has_coequalizers
   -- eq: f ≫ q = g ≫ q.
   have heq : f ≫ q = g ≫ q := by
     have hdq : d ≫ q = zeroMorphism A Q := by
-      rw [← hdm, Cat.assoc, hmq, zero_morphism_comp (image.lift d) (m ≫ q)]
+      rw [← hdm, CategoryTheory.Category.assoc, hmq, zero_morphism_comp (image.lift d) (m ≫ q)]
     have hdq' : add (f ≫ q) (neg (g ≫ q)) = zeroMorphism A Q := by
       rw [← neg_comp, ← add_comp]; exact hdq
     have hu := neg_unique (f := f ≫ q) (g := neg (g ≫ q))
@@ -1385,15 +1385,15 @@ noncomputable def additive_has_coequalizers
           _ = add (g ≫ k) (neg (g ≫ k)) := by rw [hk]
           _ = zeroMorphism A X := hgk
       apply cover_epi hlift_cover
-      rw [← Cat.assoc, hdm, hdk, zero_morphism_comp (image.lift d) (m ≫ k)]
+      rw [← CategoryTheory.Category.assoc, hdm, hdk, zero_morphism_comp (image.lift d) (m ≫ k)]
     obtain ⟨ww, hwA, hwB⟩ := rel_le_trans (kernelPairRel_le_level q) hqqE
     have hwA' : ww ≫ (malRel m hm).colA = kp₁ (f := q) := hwA
     have hwB' : ww ≫ (malRel m hm).colB = kp₂ (f := q) := hwB
     have hml := malRel_legs_comp m hm k hmk
     calc kp₁ (f := q) ≫ k = (ww ≫ (malRel m hm).colA) ≫ k := by rw [hwA']
-      _ = ww ≫ ((malRel m hm).colA ≫ k) := Cat.assoc _ _ _
+      _ = ww ≫ ((malRel m hm).colA ≫ k) := CategoryTheory.Category.assoc _ _ _
       _ = ww ≫ ((malRel m hm).colB ≫ k) := by rw [hml]
-      _ = (ww ≫ (malRel m hm).colB) ≫ k := (Cat.assoc _ _ _).symm
+      _ = (ww ≫ (malRel m hm).colB) ≫ k := (CategoryTheory.Category.assoc _ _ _).symm
       _ = kp₂ (f := q) ≫ k := by rw [hwB']
   exact
     { obj := Q
@@ -1427,7 +1427,7 @@ noncomputable def additive_has_coequalizers
 
 /-- An ABELIAN GROUP OBJECT in a category with finite products (§1.595).
   Fields: carrier object, identity/inverse/addition morphisms, four axioms. -/
-structure AbelianGroupObject (𝒞 : Type u) [Cat.{v} 𝒞]
+structure AbelianGroupObject (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
   /-- The underlying object. -/
   carrier : 𝒞
@@ -1438,9 +1438,9 @@ structure AbelianGroupObject (𝒞 : Type u) [Cat.{v} 𝒞]
   /-- Addition: A × A → A. -/
   add   : prod carrier carrier ⟶ carrier
   /-- Left unit: ⟨zero ∘ !, id⟩ ≫ add = id. -/
-  add_zero : pair (term carrier ≫ zero) (Cat.id carrier) ≫ add = Cat.id carrier
+  add_zero : pair (term carrier ≫ zero) (𝟙 carrier) ≫ add = 𝟙 carrier
   /-- Left inverse: ⟨neg, id⟩ ≫ add = zero ∘ !. -/
-  add_neg  : pair neg (Cat.id carrier) ≫ add = term carrier ≫ zero
+  add_neg  : pair neg (𝟙 carrier) ≫ add = term carrier ≫ zero
   /-- Associativity: from source (A×A)×A, both bracketings compute equal results.
     LHS: (x+y)+z = (fst ≫ add, snd) ≫ add.
     RHS: x+(y+z) = (fst≫fst, (fst≫snd, snd) ≫ add) ≫ add. -/
@@ -1457,13 +1457,13 @@ structure AbelianGroupObject (𝒞 : Type u) [Cat.{v} 𝒞]
 -- Homomorphism condition: the square addA ≫ x = (x×x) ≫ addB commutes.
 -- Both sides have source prod A.carrier A.carrier.
 -- (x×x) is spelled out as pair (fst ≫ x) (snd ≫ x).
-def IsHomAbelianGroupObject {𝒞 : Type u} [Cat.{v} 𝒞]
+def IsHomAbelianGroupObject {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     (A B : AbelianGroupObject 𝒞) (x : A.carrier ⟶ B.carrier) : Prop :=
   A.add ≫ x = pair (fst ≫ x) (snd ≫ x) ≫ B.add
 
 /-- Hom-set in Ab(A): morphisms that are homomorphisms. -/
-def HomAb {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+def HomAb {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     (A B : AbelianGroupObject 𝒞) : Type v :=
   { x : A.carrier ⟶ B.carrier // IsHomAbelianGroupObject A B x }
 
@@ -1515,7 +1515,7 @@ def HomAb {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
   satisfies `kernelMap x ≫ cokernelMap(kernelMap x) = 0` (the cokernel map kills
   the kernel), so it factors through ker(coker x) ↣ B via the universal property
   of the kernel.  θ is this factorization morphism. -/
-class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞]
+class ExactCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞]
     extends HasZeroObject 𝒞, HasEqualizers 𝒞, HasCoequalizers 𝒞 where
   /-- The canonical coimage-to-image map θ : coker(ker x) → ker(coker x) is an iso,
     AND it is the canonical factorization: it makes
@@ -1528,7 +1528,7 @@ class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞]
 
 /-! §1.597 key lemma: if A ↣ B is monic and q : B → Q is its cokernel, then A is
   the kernel of q.  (Follows from the exact factorization.) -/
-theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory 𝒞] {A B : 𝒞}
+theorem monic_kernel_of_cokernel {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [ExactCategory 𝒞] {A B : 𝒞}
     (x : A ⟶ B) (hx : Monic x) :
     let Q := Cokernel x
     let q := cokernelMap x
@@ -1546,26 +1546,26 @@ theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory �
   -- (2) cokernelMap (kernelMap x) : A → Cokernel(kernelMap x) is an iso, because the
   --     coequalized pair (kernelMap x, 0) is a pair of EQUAL maps, whose coequalizer
   --     map is split by `desc id`.
-  have hcofac : kernelMap x ≫ Cat.id A = zeroMorphism (Kernel x) A ≫ Cat.id A := by
+  have hcofac : kernelMap x ≫ 𝟙 A = zeroMorphism (Kernel x) A ≫ 𝟙 A := by
     rw [hk0]
   let co := HasCoequalizers.coeq (kernelMap x) (zeroMorphism (Kernel x) A)
   -- the splitting r : Cokernel(kernelMap x) → A
-  let r : Cokernel (kernelMap x) ⟶ A := co.desc (Cat.id A) hcofac
-  have hmr : cokernelMap (kernelMap x) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
-  have hrm : r ≫ cokernelMap (kernelMap x) = Cat.id (Cokernel (kernelMap x)) := by
+  let r : Cokernel (kernelMap x) ⟶ A := co.desc (𝟙 A) hcofac
+  have hmr : cokernelMap (kernelMap x) ≫ r = 𝟙 A := co.fac (𝟙 A) hcofac
+  have hrm : r ≫ cokernelMap (kernelMap x) = 𝟙 (Cokernel (kernelMap x)) := by
     -- both `r ≫ map` and `id` are `desc map`, by the coequalizer's uniqueness.
     have key : ∀ m : Cokernel (kernelMap x) ⟶ Cokernel (kernelMap x),
         cokernelMap (kernelMap x) ≫ m = cokernelMap (kernelMap x) →
         m = co.desc (cokernelMap (kernelMap x)) co.eq :=
       fun m hm => co.uniq (cokernelMap (kernelMap x)) co.eq m hm
     rw [key (r ≫ cokernelMap (kernelMap x))
-          (by rw [← Cat.assoc, hmr, Cat.id_comp]),
-        key (Cat.id _) (by rw [Cat.comp_id])]
+          (by rw [← CategoryTheory.Category.assoc, hmr, CategoryTheory.Category.id_comp]),
+        key (𝟙 _) (by rw [CategoryTheory.Category.comp_id])]
   have hc_iso : IsIso (cokernelMap (kernelMap x)) := ⟨r, hmr, hrm⟩
   -- (3) The exact-factorization data: θ iso, cokernelMap(kernelMap x) ≫ θ ≫ kernelMap q = x.
   obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact x
   refine ⟨cokernelMap (kernelMap x) ≫ θ, isIso_comp hc_iso hθ, ?_⟩
-  rw [Cat.assoc]; exact hfac
+  rw [CategoryTheory.Category.assoc]; exact hfac
 
 /-! ## §1.597 KEYSTONE: exact additive ⟹ regular (and ⟹ abelian)
 
@@ -1610,7 +1610,7 @@ theorem imageSub_min [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
   have hf_killed : f ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
     calc f ≫ cokernelMap S.arr
         = (g ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
-      _ = g ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+      _ = g ≫ (S.arr ≫ cokernelMap S.arr) := CategoryTheory.Category.assoc _ _ _
       _ = g ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
       _ = zeroMorphism A (Cokernel S.arr) :=
             zero_morphism_comp g (zeroMorphism S.dom (Cokernel S.arr))
@@ -1627,9 +1627,9 @@ theorem imageSub_min [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
         = kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel f) := kernelMap_eq _
     calc kernelMap (cokernelMap f) ≫ cokernelMap S.arr
         = kernelMap (cokernelMap f) ≫ (cokernelMap f ≫ d) := by rw [hd]
-      _ = (kernelMap (cokernelMap f) ≫ cokernelMap f) ≫ d := (Cat.assoc _ _ _).symm
+      _ = (kernelMap (cokernelMap f) ≫ cokernelMap f) ≫ d := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel f)) ≫ d := by rw [hk0]
-      _ = kernelMap (cokernelMap f) ≫ (zeroMorphism B (Cokernel f) ≫ d) := Cat.assoc _ _ _
+      _ = kernelMap (cokernelMap f) ≫ (zeroMorphism B (Cokernel f) ≫ d) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel S.arr) := by
             rw [zeroMorphism_comp_left]
   let lift_k : Kernel (cokernelMap f) ⟶ Kernel (cokernelMap S.arr) :=
@@ -1643,8 +1643,8 @@ theorem imageSub_min [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
   show (lift_k ≫ hinv) ≫ S.arr = (imageSub f).arr
   calc (lift_k ≫ hinv) ≫ S.arr
       = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
-    _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [Cat.assoc, Cat.assoc]
-    _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+    _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+    _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, CategoryTheory.Category.id_comp]
     _ = kernelMap (cokernelMap f) := hlift_k
 
 /-- **`HasImages` from the exact structure** (normal image). -/
@@ -1659,16 +1659,16 @@ instance exactPullbacks [HasBinaryProducts 𝒞] [HasEqualizers 𝒞] : HasPullb
 /-- The kernel of a zero morphism is the whole domain (an iso). -/
 theorem kernelMap_zero_isIso [HasZeroObject 𝒞] [HasEqualizers 𝒞] (B C : 𝒞) :
     IsIso (kernelMap (zeroMorphism B C)) := by
-  have hid : (Cat.id B) ≫ zeroMorphism B C = (Cat.id B) ≫ zeroMorphism B C := rfl
+  have hid : (𝟙 B) ≫ zeroMorphism B C = (𝟙 B) ≫ zeroMorphism B C := rfl
   let s : B ⟶ Kernel (zeroMorphism B C) :=
-    eqLift (zeroMorphism B C) (zeroMorphism B C) (Cat.id B) hid
-  have hs : s ≫ kernelMap (zeroMorphism B C) = Cat.id B :=
-    eqLift_fac (zeroMorphism B C) (zeroMorphism B C) (Cat.id B) hid
-  have hother : kernelMap (zeroMorphism B C) ≫ s = Cat.id (Kernel (zeroMorphism B C)) := by
+    eqLift (zeroMorphism B C) (zeroMorphism B C) (𝟙 B) hid
+  have hs : s ≫ kernelMap (zeroMorphism B C) = 𝟙 B :=
+    eqLift_fac (zeroMorphism B C) (zeroMorphism B C) (𝟙 B) hid
+  have hother : kernelMap (zeroMorphism B C) ≫ s = 𝟙 (Kernel (zeroMorphism B C)) := by
     apply eqMap_mono' (zeroMorphism B C) (zeroMorphism B C)
     show (kernelMap (zeroMorphism B C) ≫ s) ≫ kernelMap (zeroMorphism B C)
-       = Cat.id (Kernel (zeroMorphism B C)) ≫ kernelMap (zeroMorphism B C)
-    rw [Cat.assoc, hs, Cat.comp_id, Cat.id_comp]
+       = 𝟙 (Kernel (zeroMorphism B C)) ≫ kernelMap (zeroMorphism B C)
+    rw [CategoryTheory.Category.assoc, hs, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
   exact ⟨s, hother, hs⟩
 
 /-- **An exact category is balanced**: monic ∧ epic ⟹ iso.  `Epi` inline. -/
@@ -1680,17 +1680,17 @@ theorem exact_balanced [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) (hm : Mon
           = kernelMap f ≫ zeroMorphism A B := kernelMap_eq f
         _ = zeroMorphism (Kernel f) B := zero_morphism_comp (kernelMap f) f
         _ = zeroMorphism (Kernel f) A ≫ f := (zeroMorphism_comp_left f).symm
-  have hcofac : kernelMap f ≫ Cat.id A = zeroMorphism (Kernel f) A ≫ Cat.id A := by rw [hk0]
+  have hcofac : kernelMap f ≫ 𝟙 A = zeroMorphism (Kernel f) A ≫ 𝟙 A := by rw [hk0]
   let co := HasCoequalizers.coeq (kernelMap f) (zeroMorphism (Kernel f) A)
-  let r : Cokernel (kernelMap f) ⟶ A := co.desc (Cat.id A) hcofac
-  have hmr : cokernelMap (kernelMap f) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
-  have hrm : r ≫ cokernelMap (kernelMap f) = Cat.id (Cokernel (kernelMap f)) := by
+  let r : Cokernel (kernelMap f) ⟶ A := co.desc (𝟙 A) hcofac
+  have hmr : cokernelMap (kernelMap f) ≫ r = 𝟙 A := co.fac (𝟙 A) hcofac
+  have hrm : r ≫ cokernelMap (kernelMap f) = 𝟙 (Cokernel (kernelMap f)) := by
     have key : ∀ m : Cokernel (kernelMap f) ⟶ Cokernel (kernelMap f),
         cokernelMap (kernelMap f) ≫ m = cokernelMap (kernelMap f) →
         m = co.desc (cokernelMap (kernelMap f)) co.eq :=
       fun m hmm => co.uniq (cokernelMap (kernelMap f)) co.eq m hmm
-    rw [key (r ≫ cokernelMap (kernelMap f)) (by rw [← Cat.assoc, hmr, Cat.id_comp]),
-        key (Cat.id _) (by rw [Cat.comp_id])]
+    rw [key (r ≫ cokernelMap (kernelMap f)) (by rw [← CategoryTheory.Category.assoc, hmr, CategoryTheory.Category.id_comp]),
+        key (𝟙 _) (by rw [CategoryTheory.Category.comp_id])]
   have hc_iso : IsIso (cokernelMap (kernelMap f)) := ⟨r, hmr, hrm⟩
   obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact f
   have hcoker0 : cokernelMap f = zeroMorphism B (Cokernel f) := by
@@ -1744,10 +1744,10 @@ theorem coimage_factor [ExactCategory 𝒞] {D B Z : 𝒞} (d : D ⟶ B)
   have hdι : d ≫ ι = cokernelMap (kernelMap d) := by
     calc d ≫ ι
         = (cokernelMap (kernelMap d) ≫ (θ ≫ kernelMap (cokernelMap d))) ≫ ι := by rw [hfac]
-      _ = cokernelMap (kernelMap d) ≫ ((θ ≫ kernelMap (cokernelMap d)) ≫ ι) := Cat.assoc _ _ _
-      _ = cokernelMap (kernelMap d) ≫ Cat.id _ := by rw [hι1]
-      _ = cokernelMap (kernelMap d) := Cat.comp_id _
-  exact ⟨ι ≫ n', by rw [← Cat.assoc, hdι, hn']⟩
+      _ = cokernelMap (kernelMap d) ≫ ((θ ≫ kernelMap (cokernelMap d)) ≫ ι) := CategoryTheory.Category.assoc _ _ _
+      _ = cokernelMap (kernelMap d) ≫ 𝟙 _ := by rw [hι1]
+      _ = cokernelMap (kernelMap d) := CategoryTheory.Category.comp_id _
+  exact ⟨ι ≫ n', by rw [← CategoryTheory.Category.assoc, hdι, hn']⟩
 
 /-- **The kernel cone is a pullback.**  For `d := (fst≫f) − (snd≫g)`, the cone
     `(Kernel d; kernelMap d ≫ fst, kernelMap d ≫ snd)` over `A —f→ B ←g— C` is a
@@ -1765,7 +1765,7 @@ theorem kernelCone_isPullback [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C 
   intro dd
   have hpair_d : pair dd.π₁ dd.π₂ ≫ d = zeroMorphism dd.pt B := by
     show pair dd.π₁ dd.π₂ ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
-    rw [HalfAdditiveCategory.comp_add, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, dd.w,
+    rw [HalfAdditiveCategory.comp_add, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair, dd.w,
         ← HalfAdditiveCategory.comp_add, hnegg, HalfAdditiveCategory.zeroHom_comp_left,
         zeroHom_eq_zeroMorphism']
   have hpaireq : pair dd.π₁ dd.π₂ ≫ d = pair dd.π₁ dd.π₂ ≫ zeroMorphism (prod A C) B := by
@@ -1774,13 +1774,13 @@ theorem kernelCone_isPullback [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C 
   have hu : u ≫ kernelMap d = pair dd.π₁ dd.π₂ :=
     eqLift_fac d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq
   refine ⟨u, ⟨?_, ?_⟩, ?_⟩
-  · rw [← Cat.assoc, hu, fst_pair]
-  · rw [← Cat.assoc, hu, snd_pair]
+  · rw [← CategoryTheory.Category.assoc, hu, fst_pair]
+  · rw [← CategoryTheory.Category.assoc, hu, snd_pair]
   · intro v hv1 hv2
     have hvk : v ≫ kernelMap d = pair dd.π₁ dd.π₂ := by
       apply pair_uniq
-      · rw [Cat.assoc]; exact hv1
-      · rw [Cat.assoc]; exact hv2
+      · rw [CategoryTheory.Category.assoc]; exact hv1
+      · rw [CategoryTheory.Category.assoc]; exact hv2
     rw [eqLift_uniq d (zeroMorphism (prod A C) B) (pair dd.π₁ dd.π₂) hpaireq v hvk]
 
 /-- **Epimorphy of the kernel-cone projection.**  With `d := (fst≫f) − (snd≫g)` and
@@ -1794,25 +1794,25 @@ theorem kernel_snd_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : �
   intro negg d Z a b hab
   have hfe : ∀ {W : 𝒞} (p q : B ⟶ W), f ≫ p = f ≫ q → p = q :=
     fun p q h => cover_epi (Z := _) hf h
-  let jA : A ⟶ prod A C := pair (Cat.id A) (HalfAdditiveCategory.zeroHom A C)
-  let jC : C ⟶ prod A C := pair (HalfAdditiveCategory.zeroHom C A) (Cat.id C)
+  let jA : A ⟶ prod A C := pair (𝟙 A) (HalfAdditiveCategory.zeroHom A C)
+  let jC : C ⟶ prod A C := pair (HalfAdditiveCategory.zeroHom C A) (𝟙 C)
   have hjA_d : jA ≫ d = f := by
     show jA ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = f
-    rw [HalfAdditiveCategory.comp_add, ← Cat.assoc, ← Cat.assoc]
+    rw [HalfAdditiveCategory.comp_add, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
     show HalfAdditiveCategory.add ((jA ≫ fst) ≫ f) ((jA ≫ snd) ≫ negg) = f
-    rw [fst_pair, snd_pair, Cat.id_comp, HalfAdditiveCategory.zeroHom_comp_right,
+    rw [fst_pair, snd_pair, CategoryTheory.Category.id_comp, HalfAdditiveCategory.zeroHom_comp_right,
         HalfAdditiveCategory.add_zero]
   have hjA_snd : jA ≫ snd = HalfAdditiveCategory.zeroHom A C := snd_pair _ _
   have hde : ∀ {W : 𝒞} (p q : B ⟶ W), d ≫ p = d ≫ q → p = q := by
-    intro W p q h; apply hfe; rw [← hjA_d, Cat.assoc, Cat.assoc, h]
-  have hjC_snd : jC ≫ snd = Cat.id C := snd_pair _ _
+    intro W p q h; apply hfe; rw [← hjA_d, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, h]
+  have hjC_snd : jC ≫ snd = 𝟙 C := snd_pair _ _
   have hsnd_epi : ∀ {W : 𝒞} (p q : C ⟶ W), (snd : prod A C ⟶ C) ≫ p = snd ≫ q → p = q := by
     intro W p q h
-    calc p = (jC ≫ snd) ≫ p := by rw [hjC_snd, Cat.id_comp]
-      _ = jC ≫ (snd ≫ p) := Cat.assoc _ _ _
+    calc p = (jC ≫ snd) ≫ p := by rw [hjC_snd, CategoryTheory.Category.id_comp]
+      _ = jC ≫ (snd ≫ p) := CategoryTheory.Category.assoc _ _ _
       _ = jC ≫ (snd ≫ q) := by rw [h]
-      _ = (jC ≫ snd) ≫ q := (Cat.assoc _ _ _).symm
-      _ = q := by rw [hjC_snd, Cat.id_comp]
+      _ = (jC ≫ snd) ≫ q := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = q := by rw [hjC_snd, CategoryTheory.Category.id_comp]
   obtain ⟨negb, hnegb⟩ := AdditiveCategory.addInv b
   let e := HalfAdditiveCategory.add a negb
   have hsnde0 : kernelMap d ≫ (snd ≫ e) = zeroMorphism (Kernel d) Z := by
@@ -1822,15 +1822,15 @@ theorem kernel_snd_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞] {A C B : �
       rw [HalfAdditiveCategory.comp_add, HalfAdditiveCategory.comp_add]
     rw [hexp]
     have hab' : kernelMap d ≫ (snd ≫ a) = kernelMap d ≫ (snd ≫ b) := by
-      rw [← Cat.assoc, ← Cat.assoc]; exact hab
+      rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]; exact hab
     rw [hab', ← HalfAdditiveCategory.comp_add, ← HalfAdditiveCategory.comp_add, hnegb,
         HalfAdditiveCategory.zeroHom_comp_left snd,
         HalfAdditiveCategory.zeroHom_comp_left (kernelMap d), zeroHom_eq_zeroMorphism']
   obtain ⟨n, hn⟩ := coimage_factor d hde (snd ≫ e) hsnde0
   have hfn0 : f ≫ n = zeroMorphism A Z := by
     have hjn : jA ≫ (d ≫ n) = jA ≫ (snd ≫ e) := by rw [hn]
-    rw [← Cat.assoc, hjA_d] at hjn
-    rw [hjn, ← Cat.assoc, hjA_snd, HalfAdditiveCategory.zeroHom_comp_right e, zeroHom_eq_zeroMorphism']
+    rw [← CategoryTheory.Category.assoc, hjA_d] at hjn
+    rw [hjn, ← CategoryTheory.Category.assoc, hjA_snd, HalfAdditiveCategory.zeroHom_comp_right e, zeroHom_eq_zeroMorphism']
   have hn0 : n = zeroMorphism B Z := by
     apply hfe; rw [hfn0, zero_morphism_comp f (zeroMorphism B Z)]
   have hsnde0' : snd ≫ e = zeroMorphism (prod A C) Z := by
@@ -1856,9 +1856,9 @@ theorem epi_is_cover [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
     intro Z a b hab
     apply he
     calc f ≫ a = (ell ≫ kernelMap (cokernelMap f)) ≫ a := by rw [hell]
-      _ = ell ≫ (kernelMap (cokernelMap f) ≫ a) := Cat.assoc _ _ _
+      _ = ell ≫ (kernelMap (cokernelMap f) ≫ a) := CategoryTheory.Category.assoc _ _ _
       _ = ell ≫ (kernelMap (cokernelMap f) ≫ b) := by rw [hab]
-      _ = (ell ≫ kernelMap (cokernelMap f)) ≫ b := (Cat.assoc _ _ _).symm
+      _ = (ell ≫ kernelMap (cokernelMap f)) ≫ b := (CategoryTheory.Category.assoc _ _ _).symm
       _ = f ≫ b := by rw [hell]
   have hm_iso : IsIso (kernelMap (cokernelMap f)) := exact_balanced _ hm_mono hm_epi
   rw [cover_iff_image_entire]
@@ -1897,9 +1897,9 @@ theorem pullback_epi_is_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞]
     · have : kernelMap d ≫ d
           = HalfAdditiveCategory.add ((kernelMap d ≫ fst) ≫ f) (kernelMap d ≫ snd ≫ negg) := by
         show kernelMap d ≫ HalfAdditiveCategory.add (fst ≫ f) (snd ≫ negg) = _
-        rw [HalfAdditiveCategory.comp_add, ← Cat.assoc]
+        rw [HalfAdditiveCategory.comp_add, ← CategoryTheory.Category.assoc]
       rw [← this, hkd0, zeroHom_eq_zeroMorphism']
-    · rw [Cat.assoc (kernelMap d) snd g, ← HalfAdditiveCategory.comp_add,
+    · rw [CategoryTheory.Category.assoc (kernelMap d) snd g, ← HalfAdditiveCategory.comp_add,
           ← HalfAdditiveCategory.comp_add, hnegg,
           HalfAdditiveCategory.zeroHom_comp_left, zeroHom_eq_zeroMorphism',
           zero_morphism_comp (kernelMap d) (zeroMorphism (prod A C) B),
@@ -1916,9 +1916,9 @@ theorem pullback_epi_is_epi [ExactCategory 𝒞] [AdditiveCategory 𝒞]
   apply hkc_epi
   -- `kc.π₂ ≫ a = φ ≫ c.π₂ ≫ a = φ ≫ c.π₂ ≫ b = kc.π₂ ≫ b`
   calc kc.π₂ ≫ a = (φ ≫ c.π₂) ≫ a := by rw [hφ2]
-    _ = φ ≫ (c.π₂ ≫ a) := Cat.assoc _ _ _
+    _ = φ ≫ (c.π₂ ≫ a) := CategoryTheory.Category.assoc _ _ _
     _ = φ ≫ (c.π₂ ≫ b) := by rw [hab]
-    _ = (φ ≫ c.π₂) ≫ b := (Cat.assoc _ _ _).symm
+    _ = (φ ≫ c.π₂) ≫ b := (CategoryTheory.Category.assoc _ _ _).symm
     _ = kc.π₂ ≫ b := by rw [hφ2]
 
 /-- **`PullbacksTransferCovers` from the exact additive structure**, modulo the residual. -/
@@ -1977,7 +1977,7 @@ noncomputable def abelianOfExactAdditive [ExactCategory 𝒞] [AdditiveCategory 
   — Every monic is a kernel (normality): since each morphism factors as
     cokernel ∘ kernel, a monic that is also a cokernel is a kernel; iterate. -/
 theorem abelian_iff_exact_additive
-    {𝒞 : Type u} [Cat.{v} 𝒞]
+    {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
     [ExactCategory 𝒞] [AdditiveCategory 𝒞] [HasBinaryProducts 𝒞] :
     Nonempty (AbelianCategory 𝒞) :=
   ⟨abelianOfExactAdditive⟩
@@ -1994,20 +1994,20 @@ theorem abelian_iff_exact_additive
   products and coproducts. -/
 
 /-- LEFT-NORMAL: every subobject is normal (= kernel of some morphism). -/
-def IsLeftNormal (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] : Prop :=
+def IsLeftNormal (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] : Prop :=
   ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m hm
 
 /-- RIGHT-NORMAL: every cover (Cover e) is a cokernel of some morphism,
   i.e. e = cokernelMap f for some f (up to the cokernel object being B).
   Formally: there exist W, f, and an iso i : Cokernel f ≅ B such that
   cokernelMap f ≫ i.inv = e. -/
-def IsRightNormal (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasCoequalizers 𝒞] : Prop :=
+def IsRightNormal (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] [HasZeroObject 𝒞] [HasCoequalizers 𝒞] : Prop :=
   ∀ {A B : 𝒞} (e : A ⟶ B), Cover e →
     ∃ (W : 𝒞) (f : W ⟶ A) (i : Cokernel f ⟶ B),
       IsIso i ∧ cokernelMap f ≫ i = e
 
 /-- NORMAL CATEGORY: both left- and right-normal (§1.598). -/
-def IsNormalCategory (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞]
+def IsNormalCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] : Prop :=
   IsLeftNormal 𝒞 ∧ IsRightNormal 𝒞
 
@@ -2088,39 +2088,39 @@ theorem normal_balanced [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
     kernel is provably trivial, but upgrading to monicity needs the as-yet-unavailable
     hom-set subtraction. -/
 theorem diag_cokernel_kernel_zero
-    {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
+    {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞]
     [HasBinaryProducts 𝒞] (hLN : IsLeftNormal 𝒞) (A : 𝒞) {W : 𝒞} (x : W ⟶ A)
-    (hx : x ≫ (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+    (hx : x ≫ (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
             = zeroMorphism W (Cokernel (diag A))) :
     x = zeroMorphism W A := by
   have hdm : Monic (diag A) := diag_mono A
   obtain ⟨h, hiso, hfac⟩ := monic_kernel_of_cokernel' (diag A) hdm (hLN (diag A) hdm)
-  have hfacKer : (x ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ cokernelMap (diag A)
-      = (x ≫ pair (Cat.id A) (zeroMorphism A A))
+  have hfacKer : (x ≫ pair (𝟙 A) (zeroMorphism A A)) ≫ cokernelMap (diag A)
+      = (x ≫ pair (𝟙 A) (zeroMorphism A A))
           ≫ zeroMorphism (prod A A) (Cokernel (diag A)) := by
-    rw [Cat.assoc, hx]
-    exact (zero_morphism_comp (x ≫ pair (Cat.id A) (zeroMorphism A A))
+    rw [CategoryTheory.Category.assoc, hx]
+    exact (zero_morphism_comp (x ≫ pair (𝟙 A) (zeroMorphism A A))
             (cokernelMap (diag A))).symm
   let x'k : W ⟶ Kernel (cokernelMap (diag A)) :=
     eqLift (cokernelMap (diag A)) (zeroMorphism (prod A A) (Cokernel (diag A)))
-      (x ≫ pair (Cat.id A) (zeroMorphism A A)) hfacKer
+      (x ≫ pair (𝟙 A) (zeroMorphism A A)) hfacKer
   have hx'k : x'k ≫ kernelMap (cokernelMap (diag A))
-      = x ≫ pair (Cat.id A) (zeroMorphism A A) := eqLift_fac _ _ _ hfacKer
+      = x ≫ pair (𝟙 A) (zeroMorphism A A) := eqLift_fac _ _ _ hfacKer
   obtain ⟨hinv, _, hinv2⟩ := hiso
-  have hx' : (x'k ≫ hinv) ≫ diag A = x ≫ pair (Cat.id A) (zeroMorphism A A) := by
+  have hx' : (x'k ≫ hinv) ≫ diag A = x ≫ pair (𝟙 A) (zeroMorphism A A) := by
     calc (x'k ≫ hinv) ≫ diag A
         = (x'k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap (diag A))) := by rw [hfac]
-      _ = x'k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap (diag A)) := by rw [Cat.assoc, Cat.assoc]
-      _ = x'k ≫ kernelMap (cokernelMap (diag A)) := by rw [hinv2, Cat.id_comp]
-      _ = x ≫ pair (Cat.id A) (zeroMorphism A A) := hx'k
+      _ = x'k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap (diag A)) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = x'k ≫ kernelMap (cokernelMap (diag A)) := by rw [hinv2, CategoryTheory.Category.id_comp]
+      _ = x ≫ pair (𝟙 A) (zeroMorphism A A) := hx'k
   have hfstA : (x'k ≫ hinv) = x := by
     have h1 := congrArg (· ≫ (fst : prod A A ⟶ A)) hx'
-    simp only [Cat.assoc, show diag A ≫ fst = Cat.id A from fst_pair _ _, fst_pair,
-      Cat.comp_id] at h1; exact h1
+    simp only [CategoryTheory.Category.assoc, show diag A ≫ fst = 𝟙 A from fst_pair _ _, fst_pair,
+      CategoryTheory.Category.comp_id] at h1; exact h1
   have hsndA : (x'k ≫ hinv) = zeroMorphism W A := by
     have h2 := congrArg (· ≫ (snd : prod A A ⟶ A)) hx'
-    simp only [Cat.assoc, show diag A ≫ snd = Cat.id A from snd_pair _ _, snd_pair,
-      Cat.comp_id] at h2
+    simp only [CategoryTheory.Category.assoc, show diag A ≫ snd = 𝟙 A from snd_pair _ _, snd_pair,
+      CategoryTheory.Category.comp_id] at h2
     rw [zero_morphism_comp x (zeroMorphism A A)] at h2
     exact h2
   rw [← hfstA, hsndA]
@@ -2138,19 +2138,19 @@ theorem diag_cokernel_kernel_zero
     the bare coequalizer API (no products/pullbacks). -/
 theorem cokernelMap_zero_isIso [HasZeroObject 𝒞] [HasCoequalizers 𝒞] (B C : 𝒞) :
     IsIso (cokernelMap (zeroMorphism B C)) := by
-  have hz : zeroMorphism B C ≫ Cat.id C = zeroMorphism B C := by rw [Cat.comp_id]
+  have hz : zeroMorphism B C ≫ 𝟙 C = zeroMorphism B C := by rw [CategoryTheory.Category.comp_id]
   let co := HasCoequalizers.coeq (zeroMorphism B C) (zeroMorphism B C)
   let r : Cokernel (zeroMorphism B C) ⟶ C :=
-    cokernelDesc (zeroMorphism B C) (Cat.id C) (by rw [hz])
-  have hr : cokernelMap (zeroMorphism B C) ≫ r = Cat.id C :=
-    cokernelDesc_fac (zeroMorphism B C) (Cat.id C) (by rw [hz])
-  have hother : r ≫ cokernelMap (zeroMorphism B C) = Cat.id (Cokernel (zeroMorphism B C)) := by
+    cokernelDesc (zeroMorphism B C) (𝟙 C) (by rw [hz])
+  have hr : cokernelMap (zeroMorphism B C) ≫ r = 𝟙 C :=
+    cokernelDesc_fac (zeroMorphism B C) (𝟙 C) (by rw [hz])
+  have hother : r ≫ cokernelMap (zeroMorphism B C) = 𝟙 (Cokernel (zeroMorphism B C)) := by
     have key : ∀ k : Cokernel (zeroMorphism B C) ⟶ Cokernel (zeroMorphism B C),
         cokernelMap (zeroMorphism B C) ≫ k = cokernelMap (zeroMorphism B C) →
         k = co.desc (cokernelMap (zeroMorphism B C)) co.eq :=
       fun k hk => co.uniq (cokernelMap (zeroMorphism B C)) co.eq k hk
-    rw [key (r ≫ cokernelMap (zeroMorphism B C)) (by rw [← Cat.assoc, hr, Cat.id_comp]),
-        key (Cat.id _) (by rw [Cat.comp_id])]
+    rw [key (r ≫ cokernelMap (zeroMorphism B C)) (by rw [← CategoryTheory.Category.assoc, hr, CategoryTheory.Category.id_comp]),
+        key (𝟙 _) (by rw [CategoryTheory.Category.comp_id])]
   exact ⟨r, hr, hother⟩
 
 /-- **`HasImages` from left-normality** (the normal image `ker(coker f)`), without an ambient
@@ -2163,7 +2163,7 @@ theorem imageSub_min_LN [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
   have hf_killed : f ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
     calc f ≫ cokernelMap S.arr
         = (g ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
-      _ = g ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+      _ = g ≫ (S.arr ≫ cokernelMap S.arr) := CategoryTheory.Category.assoc _ _ _
       _ = g ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
       _ = zeroMorphism A (Cokernel S.arr) :=
             zero_morphism_comp g (zeroMorphism S.dom (Cokernel S.arr))
@@ -2180,9 +2180,9 @@ theorem imageSub_min_LN [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
         = kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel f) := kernelMap_eq _
     calc kernelMap (cokernelMap f) ≫ cokernelMap S.arr
         = kernelMap (cokernelMap f) ≫ (cokernelMap f ≫ d) := by rw [hd]
-      _ = (kernelMap (cokernelMap f) ≫ cokernelMap f) ≫ d := (Cat.assoc _ _ _).symm
+      _ = (kernelMap (cokernelMap f) ≫ cokernelMap f) ≫ d := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel f)) ≫ d := by rw [hk0]
-      _ = kernelMap (cokernelMap f) ≫ (zeroMorphism B (Cokernel f) ≫ d) := Cat.assoc _ _ _
+      _ = kernelMap (cokernelMap f) ≫ (zeroMorphism B (Cokernel f) ≫ d) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap (cokernelMap f) ≫ zeroMorphism B (Cokernel S.arr) := by
             rw [zeroMorphism_comp_left]
   let lift_k : Kernel (cokernelMap f) ⟶ Kernel (cokernelMap S.arr) :=
@@ -2196,8 +2196,8 @@ theorem imageSub_min_LN [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalize
   show (lift_k ≫ hinv) ≫ S.arr = (imageSub f).arr
   calc (lift_k ≫ hinv) ≫ S.arr
       = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
-    _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [Cat.assoc, Cat.assoc]
-    _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+    _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+    _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, CategoryTheory.Category.id_comp]
     _ = kernelMap (cokernelMap f) := hlift_k
 
 /-- `HasImages 𝒞` from left-normality (normal image, minimality via `imageSub_min_LN`). -/
@@ -2223,7 +2223,7 @@ theorem epic_cokernel_of_kernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasC
     cokernelDesc_fac (kernelMap e) e
       (by rw [kernelMap_eq e, zero_morphism_comp (kernelMap e) (zeroMorphism A B)])
   have hfe : f ≫ e = zeroMorphism W B := by
-    rw [← hh0fac, ← Cat.assoc, comp_cokernelMap, zeroMorphism_comp_left]
+    rw [← hh0fac, ← CategoryTheory.Category.assoc, comp_cokernelMap, zeroMorphism_comp_left]
   have hfpair : f ≫ e = f ≫ zeroMorphism A B := by
     rw [hfe, zero_morphism_comp f (zeroMorphism A B)]
   let fbar : W ⟶ Kernel e := eqLift e (zeroMorphism A B) f hfpair
@@ -2231,7 +2231,7 @@ theorem epic_cokernel_of_kernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasC
   have hf_ck : f ≫ cokernelMap (kernelMap e) = zeroMorphism W (Cokernel (kernelMap e)) := by
     calc f ≫ cokernelMap (kernelMap e)
         = (fbar ≫ kernelMap e) ≫ cokernelMap (kernelMap e) := by rw [hfbar]
-      _ = fbar ≫ (kernelMap e ≫ cokernelMap (kernelMap e)) := Cat.assoc _ _ _
+      _ = fbar ≫ (kernelMap e ≫ cokernelMap (kernelMap e)) := CategoryTheory.Category.assoc _ _ _
       _ = fbar ≫ zeroMorphism (Kernel e) (Cokernel (kernelMap e)) := by rw [comp_cokernelMap]
       _ = zeroMorphism W (Cokernel (kernelMap e)) :=
             zero_morphism_comp fbar (zeroMorphism (Kernel e) (Cokernel (kernelMap e)))
@@ -2243,15 +2243,15 @@ theorem epic_cokernel_of_kernel' [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasC
   let u : B ⟶ Cokernel (kernelMap e) := h0inv ≫ gbar
   have hu : e ≫ u = cokernelMap (kernelMap e) := by
     calc e ≫ u = (cokernelMap f ≫ h0) ≫ (h0inv ≫ gbar) := by rw [hh0fac]
-      _ = cokernelMap f ≫ (h0 ≫ h0inv) ≫ gbar := by rw [Cat.assoc, Cat.assoc]
-      _ = cokernelMap f ≫ gbar := by rw [h0inv1, Cat.id_comp]
+      _ = cokernelMap f ≫ (h0 ≫ h0inv) ≫ gbar := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = cokernelMap f ≫ gbar := by rw [h0inv1, CategoryTheory.Category.id_comp]
       _ = cokernelMap (kernelMap e) := hgbar
-  have hwu : w ≫ u = Cat.id (Cokernel (kernelMap e)) := by
+  have hwu : w ≫ u = 𝟙 (Cokernel (kernelMap e)) := by
     apply cover_epi (cokernelMap_cover (kernelMap e))
-    rw [← Cat.assoc, hw, hu, Cat.comp_id]
-  have huw : u ≫ w = Cat.id B := by
+    rw [← CategoryTheory.Category.assoc, hw, hu, CategoryTheory.Category.comp_id]
+  have huw : u ≫ w = 𝟙 B := by
     apply cover_epi he
-    rw [← Cat.assoc, hu, hw, Cat.comp_id]
+    rw [← CategoryTheory.Category.assoc, hu, hw, CategoryTheory.Category.comp_id]
   exact ⟨w, ⟨u, hwu, huw⟩, hw⟩
 
 /-- **A cover with trivial kernel is iso** (right-normal).  If `e` is a cover and its kernel
@@ -2262,7 +2262,7 @@ theorem cover_kernel_zero_iso [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoeq
     (hk : kernelMap e = zeroMorphism (Kernel e) A) : IsIso e := by
   obtain ⟨W, f, i, hi_iso, hfac⟩ := hRN e he
   have hfe : f ≫ e = zeroMorphism W B := by
-    rw [← hfac, ← Cat.assoc, comp_cokernelMap, zeroMorphism_comp_left]
+    rw [← hfac, ← CategoryTheory.Category.assoc, comp_cokernelMap, zeroMorphism_comp_left]
   have hfpair : f ≫ e = f ≫ zeroMorphism A B := by
     rw [hfe, zero_morphism_comp f (zeroMorphism A B)]
   let u : W ⟶ Kernel e := eqLift e (zeroMorphism A B) f hfpair
@@ -2280,17 +2280,17 @@ theorem cover_kernel_zero_iso [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoeq
 theorem exact_iso_of_ker_cok_zero [ExactCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
     (hk0 : kernelMap f = zeroMorphism (Kernel f) A)
     (hcoker0 : cokernelMap f = zeroMorphism B (Cokernel f)) : IsIso f := by
-  have hcofac : kernelMap f ≫ Cat.id A = zeroMorphism (Kernel f) A ≫ Cat.id A := by rw [hk0]
+  have hcofac : kernelMap f ≫ 𝟙 A = zeroMorphism (Kernel f) A ≫ 𝟙 A := by rw [hk0]
   let co := HasCoequalizers.coeq (kernelMap f) (zeroMorphism (Kernel f) A)
-  let r : Cokernel (kernelMap f) ⟶ A := co.desc (Cat.id A) hcofac
-  have hmr : cokernelMap (kernelMap f) ≫ r = Cat.id A := co.fac (Cat.id A) hcofac
-  have hrm : r ≫ cokernelMap (kernelMap f) = Cat.id (Cokernel (kernelMap f)) := by
+  let r : Cokernel (kernelMap f) ⟶ A := co.desc (𝟙 A) hcofac
+  have hmr : cokernelMap (kernelMap f) ≫ r = 𝟙 A := co.fac (𝟙 A) hcofac
+  have hrm : r ≫ cokernelMap (kernelMap f) = 𝟙 (Cokernel (kernelMap f)) := by
     have key : ∀ m : Cokernel (kernelMap f) ⟶ Cokernel (kernelMap f),
         cokernelMap (kernelMap f) ≫ m = cokernelMap (kernelMap f) →
         m = co.desc (cokernelMap (kernelMap f)) co.eq :=
       fun m hmm => co.uniq (cokernelMap (kernelMap f)) co.eq m hmm
-    rw [key (r ≫ cokernelMap (kernelMap f)) (by rw [← Cat.assoc, hmr, Cat.id_comp]),
-        key (Cat.id _) (by rw [Cat.comp_id])]
+    rw [key (r ≫ cokernelMap (kernelMap f)) (by rw [← CategoryTheory.Category.assoc, hmr, CategoryTheory.Category.id_comp]),
+        key (𝟙 _) (by rw [CategoryTheory.Category.comp_id])]
   have hc_iso : IsIso (cokernelMap (kernelMap f)) := ⟨r, hmr, hrm⟩
   obtain ⟨θ, hθ, hfac⟩ := ExactCategory.exact f
   have hm_iso : IsIso (kernelMap (cokernelMap f)) := by
@@ -2322,7 +2322,7 @@ theorem epi_cokernel_of_kernel_exact [ExactCategory 𝒞] {A B : 𝒞} (e : A �
     (`epic_cokernel_of_kernel'`, right-normal), so `θ` is the canonical comparison of two
     cokernels of `kernelMap x` — an iso.  Uses ONLY left/right normality + products (NO additive
     structure): exactly Freyd's "since `A → C` is epic it is a cokernel; `A` is exact". -/
-noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞]
+noncomputable def exactOfNormal {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞]
     [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] (hN : IsNormalCategory 𝒞) : ExactCategory 𝒞 := by
   obtain ⟨hLN, hRN⟩ := hN
   letI hImg : HasImages 𝒞 := leftNormalImages hLN
@@ -2340,7 +2340,7 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
     eqLift_fac (cokernelMap x) (zeroMorphism B (Cokernel x)) x hx_kc
   have hkx_xbar : kernelMap x ≫ xbar = zeroMorphism (Kernel x) (Kernel (cokernelMap x)) := by
     apply hi_mono
-    calc (kernelMap x ≫ xbar) ≫ i = kernelMap x ≫ (xbar ≫ i) := Cat.assoc _ _ _
+    calc (kernelMap x ≫ xbar) ≫ i = kernelMap x ≫ (xbar ≫ i) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap x ≫ x := by rw [hxbar]
       _ = kernelMap x ≫ zeroMorphism A B := kernelMap_eq x
       _ = zeroMorphism (Kernel x) B := zero_morphism_comp (kernelMap x) x
@@ -2351,7 +2351,7 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
   let coco := HasCoequalizers.coeq (kernelMap x) (zeroMorphism (Kernel x) A)
   let θ : Cokernel (kernelMap x) ⟶ Kernel (cokernelMap x) := coco.desc xbar hxbar_pair
   have hpθ : p ≫ θ = xbar := coco.fac xbar hxbar_pair
-  have hfac : p ≫ θ ≫ i = x := by rw [← Cat.assoc, hpθ, hxbar]
+  have hfac : p ≫ θ ≫ i = x := by rw [← CategoryTheory.Category.assoc, hpθ, hxbar]
   -- `⟨Im, i⟩` is the IMAGE of `x` (minimality via all-monos-normal).
   let Im : Subobject 𝒞 B := ⟨Kernel (cokernelMap x), i, hi_mono⟩
   have hIm_allows : Allows Im x := ⟨xbar, hxbar⟩
@@ -2362,7 +2362,7 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
     have hx_killed : x ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
       calc x ≫ cokernelMap S.arr
           = (g ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
-        _ = g ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+        _ = g ≫ (S.arr ≫ cokernelMap S.arr) := CategoryTheory.Category.assoc _ _ _
         _ = g ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
         _ = zeroMorphism A (Cokernel S.arr) :=
               zero_morphism_comp g (zeroMorphism S.dom (Cokernel S.arr))
@@ -2376,9 +2376,9 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
       have hk0 : i ≫ cokernelMap x = i ≫ zeroMorphism B (Cokernel x) := kernelMap_eq _
       calc i ≫ cokernelMap S.arr
           = i ≫ (cokernelMap x ≫ t) := by rw [ht]
-        _ = (i ≫ cokernelMap x) ≫ t := (Cat.assoc _ _ _).symm
+        _ = (i ≫ cokernelMap x) ≫ t := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (i ≫ zeroMorphism B (Cokernel x)) ≫ t := by rw [hk0]
-        _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := Cat.assoc _ _ _
+        _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := CategoryTheory.Category.assoc _ _ _
         _ = i ≫ zeroMorphism B (Cokernel S.arr) := by rw [zeroMorphism_comp_left]
     let lift_k : Kernel (cokernelMap x) ⟶ Kernel (cokernelMap S.arr) :=
       eqLift (cokernelMap S.arr) (zeroMorphism B (Cokernel S.arr)) i hi_killed
@@ -2390,8 +2390,8 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
     exact ⟨lift_k ≫ hinv, by
       calc (lift_k ≫ hinv) ≫ S.arr
           = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
-        _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [Cat.assoc, Cat.assoc]
-        _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+        _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+        _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, CategoryTheory.Category.id_comp]
         _ = i := hlift_k⟩
   -- `θ` is a COVER: image lift `image.lift x ≫ c = p ≫ θ` is a cover.
   obtain ⟨c, hc⟩ := image_min x Im hIm_allows
@@ -2400,16 +2400,16 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
     cover_comp (image_lift_cover x) (iso_cover c hc_iso)
   have hlc_eq : image.lift x ≫ c = p ≫ θ := by
     apply hi_mono
-    calc (image.lift x ≫ c) ≫ i = image.lift x ≫ (c ≫ i) := Cat.assoc _ _ _
+    calc (image.lift x ≫ c) ≫ i = image.lift x ≫ (c ≫ i) := CategoryTheory.Category.assoc _ _ _
       _ = image.lift x ≫ (image x).arr := by rw [hc]
       _ = x := image.lift_fac x
       _ = p ≫ θ ≫ i := hfac.symm
-      _ = (p ≫ θ) ≫ i := (Cat.assoc _ _ _).symm
+      _ = (p ≫ θ) ≫ i := (CategoryTheory.Category.assoc _ _ _).symm
   have hxbar_cover : Cover xbar := by rw [← hpθ, ← hlc_eq]; exact hlc_cover
   -- `θ` ISO: `θinv` descends `p` through the cover `xbar`.
   have hkxbar_x : kernelMap xbar ≫ x = zeroMorphism (Kernel xbar) B := by
     calc kernelMap xbar ≫ x = kernelMap xbar ≫ (xbar ≫ i) := by rw [hxbar]
-      _ = (kernelMap xbar ≫ xbar) ≫ i := (Cat.assoc _ _ _).symm
+      _ = (kernelMap xbar ≫ xbar) ≫ i := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (kernelMap xbar ≫ zeroMorphism A (Kernel (cokernelMap x))) ≫ i := by
             rw [kernelMap_eq xbar]
       _ = zeroMorphism (Kernel xbar) (Kernel (cokernelMap x)) ≫ i := by
@@ -2424,7 +2424,7 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
     comp_cokernelMap (kernelMap x)
   have hkxbar_p : kernelMap xbar ≫ p = zeroMorphism (Kernel xbar) (Cokernel (kernelMap x)) := by
     calc kernelMap xbar ≫ p = (t ≫ kernelMap x) ≫ p := by rw [ht]
-      _ = t ≫ (kernelMap x ≫ p) := Cat.assoc _ _ _
+      _ = t ≫ (kernelMap x ≫ p) := CategoryTheory.Category.assoc _ _ _
       _ = t ≫ zeroMorphism (Kernel x) (Cokernel (kernelMap x)) := by rw [hkxp]
       _ = zeroMorphism (Kernel xbar) (Cokernel (kernelMap x)) :=
             zero_morphism_comp t (zeroMorphism (Kernel x) (Cokernel (kernelMap x)))
@@ -2437,22 +2437,22 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
   let θinv : Kernel (cokernelMap x) ⟶ Cokernel (kernelMap x) := wbarinv ≫ ψ₀
   have hxbar_θinv : xbar ≫ θinv = p := by
     calc xbar ≫ θinv = (cokernelMap (kernelMap xbar) ≫ wbar) ≫ (wbarinv ≫ ψ₀) := by rw [hwbar_fac]
-      _ = cokernelMap (kernelMap xbar) ≫ (wbar ≫ wbarinv) ≫ ψ₀ := by rw [Cat.assoc, Cat.assoc]
-      _ = cokernelMap (kernelMap xbar) ≫ ψ₀ := by rw [wbar1, Cat.id_comp]
+      _ = cokernelMap (kernelMap xbar) ≫ (wbar ≫ wbarinv) ≫ ψ₀ := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = cokernelMap (kernelMap xbar) ≫ ψ₀ := by rw [wbar1, CategoryTheory.Category.id_comp]
       _ = p := hψ₀
   have hp_cover : Cover p := coeq_map_is_cover coco
-  have hθθinv : θ ≫ θinv = Cat.id (Cokernel (kernelMap x)) := by
+  have hθθinv : θ ≫ θinv = 𝟙 (Cokernel (kernelMap x)) := by
     apply cover_epi hp_cover
-    calc p ≫ θ ≫ θinv = (p ≫ θ) ≫ θinv := (Cat.assoc _ _ _).symm
+    calc p ≫ θ ≫ θinv = (p ≫ θ) ≫ θinv := (CategoryTheory.Category.assoc _ _ _).symm
       _ = xbar ≫ θinv := by rw [hpθ]
       _ = p := hxbar_θinv
-      _ = p ≫ Cat.id (Cokernel (kernelMap x)) := (Cat.comp_id p).symm
-  have hθinvθ : θinv ≫ θ = Cat.id (Kernel (cokernelMap x)) := by
+      _ = p ≫ 𝟙 (Cokernel (kernelMap x)) := (CategoryTheory.Category.comp_id p).symm
+  have hθinvθ : θinv ≫ θ = 𝟙 (Kernel (cokernelMap x)) := by
     apply cover_epi hxbar_cover
-    calc xbar ≫ θinv ≫ θ = (xbar ≫ θinv) ≫ θ := (Cat.assoc _ _ _).symm
+    calc xbar ≫ θinv ≫ θ = (xbar ≫ θinv) ≫ θ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = p ≫ θ := by rw [hxbar_θinv]
       _ = xbar := hpθ
-      _ = xbar ≫ Cat.id (Kernel (cokernelMap x)) := (Cat.comp_id xbar).symm
+      _ = xbar ≫ 𝟙 (Kernel (cokernelMap x)) := (CategoryTheory.Category.comp_id xbar).symm
   exact ⟨θ, ⟨θinv, hθθinv, hθinvθ⟩, hfac⟩
 
 /-! ### §1.597 STEP 2: subtraction in an exact category with products.
@@ -2465,10 +2465,10 @@ noncomputable def exactOfNormal {𝒞 : Type u} [Cat.{v} 𝒞] [HasZeroObject �
 /-- `θ_A := ⟨1,0⟩ ≫ coker(diag A)` has zero kernel inclusion (`diag_cokernel_kernel_zero` in
     equational form). -/
 theorem thetaA_kernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
-    kernelMap (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
-      = zeroMorphism (Kernel (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))) A := by
+    kernelMap (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+      = zeroMorphism (Kernel (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))) A := by
   have hLN : IsLeftNormal 𝒞 := fun m hm => all_normal_of_exact m hm
-  let θA := pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)
+  let θA := pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)
   apply diag_cokernel_kernel_zero hLN A (kernelMap θA)
   calc kernelMap θA ≫ θA
       = kernelMap θA ≫ zeroMorphism A (Cokernel (diag A)) := kernelMap_eq θA
@@ -2478,20 +2478,20 @@ theorem thetaA_kernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : �
 /-- `snd : A×A → A` is a split epi (section `⟨0,1⟩ = pair 0 id`), hence epic. -/
 theorem snd_epi [HasBinaryProducts 𝒞] {A : 𝒞} [HasZeroObject 𝒞] {Z : 𝒞}
     (a b : A ⟶ Z) (h : (snd : prod A A ⟶ A) ≫ a = (snd : prod A A ⟶ A) ≫ b) : a = b := by
-  have hsec : (pair (zeroMorphism A A) (Cat.id A) : A ⟶ prod A A) ≫ snd = Cat.id A := snd_pair _ _
-  calc a = Cat.id A ≫ a := (Cat.id_comp a).symm
-    _ = (pair (zeroMorphism A A) (Cat.id A) ≫ snd) ≫ a := by rw [hsec]
-    _ = pair (zeroMorphism A A) (Cat.id A) ≫ (snd ≫ a) := Cat.assoc _ _ _
-    _ = pair (zeroMorphism A A) (Cat.id A) ≫ (snd ≫ b) := by rw [h]
-    _ = (pair (zeroMorphism A A) (Cat.id A) ≫ snd) ≫ b := (Cat.assoc _ _ _).symm
-    _ = Cat.id A ≫ b := by rw [hsec]
-    _ = b := Cat.id_comp b
+  have hsec : (pair (zeroMorphism A A) (𝟙 A) : A ⟶ prod A A) ≫ snd = 𝟙 A := snd_pair _ _
+  calc a = 𝟙 A ≫ a := (CategoryTheory.Category.id_comp a).symm
+    _ = (pair (zeroMorphism A A) (𝟙 A) ≫ snd) ≫ a := by rw [hsec]
+    _ = pair (zeroMorphism A A) (𝟙 A) ≫ (snd ≫ a) := CategoryTheory.Category.assoc _ _ _
+    _ = pair (zeroMorphism A A) (𝟙 A) ≫ (snd ≫ b) := by rw [h]
+    _ = (pair (zeroMorphism A A) (𝟙 A) ≫ snd) ≫ b := (CategoryTheory.Category.assoc _ _ _).symm
+    _ = 𝟙 A ≫ b := by rw [hsec]
+    _ = b := CategoryTheory.Category.id_comp b
 
 /-- The kernel inclusion of `snd : A×A → A` factors through `j := ⟨1,0⟩`: any map killed by
     `snd` is `pair g 0 = g ≫ j`.  (`kernelMap snd ≫ snd = 0`, so its `snd`-coordinate is `0`.) -/
 theorem kernelMap_snd_factors [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
     (kernelMap (snd : prod A A ⟶ A))
-      = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A) := by
+      = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (𝟙 A) (zeroMorphism A A) := by
   have hks : kernelMap (snd : prod A A ⟶ A) ≫ snd
       = zeroMorphism (Kernel (snd : prod A A ⟶ A)) A := by
     calc kernelMap (snd : prod A A ⟶ A) ≫ snd
@@ -2499,18 +2499,18 @@ theorem kernelMap_snd_factors [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasBina
       _ = zeroMorphism (Kernel (snd : prod A A ⟶ A)) A :=
             zero_morphism_comp _ (zeroMorphism (prod A A) A)
   -- both sides have the same `fst`/`snd` coordinates, so equal by product extensionality.
-  have hrfst : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ fst
-      = kernelMap (snd : prod A A ⟶ A) ≫ fst := by rw [Cat.assoc, fst_pair, Cat.comp_id]
-  have hrsnd : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A)) ≫ snd
+  have hrfst : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (𝟙 A) (zeroMorphism A A)) ≫ fst
+      = kernelMap (snd : prod A A ⟶ A) ≫ fst := by rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id]
+  have hrsnd : (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (𝟙 A) (zeroMorphism A A)) ≫ snd
       = kernelMap (snd : prod A A ⟶ A) ≫ snd := by
-    rw [Cat.assoc, snd_pair,
+    rw [CategoryTheory.Category.assoc, snd_pair,
         zero_morphism_comp (kernelMap (snd : prod A A ⟶ A) ≫ fst) (zeroMorphism A A), hks]
   calc kernelMap (snd : prod A A ⟶ A)
       = pair (kernelMap (snd : prod A A ⟶ A) ≫ fst) (kernelMap (snd : prod A A ⟶ A) ≫ snd) :=
         pair_uniq _ _ (kernelMap (snd : prod A A ⟶ A)) rfl rfl
-    _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A) :=
+    _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (𝟙 A) (zeroMorphism A A) :=
         (pair_uniq (kernelMap (snd : prod A A ⟶ A) ≫ fst) (kernelMap (snd : prod A A ⟶ A) ≫ snd)
-          (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (Cat.id A) (zeroMorphism A A))
+          (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ pair (𝟙 A) (zeroMorphism A A))
           hrfst hrsnd).symm
 
 /-- `θ_A := ⟨1,0⟩ ≫ coker(diag A)` has zero cokernel inclusion.  Set `c := coker θ_A`; then
@@ -2519,10 +2519,10 @@ theorem kernelMap_snd_factors [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasBina
     `snd ≫ z' = z`.  Then `z' = (diag ≫ snd) ≫ z' = diag ≫ z = (diag ≫ coker(diag)) ≫ c = 0`,
     so `z = snd ≫ z' = 0`; `coker(diag)` is epic, hence `c = 0`. -/
 theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
-    cokernelMap (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+    cokernelMap (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
       = zeroMorphism (Cokernel (diag A))
-          (Cokernel (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))) := by
-  let j : A ⟶ prod A A := pair (Cat.id A) (zeroMorphism A A)
+          (Cokernel (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))) := by
+  let j : A ⟶ prod A A := pair (𝟙 A) (zeroMorphism A A)
   let y : prod A A ⟶ Cokernel (diag A) := cokernelMap (diag A)
   let θA : A ⟶ Cokernel (diag A) := j ≫ y
   let c : Cokernel (diag A) ⟶ Cokernel θA := cokernelMap θA
@@ -2530,7 +2530,7 @@ theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 
   -- `j ≫ z = θA ≫ c = 0`.
   have hjz : j ≫ z = zeroMorphism A (Cokernel θA) := by
     show j ≫ (y ≫ c) = _
-    rw [← Cat.assoc]; exact comp_cokernelMap θA
+    rw [← CategoryTheory.Category.assoc]; exact comp_cokernelMap θA
   -- `snd` is epic (split) and the cokernel of its kernel.
   have hsnd_epi : ∀ {Z : 𝒞} (a b : A ⟶ Z),
       (snd : prod A A ⟶ A) ≫ a = (snd : prod A A ⟶ A) ≫ b → a = b := fun a b h => snd_epi a b h
@@ -2540,7 +2540,7 @@ theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 
       = zeroMorphism (Kernel (snd : prod A A ⟶ A)) (Cokernel θA) := by
     calc kernelMap (snd : prod A A ⟶ A) ≫ z
         = (((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ j) ≫ z := by rw [← kernelMap_snd_factors]
-      _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ (j ≫ z) := by rw [Cat.assoc]
+      _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ (j ≫ z) := by rw [CategoryTheory.Category.assoc]
       _ = ((kernelMap (snd : prod A A ⟶ A)) ≫ fst) ≫ zeroMorphism A (Cokernel θA) := by rw [hjz]
       _ = zeroMorphism (Kernel (snd : prod A A ⟶ A)) (Cokernel θA) :=
             zero_morphism_comp _ (zeroMorphism A (Cokernel θA))
@@ -2555,17 +2555,17 @@ theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 
     calc (snd : prod A A ⟶ A) ≫ z'
         = (cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ hh) ≫ (hhinv ≫ z₀) := by rw [hh_fac]
       _ = cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ (hh ≫ hhinv) ≫ z₀ := by
-            rw [Cat.assoc, Cat.assoc]
-      _ = cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ z₀ := by rw [hhinv1, Cat.id_comp]
+            rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = cokernelMap (kernelMap (snd : prod A A ⟶ A)) ≫ z₀ := by rw [hhinv1, CategoryTheory.Category.id_comp]
       _ = z := hz₀
   -- `z' = diag ≫ z = 0`.
   have hdiag_z : diag A ≫ z = zeroMorphism A (Cokernel θA) := by
     show diag A ≫ (y ≫ c) = _
-    rw [← Cat.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
+    rw [← CategoryTheory.Category.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
   have hz'0 : z' = zeroMorphism A (Cokernel θA) := by
     calc z' = (diag A ≫ snd) ≫ z' := by
-          rw [show diag A ≫ snd = Cat.id A from snd_pair _ _, Cat.id_comp]
-      _ = diag A ≫ (snd ≫ z') := Cat.assoc _ _ _
+          rw [show diag A ≫ snd = 𝟙 A from snd_pair _ _, CategoryTheory.Category.id_comp]
+      _ = diag A ≫ (snd ≫ z') := CategoryTheory.Category.assoc _ _ _
       _ = diag A ≫ z := by rw [hsnd_z']
       _ = zeroMorphism A (Cokernel θA) := hdiag_z
   -- `z = snd ≫ z' = 0`.
@@ -2579,8 +2579,8 @@ theorem thetaA_cokernel_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 
 
 /-- **`θ_A` is an iso** (`Ker θ_A = 0` ∧ `Cok θ_A = 0`, in an exact category). -/
 theorem thetaA_iso [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
-    IsIso (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
-  exact_iso_of_ker_cok_zero (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+    IsIso (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
+  exact_iso_of_ker_cok_zero (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
     (thetaA_kernel_zero A) (thetaA_cokernel_zero A)
 
 /-- The **subtraction section** `s_A : A×A → A := coker(diag A) ≫ θ_A⁻¹`.  Then `⟨a,b⟩ ≫ s_A`
@@ -2591,15 +2591,15 @@ noncomputable def subMap [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞
 
 /-- `⟨1,0⟩ ≫ s_A = id_A` (`a − 0 = a`). -/
 theorem subMap_j [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
-    pair (Cat.id A) (zeroMorphism A A) ≫ subMap A = Cat.id A := by
-  show pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A) ≫ (thetaA_iso A).choose = _
-  rw [← Cat.assoc]; exact (thetaA_iso A).choose_spec.1
+    pair (𝟙 A) (zeroMorphism A A) ≫ subMap A = 𝟙 A := by
+  show pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A) ≫ (thetaA_iso A).choose = _
+  rw [← CategoryTheory.Category.assoc]; exact (thetaA_iso A).choose_spec.1
 
 /-- `diag A ≫ s_A = 0` (`a − a = 0`). -/
 theorem subMap_diag [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A : 𝒞) :
     diag A ≫ subMap A = zeroMorphism A A := by
   show diag A ≫ cokernelMap (diag A) ≫ (thetaA_iso A).choose = _
-  rw [← Cat.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
+  rw [← CategoryTheory.Category.assoc, comp_cokernelMap (diag A), zeroMorphism_comp_left]
 
 /-- `k × k : A×A → B×B`, the product functor on `k`. -/
 noncomputable def sqMap {A B : 𝒞} [HasBinaryProducts 𝒞] (k : A ⟶ B) : prod A A ⟶ prod B B :=
@@ -2610,29 +2610,29 @@ theorem diag_sqMap [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
     diag A ≫ sqMap k = k ≫ diag B := by
   have hL : diag A ≫ sqMap k = pair k k :=
     pair_uniq k k (diag A ≫ sqMap k)
-      (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc,
-        show diag A ≫ fst = Cat.id A from fst_pair _ _, Cat.id_comp])
-      (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc,
-        show diag A ≫ snd = Cat.id A from snd_pair _ _, Cat.id_comp])
+      (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← CategoryTheory.Category.assoc,
+        show diag A ≫ fst = 𝟙 A from fst_pair _ _, CategoryTheory.Category.id_comp])
+      (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← CategoryTheory.Category.assoc,
+        show diag A ≫ snd = 𝟙 A from snd_pair _ _, CategoryTheory.Category.id_comp])
   have hR : k ≫ diag B = pair k k :=
     pair_uniq k k (k ≫ diag B)
-      (by rw [Cat.assoc, show diag B ≫ fst = Cat.id B from fst_pair _ _, Cat.comp_id])
-      (by rw [Cat.assoc, show diag B ≫ snd = Cat.id B from snd_pair _ _, Cat.comp_id])
+      (by rw [CategoryTheory.Category.assoc, show diag B ≫ fst = 𝟙 B from fst_pair _ _, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, show diag B ≫ snd = 𝟙 B from snd_pair _ _, CategoryTheory.Category.comp_id])
   rw [hL, hR]
 
 /-- `⟨1,0⟩` is natural: `⟨1,0⟩_A ≫ (k×k) = k ≫ ⟨1,0⟩_B`. -/
 theorem j_sqMap [HasZeroObject 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞} (k : A ⟶ B) :
-    pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = k ≫ pair (Cat.id B) (zeroMorphism B B) := by
-  have hL : pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k = pair k (zeroMorphism A B) :=
-    pair_uniq k (zeroMorphism A B) (pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k)
-      (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc, fst_pair,
-        Cat.id_comp])
-      (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc, snd_pair,
+    pair (𝟙 A) (zeroMorphism A A) ≫ sqMap k = k ≫ pair (𝟙 B) (zeroMorphism B B) := by
+  have hL : pair (𝟙 A) (zeroMorphism A A) ≫ sqMap k = pair k (zeroMorphism A B) :=
+    pair_uniq k (zeroMorphism A B) (pair (𝟙 A) (zeroMorphism A A) ≫ sqMap k)
+      (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair,
+        CategoryTheory.Category.id_comp])
+      (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair,
         zeroMorphism_comp_left])
-  have hR : k ≫ pair (Cat.id B) (zeroMorphism B B) = pair k (zeroMorphism A B) :=
-    pair_uniq k (zeroMorphism A B) (k ≫ pair (Cat.id B) (zeroMorphism B B))
-      (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-      (by rw [Cat.assoc, snd_pair, zero_morphism_comp k (zeroMorphism B B)])
+  have hR : k ≫ pair (𝟙 B) (zeroMorphism B B) = pair k (zeroMorphism A B) :=
+    pair_uniq k (zeroMorphism A B) (k ≫ pair (𝟙 B) (zeroMorphism B B))
+      (by rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, snd_pair, zero_morphism_comp k (zeroMorphism B B)])
   rw [hL, hR]
 
 /-- **Naturality of the subtraction section**: `subMap A ≫ k = (k×k) ≫ subMap B`.  This is what
@@ -2645,7 +2645,7 @@ theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞
   -- `kbar` : descent of `(k×k) ≫ coker(diag B)` through `coker(diag A)`.
   have hkill : diag A ≫ (sqMap k ≫ cokernelMap (diag B))
       = zeroMorphism A (Cokernel (diag B)) := by
-    rw [← Cat.assoc, diag_sqMap, Cat.assoc, comp_cokernelMap (diag B),
+    rw [← CategoryTheory.Category.assoc, diag_sqMap, CategoryTheory.Category.assoc, comp_cokernelMap (diag B),
         zero_morphism_comp k (zeroMorphism B (Cokernel (diag B)))]
   let kbar : Cokernel (diag A) ⟶ Cokernel (diag B) :=
     cokernelDesc (diag A) (sqMap k ≫ cokernelMap (diag B)) hkill
@@ -2656,42 +2656,42 @@ theorem subMap_natural [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {A B : 𝒞
   have hθA2 := (thetaA_iso A).choose_spec.2
   have hθB1 := (thetaA_iso B).choose_spec.1
   -- `θ_A ≫ kbar = k ≫ θ_B`.
-  have hθkbar : (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
-      = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := by
-    calc (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
-        = pair (Cat.id A) (zeroMorphism A A) ≫ (cokernelMap (diag A) ≫ kbar) := Cat.assoc _ _ _
-      _ = pair (Cat.id A) (zeroMorphism A A) ≫ (sqMap k ≫ cokernelMap (diag B)) := by rw [hkbar]
-      _ = (pair (Cat.id A) (zeroMorphism A A) ≫ sqMap k) ≫ cokernelMap (diag B) :=
-            (Cat.assoc _ _ _).symm
-      _ = (k ≫ pair (Cat.id B) (zeroMorphism B B)) ≫ cokernelMap (diag B) := by rw [j_sqMap]
-      _ = k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := Cat.assoc _ _ _
+  have hθkbar : (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
+      = k ≫ (pair (𝟙 B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := by
+    calc (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar
+        = pair (𝟙 A) (zeroMorphism A A) ≫ (cokernelMap (diag A) ≫ kbar) := CategoryTheory.Category.assoc _ _ _
+      _ = pair (𝟙 A) (zeroMorphism A A) ≫ (sqMap k ≫ cokernelMap (diag B)) := by rw [hkbar]
+      _ = (pair (𝟙 A) (zeroMorphism A A) ≫ sqMap k) ≫ cokernelMap (diag B) :=
+            (CategoryTheory.Category.assoc _ _ _).symm
+      _ = (k ≫ pair (𝟙 B) (zeroMorphism B B)) ≫ cokernelMap (diag B) := by rw [j_sqMap]
+      _ = k ≫ (pair (𝟙 B) (zeroMorphism B B) ≫ cokernelMap (diag B)) := CategoryTheory.Category.assoc _ _ _
   -- `θ_A⁻¹ ≫ k = kbar ≫ θ_B⁻¹`.
   have hinvk : (thetaA_iso A).choose ≫ k = kbar ≫ (thetaA_iso B).choose := by
-    have h1 : (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+    have h1 : (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
           ≫ ((thetaA_iso A).choose ≫ k)
-        = (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+        = (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
           ≫ (kbar ≫ (thetaA_iso B).choose) := by
-      calc (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+      calc (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
             ≫ ((thetaA_iso A).choose ≫ k)
-          = ((pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
-              ≫ (thetaA_iso A).choose) ≫ k := (Cat.assoc _ _ _).symm
-        _ = Cat.id A ≫ k := by rw [hθA1]
-        _ = k := Cat.id_comp k
-        _ = k ≫ Cat.id B := (Cat.comp_id k).symm
-        _ = k ≫ ((pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B))
+          = ((pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+              ≫ (thetaA_iso A).choose) ≫ k := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = 𝟙 A ≫ k := by rw [hθA1]
+        _ = k := CategoryTheory.Category.id_comp k
+        _ = k ≫ 𝟙 B := (CategoryTheory.Category.comp_id k).symm
+        _ = k ≫ ((pair (𝟙 B) (zeroMorphism B B) ≫ cokernelMap (diag B))
               ≫ (thetaA_iso B).choose) := by rw [hθB1]
-        _ = (k ≫ (pair (Cat.id B) (zeroMorphism B B) ≫ cokernelMap (diag B)))
-              ≫ (thetaA_iso B).choose := (Cat.assoc _ _ _).symm
-        _ = ((pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar)
+        _ = (k ≫ (pair (𝟙 B) (zeroMorphism B B) ≫ cokernelMap (diag B)))
+              ≫ (thetaA_iso B).choose := (CategoryTheory.Category.assoc _ _ _).symm
+        _ = ((pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)) ≫ kbar)
               ≫ (thetaA_iso B).choose := by rw [hθkbar]
-        _ = (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A))
-              ≫ (kbar ≫ (thetaA_iso B).choose) := Cat.assoc _ _ _
-    have hθA_cover : Cover (pair (Cat.id A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
+        _ = (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A))
+              ≫ (kbar ≫ (thetaA_iso B).choose) := CategoryTheory.Category.assoc _ _ _
+    have hθA_cover : Cover (pair (𝟙 A) (zeroMorphism A A) ≫ cokernelMap (diag A)) :=
       iso_cover _ (thetaA_iso A)
     exact cover_epi hθA_cover h1
   -- assemble.
   simp only [subMap]
-  rw [Cat.assoc, hinvk, ← Cat.assoc, hkbar, Cat.assoc]
+  rw [CategoryTheory.Category.assoc, hinvk, ← CategoryTheory.Category.assoc, hkbar, CategoryTheory.Category.assoc]
 
 /-! ### §1.597 STEP 2: the difference operation and its algebra. -/
 
@@ -2703,11 +2703,11 @@ noncomputable def subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞
 theorem subL_zero [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
     subL x (zeroMorphism W A) = x := by
   show pair x (zeroMorphism W A) ≫ subMap A = x
-  have hpx : pair x (zeroMorphism W A) = x ≫ pair (Cat.id A) (zeroMorphism A A) :=
-    (pair_uniq x (zeroMorphism W A) (x ≫ pair (Cat.id A) (zeroMorphism A A))
-      (by rw [Cat.assoc, fst_pair, Cat.comp_id])
-      (by rw [Cat.assoc, snd_pair, zero_morphism_comp x (zeroMorphism A A)])).symm
-  rw [hpx, Cat.assoc, subMap_j, Cat.comp_id]
+  have hpx : pair x (zeroMorphism W A) = x ≫ pair (𝟙 A) (zeroMorphism A A) :=
+    (pair_uniq x (zeroMorphism W A) (x ≫ pair (𝟙 A) (zeroMorphism A A))
+      (by rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, snd_pair, zero_morphism_comp x (zeroMorphism A A)])).symm
+  rw [hpx, CategoryTheory.Category.assoc, subMap_j, CategoryTheory.Category.comp_id]
 
 /-- `x − x = 0`. -/
 theorem subL_self [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x : W ⟶ A) :
@@ -2715,25 +2715,25 @@ theorem subL_self [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞} (x 
   show pair x x ≫ subMap A = zeroMorphism W A
   have hpx : pair x x = x ≫ diag A :=
     (pair_uniq x x (x ≫ diag A)
-      (by rw [Cat.assoc, show diag A ≫ fst = Cat.id A from fst_pair _ _, Cat.comp_id])
-      (by rw [Cat.assoc, show diag A ≫ snd = Cat.id A from snd_pair _ _, Cat.comp_id])).symm
-  rw [hpx, Cat.assoc, subMap_diag, zero_morphism_comp x (zeroMorphism A A)]
+      (by rw [CategoryTheory.Category.assoc, show diag A ≫ fst = 𝟙 A from fst_pair _ _, CategoryTheory.Category.comp_id])
+      (by rw [CategoryTheory.Category.assoc, show diag A ≫ snd = 𝟙 A from snd_pair _ _, CategoryTheory.Category.comp_id])).symm
+  rw [hpx, CategoryTheory.Category.assoc, subMap_diag, zero_morphism_comp x (zeroMorphism A A)]
 
 /-- Left distributivity (pre-composition): `h ≫ (x − y) = (h≫x) − (h≫y)`. -/
 theorem comp_subL [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {V W A : 𝒞} (h : V ⟶ W) (x y : W ⟶ A) :
     h ≫ subL x y = subL (h ≫ x) (h ≫ y) := by
   show h ≫ pair x y ≫ subMap A = pair (h ≫ x) (h ≫ y) ≫ subMap A
-  rw [← Cat.assoc, pair_uniq (h ≫ x) (h ≫ y) (h ≫ pair x y)
-        (by rw [Cat.assoc, fst_pair]) (by rw [Cat.assoc, snd_pair])]
+  rw [← CategoryTheory.Category.assoc, pair_uniq (h ≫ x) (h ≫ y) (h ≫ pair x y)
+        (by rw [CategoryTheory.Category.assoc, fst_pair]) (by rw [CategoryTheory.Category.assoc, snd_pair])]
 
 /-- Right distributivity (post-composition, via `subMap_natural`): `(x − y) ≫ k = (x≫k) − (y≫k)`. -/
 theorem subL_comp [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A B : 𝒞} (x y : W ⟶ A) (k : A ⟶ B) :
     subL x y ≫ k = subL (x ≫ k) (y ≫ k) := by
   show (pair x y ≫ subMap A) ≫ k = pair (x ≫ k) (y ≫ k) ≫ subMap B
-  rw [Cat.assoc, subMap_natural, ← Cat.assoc,
+  rw [CategoryTheory.Category.assoc, subMap_natural, ← CategoryTheory.Category.assoc,
       pair_uniq (x ≫ k) (y ≫ k) (pair x y ≫ sqMap k)
-        (by rw [Cat.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← Cat.assoc, fst_pair])
-        (by rw [Cat.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← Cat.assoc, snd_pair])]
+        (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ fst = fst ≫ k from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair])
+        (by rw [CategoryTheory.Category.assoc, show sqMap k ≫ snd = snd ≫ k from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair])]
 
 /-- **Translation invariance**: `(a − c) − (b − c) = a − b`.  The single algebraic fact (besides
     `x−0=x`, `x−x=0` and bilinearity) needed to upgrade subtraction to an abelian group.
@@ -2745,22 +2745,22 @@ theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞
   -- `pair (a−c) (b−c) = ⟨a,b⟩ −_{A×A} ⟨c,c⟩` (difference on `A×A`, coordinatewise via naturality).
   have hpac : pair (pair a b) (pair c c) ≫ sqMap (fst : prod A A ⟶ A) = pair a c := by
     apply pair_uniq a c (pair (pair a b) (pair c c) ≫ sqMap fst)
-    · rw [Cat.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← Cat.assoc, fst_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair,
         fst_pair]
-    · rw [Cat.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← Cat.assoc, snd_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair,
         fst_pair]
   have hpbc : pair (pair a b) (pair c c) ≫ sqMap (snd : prod A A ⟶ A) = pair b c := by
     apply pair_uniq b c (pair (pair a b) (pair c c) ≫ sqMap snd)
-    · rw [Cat.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← Cat.assoc, fst_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair,
         snd_pair]
-    · rw [Cat.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← Cat.assoc, snd_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair,
         snd_pair]
   have hcoord : pair (subL a c) (subL b c) = subL (pair a b) (pair c c) :=
     (pair_uniq (subL a c) (subL b c) (subL (pair a b) (pair c c))
       (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ fst = subL a c
-          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpac]; rfl)
+          rw [CategoryTheory.Category.assoc, subMap_natural, ← CategoryTheory.Category.assoc, hpac]; rfl)
       (by show (pair (pair a b) (pair c c) ≫ subMap (prod A A)) ≫ snd = subL b c
-          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpbc]; rfl)).symm
+          rw [CategoryTheory.Category.assoc, subMap_natural, ← CategoryTheory.Category.assoc, hpbc]; rfl)).symm
   show pair (subL a c) (subL b c) ≫ subMap A = subL a b
   rw [hcoord]
   show subL (pair a b) (pair c c) ≫ subMap A = subL a b
@@ -2769,9 +2769,9 @@ theorem subL_sub_right [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞
   have hcc : pair c c ≫ subMap A = zeroMorphism W A := by
     have hccd : pair c c = c ≫ diag A :=
       (pair_uniq c c (c ≫ diag A)
-        (by rw [Cat.assoc, show diag A ≫ fst = Cat.id A from fst_pair _ _, Cat.comp_id])
-        (by rw [Cat.assoc, show diag A ≫ snd = Cat.id A from snd_pair _ _, Cat.comp_id])).symm
-    rw [hccd, Cat.assoc, subMap_diag, zero_morphism_comp c (zeroMorphism A A)]
+        (by rw [CategoryTheory.Category.assoc, show diag A ≫ fst = 𝟙 A from fst_pair _ _, CategoryTheory.Category.comp_id])
+        (by rw [CategoryTheory.Category.assoc, show diag A ≫ snd = 𝟙 A from snd_pair _ _, CategoryTheory.Category.comp_id])).symm
+    rw [hccd, CategoryTheory.Category.assoc, subMap_diag, zero_morphism_comp c (zeroMorphism A A)]
   show subL (pair a b ≫ subMap A) (pair c c ≫ subMap A) = subL a b
   rw [hcc]
   show subL (subL a b) (zeroMorphism W A) = subL a b
@@ -2822,22 +2822,22 @@ theorem subL_sub_left [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞}
     subL (subL a p) (subL a q) = subL q p := by
   have hpac : pair (pair a a) (pair p q) ≫ sqMap (fst : prod A A ⟶ A) = pair a p := by
     apply pair_uniq a p (pair (pair a a) (pair p q) ≫ sqMap fst)
-    · rw [Cat.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← Cat.assoc, fst_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap fst ≫ fst = fst ≫ fst from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair,
         fst_pair]
-    · rw [Cat.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← Cat.assoc, snd_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap fst ≫ snd = snd ≫ fst from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair,
         fst_pair]
   have hpbc : pair (pair a a) (pair p q) ≫ sqMap (snd : prod A A ⟶ A) = pair a q := by
     apply pair_uniq a q (pair (pair a a) (pair p q) ≫ sqMap snd)
-    · rw [Cat.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← Cat.assoc, fst_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap snd ≫ fst = fst ≫ snd from fst_pair _ _, ← CategoryTheory.Category.assoc, fst_pair,
         snd_pair]
-    · rw [Cat.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← Cat.assoc, snd_pair,
+    · rw [CategoryTheory.Category.assoc, show sqMap snd ≫ snd = snd ≫ snd from snd_pair _ _, ← CategoryTheory.Category.assoc, snd_pair,
         snd_pair]
   have hcoord : pair (subL a p) (subL a q) = subL (pair a a) (pair p q) :=
     (pair_uniq (subL a p) (subL a q) (subL (pair a a) (pair p q))
       (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ fst = subL a p
-          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpac]; rfl)
+          rw [CategoryTheory.Category.assoc, subMap_natural, ← CategoryTheory.Category.assoc, hpac]; rfl)
       (by show (pair (pair a a) (pair p q) ≫ subMap (prod A A)) ≫ snd = subL a q
-          rw [Cat.assoc, subMap_natural, ← Cat.assoc, hpbc]; rfl)).symm
+          rw [CategoryTheory.Category.assoc, subMap_natural, ← CategoryTheory.Category.assoc, hpbc]; rfl)).symm
   show pair (subL a p) (subL a q) ≫ subMap A = subL q p
   rw [hcoord]
   show subL (pair a a) (pair p q) ≫ subMap A = subL q p
@@ -2846,9 +2846,9 @@ theorem subL_sub_left [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞}
   have haa : pair a a ≫ subMap A = zeroMorphism W A := by
     have : pair a a = a ≫ diag A :=
       (pair_uniq a a (a ≫ diag A)
-        (by rw [Cat.assoc, show diag A ≫ fst = Cat.id A from fst_pair _ _, Cat.comp_id])
-        (by rw [Cat.assoc, show diag A ≫ snd = Cat.id A from snd_pair _ _, Cat.comp_id])).symm
-    rw [this, Cat.assoc, subMap_diag, zero_morphism_comp a (zeroMorphism A A)]
+        (by rw [CategoryTheory.Category.assoc, show diag A ≫ fst = 𝟙 A from fst_pair _ _, CategoryTheory.Category.comp_id])
+        (by rw [CategoryTheory.Category.assoc, show diag A ≫ snd = 𝟙 A from snd_pair _ _, CategoryTheory.Category.comp_id])).symm
+    rw [this, CategoryTheory.Category.assoc, subMap_diag, zero_morphism_comp a (zeroMorphism A A)]
   show subL (pair a a ≫ subMap A) (pair p q ≫ subMap A) = subL q p
   rw [haa]
   show subL (zeroMorphism W A) (subL p q) = subL q p
@@ -2930,55 +2930,55 @@ theorem homAddL_assoc [ExactCategory 𝒞] [HasBinaryProducts 𝒞] {W A : 𝒞}
     biproduct identity `id_{A×B} = (fst ≫ inl) + (snd ≫ inr)`.  This is the key fact that addition
     (subtraction) makes `A×B` a coproduct. -/
 theorem biproduct_id [ExactCategory 𝒞] [HasBinaryProducts 𝒞] (A B : 𝒞) :
-    homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-            (snd ≫ pair (zeroMorphism B A) (Cat.id B))
-      = Cat.id (prod A B) := by
-  have hf : homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-              (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ fst = fst := by
-    rw [homAddL_comp, Cat.assoc, fst_pair, Cat.comp_id, Cat.assoc, fst_pair,
+    homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+            (snd ≫ pair (zeroMorphism B A) (𝟙 B))
+      = 𝟙 (prod A B) := by
+  have hf : homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (𝟙 B)) ≫ fst = fst := by
+    rw [homAddL_comp, CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id, CategoryTheory.Category.assoc, fst_pair,
         zero_morphism_comp snd (zeroMorphism B A), homAddL_zero]
-  have hs : homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-              (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ snd = snd := by
-    rw [homAddL_comp, Cat.assoc, snd_pair, zero_morphism_comp fst (zeroMorphism A B),
-        Cat.assoc, snd_pair, Cat.comp_id, zero_homAddL]
-  calc homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-              (snd ≫ pair (zeroMorphism B A) (Cat.id B))
-      = pair (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-                (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ fst)
-             (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-                (snd ≫ pair (zeroMorphism B A) (Cat.id B)) ≫ snd) := pair_uniq _ _ _ rfl rfl
+  have hs : homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (𝟙 B)) ≫ snd = snd := by
+    rw [homAddL_comp, CategoryTheory.Category.assoc, snd_pair, zero_morphism_comp fst (zeroMorphism A B),
+        CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.comp_id, zero_homAddL]
+  calc homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (𝟙 B))
+      = pair (homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+                (snd ≫ pair (zeroMorphism B A) (𝟙 B)) ≫ fst)
+             (homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+                (snd ≫ pair (zeroMorphism B A) (𝟙 B)) ≫ snd) := pair_uniq _ _ _ rfl rfl
     _ = pair (fst : prod A B ⟶ A) snd := by rw [hf, hs]
-    _ = Cat.id (prod A B) := pair_fst_snd
+    _ = 𝟙 (prod A B) := pair_fst_snd
 
 /-- **Binary coproducts from products + addition** (`coprod := prod`, `inl/inr` the injections,
     `case x y := (fst≫x) + (snd≫y)`).  `case_uniq` is the joint-epi `biproduct_id`. -/
 noncomputable def exactCoproducts [ExactCategory 𝒞] [HasBinaryProducts 𝒞] :
     HasBinaryCoproducts 𝒞 where
   coprod A B := prod A B
-  inl := pair (Cat.id _) (zeroMorphism _ _)
-  inr := pair (zeroMorphism _ _) (Cat.id _)
+  inl := pair (𝟙 _) (zeroMorphism _ _)
+  inr := pair (zeroMorphism _ _) (𝟙 _)
   case x y := homAddL (fst ≫ x) (snd ≫ y)
   case_inl x y := by
-    rw [comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, Cat.id_comp,
+    rw [comp_homAddL, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair, CategoryTheory.Category.id_comp,
         zeroMorphism_comp_left y, homAddL_zero]
   case_inr x y := by
-    rw [comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, Cat.id_comp,
+    rw [comp_homAddL, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair, CategoryTheory.Category.id_comp,
         zeroMorphism_comp_left x, zero_homAddL]
   case_uniq x y h hl hr := by
-    calc h = Cat.id (prod _ _) ≫ h := (Cat.id_comp h).symm
-      _ = homAddL (fst ≫ pair (Cat.id _) (zeroMorphism _ _))
-            (snd ≫ pair (zeroMorphism _ _) (Cat.id _)) ≫ h := by rw [biproduct_id]
-      _ = homAddL ((fst ≫ pair (Cat.id _) (zeroMorphism _ _)) ≫ h)
-            ((snd ≫ pair (zeroMorphism _ _) (Cat.id _)) ≫ h) := homAddL_comp _ _ h
+    calc h = 𝟙 (prod _ _) ≫ h := (CategoryTheory.Category.id_comp h).symm
+      _ = homAddL (fst ≫ pair (𝟙 _) (zeroMorphism _ _))
+            (snd ≫ pair (zeroMorphism _ _) (𝟙 _)) ≫ h := by rw [biproduct_id]
+      _ = homAddL ((fst ≫ pair (𝟙 _) (zeroMorphism _ _)) ≫ h)
+            ((snd ≫ pair (zeroMorphism _ _) (𝟙 _)) ≫ h) := homAddL_comp _ _ h
       _ = homAddL (fst ≫ x) (snd ≫ y) := by
-            rw [Cat.assoc, Cat.assoc, hl, hr]
+            rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hl, hr]
 
 /-- If `IsIso f` and `f = id`, the chosen inverse is `id`. -/
-theorem isIso_choose_eq_id {X : 𝒞} {f : X ⟶ X} (h : IsIso f) (hf : f = Cat.id X) :
-    h.choose = Cat.id X :=
-  calc h.choose = Cat.id X ≫ h.choose := (Cat.id_comp _).symm
+theorem isIso_choose_eq_id {X : 𝒞} {f : X ⟶ X} (h : IsIso f) (hf : f = 𝟙 X) :
+    h.choose = 𝟙 X :=
+  calc h.choose = 𝟙 X ≫ h.choose := (CategoryTheory.Category.id_comp _).symm
     _ = f ≫ h.choose := congrArg (· ≫ h.choose) hf.symm
-    _ = Cat.id X := h.choose_spec.1
+    _ = 𝟙 X := h.choose_spec.1
 
 /-- **§1.597 STEP 2: an exact category with products is half-additive.**  `add := homAddL`,
     `coprod := prod`, and the δ-matrix coincidence is the identity (`biproduct_id`). -/
@@ -2995,32 +2995,32 @@ noncomputable def exactHalfAdditive [ExactCategory 𝒞] [HasBinaryProducts 𝒞
     -- The δ-matrix `case ⟨1,0⟩ ⟨0,1⟩` IS `id` (`biproduct_id`); we supply `Cat.id` as the explicit
     -- inverse so that `Φ⁻¹ = (prod_coprod_coincide).choose` reduces *definitionally* to `Cat.id`.
     prod_coprod_coincide := fun A B =>
-      ⟨Cat.id (prod A B),
-       by show (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-              (snd ≫ pair (zeroMorphism B A) (Cat.id B))) ≫ Cat.id (prod A B) = Cat.id (prod A B)
-          rw [biproduct_id A B, Cat.comp_id],
-       by show Cat.id (prod A B) ≫ (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A B))
-              (snd ≫ pair (zeroMorphism B A) (Cat.id B))) = Cat.id (prod A B)
-          rw [biproduct_id A B, Cat.id_comp]⟩
+      ⟨𝟙 (prod A B),
+       by show (homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (𝟙 B))) ≫ 𝟙 (prod A B) = 𝟙 (prod A B)
+          rw [biproduct_id A B, CategoryTheory.Category.comp_id],
+       by show 𝟙 (prod A B) ≫ (homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A B))
+              (snd ≫ pair (zeroMorphism B A) (𝟙 B))) = 𝟙 (prod A B)
+          rw [biproduct_id A B, CategoryTheory.Category.id_comp]⟩
     add := fun x y => homAddL x y
     add_eq_addL := fun {A B} x y => by
       rw [isIso_choose_eq_id _
-            (show (homAddL (fst ≫ pair (Cat.id A) (zeroMorphism A A))
-                (snd ≫ pair (zeroMorphism A A) (Cat.id A)) : prod A A ⟶ prod A A)
-              = Cat.id (prod A A) from biproduct_id A A)]
-      show homAddL x y = diag A ≫ Cat.id (prod A A) ≫ homAddL (fst ≫ x) (snd ≫ y)
-      rw [Cat.id_comp, comp_homAddL, ← Cat.assoc, ← Cat.assoc,
-          show diag A ≫ fst = Cat.id A from fst_pair _ _,
-          show diag A ≫ snd = Cat.id A from snd_pair _ _,
-          Cat.id_comp, Cat.id_comp]
+            (show (homAddL (fst ≫ pair (𝟙 A) (zeroMorphism A A))
+                (snd ≫ pair (zeroMorphism A A) (𝟙 A)) : prod A A ⟶ prod A A)
+              = 𝟙 (prod A A) from biproduct_id A A)]
+      show homAddL x y = diag A ≫ 𝟙 (prod A A) ≫ homAddL (fst ≫ x) (snd ≫ y)
+      rw [CategoryTheory.Category.id_comp, comp_homAddL, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
+          show diag A ≫ fst = 𝟙 A from fst_pair _ _,
+          show diag A ≫ snd = 𝟙 A from snd_pair _ _,
+          CategoryTheory.Category.id_comp, CategoryTheory.Category.id_comp]
     add_eq_addR := fun {A B} x y => by
       rw [isIso_choose_eq_id _
-            (show (homAddL (fst ≫ pair (Cat.id B) (zeroMorphism B B))
-                (snd ≫ pair (zeroMorphism B B) (Cat.id B)) : prod B B ⟶ prod B B)
-              = Cat.id (prod B B) from biproduct_id B B)]
-      show homAddL x y = pair x y ≫ Cat.id (prod B B) ≫ homAddL (fst ≫ Cat.id B) (snd ≫ Cat.id B)
-      rw [Cat.id_comp, comp_homAddL, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
-          Cat.comp_id, Cat.comp_id] }
+            (show (homAddL (fst ≫ pair (𝟙 B) (zeroMorphism B B))
+                (snd ≫ pair (zeroMorphism B B) (𝟙 B)) : prod B B ⟶ prod B B)
+              = 𝟙 (prod B B) from biproduct_id B B)]
+      show homAddL x y = pair x y ≫ 𝟙 (prod B B) ≫ homAddL (fst ≫ 𝟙 B) (snd ≫ 𝟙 B)
+      rw [CategoryTheory.Category.id_comp, comp_homAddL, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair,
+          CategoryTheory.Category.comp_id, CategoryTheory.Category.comp_id] }
 
 /-- **§1.597 STEP 2: an exact category with products is additive.**  Additive inverses are the
     negations `0 − f` (`homAddL_neg_self`). -/
@@ -3033,7 +3033,7 @@ noncomputable def exactAdditive [ExactCategory 𝒞] [HasBinaryProducts 𝒞] : 
     products gives the ADDITIVE structure via the diagonal-cokernel subtraction (`exactAdditive`);
     (3) exact + additive ⟹ abelian (`abelianOfExactAdditive`). -/
 theorem abelian_iff_normal_kernels_cokernels
-    {𝒞 : Type u} [Cat.{v} 𝒞]
+    {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
     [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasCoequalizers 𝒞] [HasBinaryProducts 𝒞] :
     IsNormalCategory 𝒞 → Nonempty (AbelianCategory 𝒞) := by
   intro hN
@@ -3137,7 +3137,7 @@ theorem relexact_comp_zero [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 
   have hkey : f ≫ g = image.lift f ≫ φ ≫ kernelMap g ≫ g :=
     calc f ≫ g = (image.lift f ≫ (image f).arr) ≫ g := by rw [image.lift_fac]
       _ = (image.lift f ≫ (φ ≫ kernelMap g)) ≫ g := by rw [hφ]
-      _ = image.lift f ≫ φ ≫ kernelMap g ≫ g := by simp only [Cat.assoc]
+      _ = image.lift f ≫ φ ≫ kernelMap g ≫ g := by simp only [CategoryTheory.Category.assoc]
   rw [hkey, kernelMap_comp g, zero_morphism_comp φ (zeroMorphism (Kernel g) C),
       zero_morphism_comp (image.lift f) (zeroMorphism (image f).dom C)]
 
@@ -3152,8 +3152,8 @@ theorem relexact_factor [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages �
   refine ⟨kernelLift g t h ≫ φinv, ?_⟩
   calc (kernelLift g t h ≫ φinv) ≫ (image f).arr
       = (kernelLift g t h ≫ φinv) ≫ (φ ≫ kernelMap g) := by rw [hφ]
-    _ = kernelLift g t h ≫ (φinv ≫ φ) ≫ kernelMap g := by simp only [Cat.assoc]
-    _ = kernelLift g t h ≫ kernelMap g := by rw [hφ2, Cat.id_comp]
+    _ = kernelLift g t h ≫ (φinv ≫ φ) ≫ kernelMap g := by simp only [CategoryTheory.Category.assoc]
+    _ = kernelLift g t h ≫ kernelMap g := by rw [hφ2, CategoryTheory.Category.id_comp]
     _ = t := kernelLift_fac g t h
 
 /-- **Element-free "preimage" step.**  Given `RelExact f g` and `t : T → B` with `t ≫ g = 0`,
@@ -3173,9 +3173,9 @@ theorem relexact_cover_factor [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImag
   refine ⟨pb.cone.pt, pb.cone.π₂, pb.cone.π₁, he_cover, ?_⟩
   -- pb.cone.w : π₁ ≫ image.lift f = π₂ ≫ s
   calc pb.cone.π₂ ≫ t = pb.cone.π₂ ≫ (s ≫ (image f).arr) := by rw [hs]
-    _ = (pb.cone.π₂ ≫ s) ≫ (image f).arr := by rw [Cat.assoc]
+    _ = (pb.cone.π₂ ≫ s) ≫ (image f).arr := by rw [CategoryTheory.Category.assoc]
     _ = (pb.cone.π₁ ≫ image.lift f) ≫ (image f).arr := by rw [pb.cone.w]
-    _ = pb.cone.π₁ ≫ (image.lift f ≫ (image f).arr) := by rw [Cat.assoc]
+    _ = pb.cone.π₁ ≫ (image.lift f ≫ (image f).arr) := by rw [CategoryTheory.Category.assoc]
     _ = pb.cone.π₁ ≫ f := by rw [image.lift_fac]
 
 /-- The image inclusion is killed by `g` when `f` is: `f ≫ g = 0 ⟹ (image f).arr ≫ g = 0`.
@@ -3185,7 +3185,7 @@ theorem imageArr_comp_zero [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 
     {A B C : 𝒞} {f : A ⟶ B} {g : B ⟶ C} (h : f ≫ g = zeroMorphism A C) :
     (image f).arr ≫ g = zeroMorphism (image f).dom C := by
   apply cover_epi (image_lift_cover f)
-  rw [← Cat.assoc, image.lift_fac, h,
+  rw [← CategoryTheory.Category.assoc, image.lift_fac, h,
       zero_morphism_comp (image.lift f) (zeroMorphism (image f).dom C)]
 
 /-- **`RelExact` constructor.**  To exhibit `RelExact f g` (im f = ker g as subobjects of `B`) it
@@ -3203,12 +3203,12 @@ theorem relExact_intro [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞
   let φ : (image f).dom ⟶ Kernel g := kernelLift g (image f).arr harr0
   have hφ : φ ≫ kernelMap g = (image f).arr := kernelLift_fac g (image f).arr harr0
   -- φ and c are mutually inverse.
-  have hφc : φ ≫ c = Cat.id (image f).dom := by
+  have hφc : φ ≫ c = 𝟙 (image f).dom := by
     apply (image f).monic
-    rw [Cat.assoc, hc, hφ, Cat.id_comp]
-  have hcφ : c ≫ φ = Cat.id (Kernel g) := by
+    rw [CategoryTheory.Category.assoc, hc, hφ, CategoryTheory.Category.id_comp]
+  have hcφ : c ≫ φ = 𝟙 (Kernel g) := by
     apply kernelMap_mono g
-    rw [Cat.assoc, hφ, hc, Cat.id_comp]
+    rw [CategoryTheory.Category.assoc, hφ, hc, CategoryTheory.Category.id_comp]
   exact ⟨φ, ⟨c, hφc, hcφ⟩, hφ⟩
 
 /-- **Monic factors through an image, by cover-descent.**  If a mono `m : S ↣ T` becomes, after a
@@ -3225,23 +3225,23 @@ theorem mono_factors_image [HasImages 𝒞] [RegularCategory 𝒞]
   let p : P ⟶ (image κ).dom := x ≫ image.lift κ
   have hp_arr : p ≫ (image κ).arr = cov ≫ m := by
     show (x ≫ image.lift κ) ≫ (image κ).arr = _
-    rw [Cat.assoc, image.lift_fac, ← hcomm]
+    rw [CategoryTheory.Category.assoc, image.lift_fac, ← hcomm]
   -- well-defined: `p` agrees on the kernel pair of `cov` (cancel the mono `(image κ).arr`).
   have hpke : kp₁ (f := cov) ≫ p = kp₂ (f := cov) ≫ p := by
     apply (image κ).monic
     calc (kp₁ (f := cov) ≫ p) ≫ (image κ).arr
-        = kp₁ (f := cov) ≫ (p ≫ (image κ).arr) := Cat.assoc _ _ _
+        = kp₁ (f := cov) ≫ (p ≫ (image κ).arr) := CategoryTheory.Category.assoc _ _ _
       _ = kp₁ (f := cov) ≫ (cov ≫ m) := by rw [hp_arr]
-      _ = (kp₁ (f := cov) ≫ cov) ≫ m := (Cat.assoc _ _ _).symm
+      _ = (kp₁ (f := cov) ≫ cov) ≫ m := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (kp₂ (f := cov) ≫ cov) ≫ m := by rw [kp_sq]
-      _ = kp₂ (f := cov) ≫ (cov ≫ m) := Cat.assoc _ _ _
+      _ = kp₂ (f := cov) ≫ (cov ≫ m) := CategoryTheory.Category.assoc _ _ _
       _ = kp₂ (f := cov) ≫ (p ≫ (image κ).arr) := by rw [hp_arr]
-      _ = (kp₂ (f := cov) ≫ p) ≫ (image κ).arr := (Cat.assoc _ _ _).symm
+      _ = (kp₂ (f := cov) ≫ p) ≫ (image κ).arr := (CategoryTheory.Category.assoc _ _ _).symm
   obtain ⟨c, hcov_c, _⟩ := cover_is_coequalizer_of_level cov hcov p hpke
   -- hcov_c : cov ≫ c = p ;  show c ≫ (image κ).arr = m by cancelling the cover `cov`.
   refine ⟨c, ?_⟩
   apply cover_epi hcov
-  rw [← Cat.assoc, hcov_c, hp_arr]
+  rw [← CategoryTheory.Category.assoc, hcov_c, hp_arr]
 
 /-- **Self-cokernel exactness** `RelExact x (cokernelMap x)`: in an abelian category the image of
     `x` equals the kernel of its cokernel, AS A SUBOBJECT of the codomain.  This is the cokernel-side
@@ -3271,7 +3271,7 @@ theorem relExact_self_cokernel [AbelianCategory 𝒞] {A B : 𝒞} (x : A ⟶ B)
     have hx_killed : x ≫ cokernelMap S.arr = zeroMorphism A (Cokernel S.arr) := by
       calc x ≫ cokernelMap S.arr
           = (gg ≫ S.arr) ≫ cokernelMap S.arr := by rw [hg]
-        _ = gg ≫ (S.arr ≫ cokernelMap S.arr) := Cat.assoc _ _ _
+        _ = gg ≫ (S.arr ≫ cokernelMap S.arr) := CategoryTheory.Category.assoc _ _ _
         _ = gg ≫ zeroMorphism S.dom (Cokernel S.arr) := by rw [comp_cokernelMap]
         _ = zeroMorphism A (Cokernel S.arr) :=
               zero_morphism_comp gg (zeroMorphism S.dom (Cokernel S.arr))
@@ -3285,9 +3285,9 @@ theorem relExact_self_cokernel [AbelianCategory 𝒞] {A B : 𝒞} (x : A ⟶ B)
       have hk0 : i ≫ cokernelMap x = i ≫ zeroMorphism B (Cokernel x) := kernelMap_eq _
       calc i ≫ cokernelMap S.arr
           = i ≫ (cokernelMap x ≫ t) := by rw [ht]
-        _ = (i ≫ cokernelMap x) ≫ t := (Cat.assoc _ _ _).symm
+        _ = (i ≫ cokernelMap x) ≫ t := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (i ≫ zeroMorphism B (Cokernel x)) ≫ t := by rw [hk0]
-        _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := Cat.assoc _ _ _
+        _ = i ≫ (zeroMorphism B (Cokernel x) ≫ t) := CategoryTheory.Category.assoc _ _ _
         _ = i ≫ zeroMorphism B (Cokernel S.arr) := by rw [zeroMorphism_comp_left]
     let lift_k : Kernel (cokernelMap x) ⟶ Kernel (cokernelMap S.arr) :=
       eqLift (cokernelMap S.arr) (zeroMorphism B (Cokernel S.arr)) i hi_killed
@@ -3299,8 +3299,8 @@ theorem relExact_self_cokernel [AbelianCategory 𝒞] {A B : 𝒞} (x : A ⟶ B)
     exact ⟨lift_k ≫ hinv, by
       calc (lift_k ≫ hinv) ≫ S.arr
           = (lift_k ≫ hinv) ≫ (h ≫ kernelMap (cokernelMap S.arr)) := by rw [hh_fac]
-        _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [Cat.assoc, Cat.assoc]
-        _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, Cat.id_comp]
+        _ = lift_k ≫ (hinv ≫ h) ≫ kernelMap (cokernelMap S.arr) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+        _ = lift_k ≫ kernelMap (cokernelMap S.arr) := by rw [hinv2, CategoryTheory.Category.id_comp]
         _ = i := hlift_k⟩
   -- comparison `c : (image x).dom ≅ ker(coker x)` with `c ≫ i = (image x).arr`.
   obtain ⟨c, hc⟩ := image_min x Im hIm_allows
@@ -3362,20 +3362,20 @@ theorem five_lemma [AbelianCategory 𝒞]
     -- t ≫ a₃ = 0  (push through sq₃, kill by v₄ iso)
     have hta₃ : t ≫ a₃ = zeroMorphism T A₄ := by
       apply comp_zero_of_mono hv₄mono
-      calc (t ≫ a₃) ≫ v₄ = t ≫ (a₃ ≫ v₄) := Cat.assoc _ _ _
+      calc (t ≫ a₃) ≫ v₄ = t ≫ (a₃ ≫ v₄) := CategoryTheory.Category.assoc _ _ _
         _ = t ≫ (v₃ ≫ b₃) := by rw [sq₃]
-        _ = (t ≫ v₃) ≫ b₃ := (Cat.assoc _ _ _).symm
+        _ = (t ≫ v₃) ≫ b₃ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = zeroMorphism T B₃ ≫ b₃ := by rw [ht]
         _ = zeroMorphism T B₄ := zeroMorphism_comp_left b₃
     -- cover P of T with x : P → A₂, e ≫ t = x ≫ a₂
     obtain ⟨P, e, x, he_cover, hex⟩ := relexact_cover_factor hA₂₃ t hta₃
     -- (x ≫ v₂) ≫ b₂ = 0
     have hxb₂ : (x ≫ v₂) ≫ b₂ = zeroMorphism P B₃ := by
-      calc (x ≫ v₂) ≫ b₂ = x ≫ (v₂ ≫ b₂) := Cat.assoc _ _ _
+      calc (x ≫ v₂) ≫ b₂ = x ≫ (v₂ ≫ b₂) := CategoryTheory.Category.assoc _ _ _
         _ = x ≫ (a₂ ≫ v₃) := by rw [sq₂]
-        _ = (x ≫ a₂) ≫ v₃ := (Cat.assoc _ _ _).symm
+        _ = (x ≫ a₂) ≫ v₃ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (e ≫ t) ≫ v₃ := by rw [hex]
-        _ = e ≫ (t ≫ v₃) := Cat.assoc _ _ _
+        _ = e ≫ (t ≫ v₃) := CategoryTheory.Category.assoc _ _ _
         _ = e ≫ zeroMorphism T B₃ := by rw [ht]
         _ = zeroMorphism P B₃ := zero_morphism_comp e (zeroMorphism T B₃)
     -- cover Q of P with y : Q → B₁, ρ ≫ (x ≫ v₂) = y ≫ b₁
@@ -3383,19 +3383,19 @@ theorem five_lemma [AbelianCategory 𝒞]
     -- preimage w = y ≫ v₁⁻¹ : Q → A₁,  w ≫ a₁ = ρ ≫ x  (cancel v₂ mono)
     have hwa₁ : (y ≫ v₁i) ≫ a₁ = ρ ≫ x := by
       apply hv₂mono
-      calc ((y ≫ v₁i) ≫ a₁) ≫ v₂ = (y ≫ v₁i) ≫ (a₁ ≫ v₂) := Cat.assoc _ _ _
+      calc ((y ≫ v₁i) ≫ a₁) ≫ v₂ = (y ≫ v₁i) ≫ (a₁ ≫ v₂) := CategoryTheory.Category.assoc _ _ _
         _ = (y ≫ v₁i) ≫ (v₁ ≫ b₁) := by rw [sq₁]
-        _ = y ≫ (v₁i ≫ v₁) ≫ b₁ := by simp only [Cat.assoc]
-        _ = y ≫ b₁ := by rw [hv₁2, Cat.id_comp]
+        _ = y ≫ (v₁i ≫ v₁) ≫ b₁ := by simp only [CategoryTheory.Category.assoc]
+        _ = y ≫ b₁ := by rw [hv₁2, CategoryTheory.Category.id_comp]
         _ = ρ ≫ (x ≫ v₂) := hρy.symm
-        _ = (ρ ≫ x) ≫ v₂ := (Cat.assoc _ _ _).symm
+        _ = (ρ ≫ x) ≫ v₂ := (CategoryTheory.Category.assoc _ _ _).symm
     -- ρ ≫ e ≫ t = (w ≫ a₁) ≫ a₂ = 0, then cancel the two covers
     have hcancel : (ρ ≫ e) ≫ t = zeroMorphism Q A₃ := by
-      calc (ρ ≫ e) ≫ t = ρ ≫ (e ≫ t) := Cat.assoc _ _ _
+      calc (ρ ≫ e) ≫ t = ρ ≫ (e ≫ t) := CategoryTheory.Category.assoc _ _ _
         _ = ρ ≫ (x ≫ a₂) := by rw [hex]
-        _ = (ρ ≫ x) ≫ a₂ := (Cat.assoc _ _ _).symm
+        _ = (ρ ≫ x) ≫ a₂ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = ((y ≫ v₁i) ≫ a₁) ≫ a₂ := by rw [hwa₁]
-        _ = (y ≫ v₁i) ≫ (a₁ ≫ a₂) := Cat.assoc _ _ _
+        _ = (y ≫ v₁i) ≫ (a₁ ≫ a₂) := CategoryTheory.Category.assoc _ _ _
         _ = (y ≫ v₁i) ≫ zeroMorphism A₁ A₃ := by rw [ha₁a₂]
         _ = zeroMorphism Q A₃ := zero_morphism_comp (y ≫ v₁i) (zeroMorphism A₁ A₃)
     -- ρ ≫ e is a cover (composite), hence epic; cancel against `t = 0`-target
@@ -3409,21 +3409,21 @@ theorem five_lemma [AbelianCategory 𝒞]
   have hcover : Cover v₃ := by
     rw [cover_iff_image_entire]
     -- run the dual chase on the generalized element `β = id_{B₃} : B₃ → B₃`
-    let β : B₃ ⟶ B₃ := Cat.id B₃
-    have hβ : β = Cat.id B₃ := rfl
+    let β : B₃ ⟶ B₃ := 𝟙 B₃
+    have hβ : β = 𝟙 B₃ := rfl
     -- z : B₃ → A₄ with z ≫ v₄ = β ≫ b₃
     let z : B₃ ⟶ A₄ := β ≫ b₃ ≫ v₄i
     have hz : z = β ≫ b₃ ≫ v₄i := rfl
     have hzv₄ : z ≫ v₄ = β ≫ b₃ := by
-      rw [hz, Cat.assoc, Cat.assoc, hv₄2, Cat.comp_id]
+      rw [hz, CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hv₄2, CategoryTheory.Category.comp_id]
     -- z ≫ a₄ = 0 (kill by v₅ mono, b₃≫b₄ = 0)
     have hza₄ : z ≫ a₄ = zeroMorphism B₃ A₅ := by
       apply comp_zero_of_mono hv₅mono
-      calc (z ≫ a₄) ≫ v₅ = z ≫ (a₄ ≫ v₅) := Cat.assoc _ _ _
+      calc (z ≫ a₄) ≫ v₅ = z ≫ (a₄ ≫ v₅) := CategoryTheory.Category.assoc _ _ _
         _ = z ≫ (v₄ ≫ b₄) := by rw [sq₄]
-        _ = (z ≫ v₄) ≫ b₄ := (Cat.assoc _ _ _).symm
+        _ = (z ≫ v₄) ≫ b₄ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (β ≫ b₃) ≫ b₄ := by rw [hzv₄]
-        _ = β ≫ (b₃ ≫ b₄) := Cat.assoc _ _ _
+        _ = β ≫ (b₃ ≫ b₄) := CategoryTheory.Category.assoc _ _ _
         _ = β ≫ zeroMorphism B₃ B₅ := by rw [hb₃b₄]
         _ = zeroMorphism B₃ B₅ := by rw [zero_morphism_comp β (zeroMorphism B₃ B₅)]
     -- cover P of B₃ with x̃ : P → A₃, π ≫ z = x̃ ≫ a₃
@@ -3434,13 +3434,13 @@ theorem five_lemma [AbelianCategory 𝒞]
     have hd : d = HalfAdditiveCategory.add (π ≫ β) neg := rfl
     -- d ≫ b₃ = 0
     have hxv₃b₃ : (xt ≫ v₃) ≫ b₃ = (π ≫ β) ≫ b₃ := by
-      calc (xt ≫ v₃) ≫ b₃ = xt ≫ (v₃ ≫ b₃) := Cat.assoc _ _ _
+      calc (xt ≫ v₃) ≫ b₃ = xt ≫ (v₃ ≫ b₃) := CategoryTheory.Category.assoc _ _ _
         _ = xt ≫ (a₃ ≫ v₄) := by rw [sq₃]
-        _ = (xt ≫ a₃) ≫ v₄ := (Cat.assoc _ _ _).symm
+        _ = (xt ≫ a₃) ≫ v₄ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (π ≫ z) ≫ v₄ := by rw [hπx]
-        _ = π ≫ (z ≫ v₄) := Cat.assoc _ _ _
+        _ = π ≫ (z ≫ v₄) := CategoryTheory.Category.assoc _ _ _
         _ = π ≫ (β ≫ b₃) := by rw [hzv₄]
-        _ = (π ≫ β) ≫ b₃ := (Cat.assoc _ _ _).symm
+        _ = (π ≫ β) ≫ b₃ := (CategoryTheory.Category.assoc _ _ _).symm
     have hdb₃ : d ≫ b₃ = zeroMorphism P B₄ := by
       rw [hd, HalfAdditiveCategory.add_comp, ← hxv₃b₃, ← HalfAdditiveCategory.add_comp,
           hneg, zeroHom_eq_zeroMorphism' P B₃, zeroMorphism_comp_left b₃]
@@ -3449,20 +3449,20 @@ theorem five_lemma [AbelianCategory 𝒞]
     -- u := ỹ ≫ v₂⁻¹ : Q → A₂,  u ≫ v₂ = ỹ
     let u : Q ⟶ A₂ := yt ≫ v₂i
     have hu : u = yt ≫ v₂i := rfl
-    have huv₂ : u ≫ v₂ = yt := by rw [hu, Cat.assoc, hv₂2, Cat.comp_id]
+    have huv₂ : u ≫ v₂ = yt := by rw [hu, CategoryTheory.Category.assoc, hv₂2, CategoryTheory.Category.comp_id]
     -- (B):  add ((ρ≫xt)≫v₃) (ρ≫neg) = zeroHom
     have hBeq : HalfAdditiveCategory.add ((ρ ≫ xt) ≫ v₃) (ρ ≫ neg)
         = HalfAdditiveCategory.zeroHom Q B₃ := by
       have h0 : ρ ≫ HalfAdditiveCategory.add (xt ≫ v₃) neg = ρ ≫ HalfAdditiveCategory.zeroHom P B₃ := by
         rw [hneg]
-      rw [HalfAdditiveCategory.comp_add, ← Cat.assoc,
+      rw [HalfAdditiveCategory.comp_add, ← CategoryTheory.Category.assoc,
           HalfAdditiveCategory.zeroHom_comp_left ρ] at h0
       exact h0
     -- (A):  u ≫ (a₂ ≫ v₃) = add (ρ ≫ (π ≫ β)) (ρ ≫ neg)
     have hAeq : u ≫ (a₂ ≫ v₃)
         = HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (ρ ≫ neg) := by
       calc u ≫ (a₂ ≫ v₃) = u ≫ (v₂ ≫ b₂) := by rw [sq₂]
-        _ = (u ≫ v₂) ≫ b₂ := (Cat.assoc _ _ _).symm
+        _ = (u ≫ v₂) ≫ b₂ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = yt ≫ b₂ := by rw [huv₂]
         _ = ρ ≫ d := hρy.symm
         _ = ρ ≫ HalfAdditiveCategory.add (π ≫ β) neg := by rw [hd]
@@ -3474,9 +3474,9 @@ theorem five_lemma [AbelianCategory 𝒞]
     have hχv₃ : (ρ ≫ π) ≫ β = χ ≫ v₃ := by
       have hcompχ : χ ≫ v₃
           = HalfAdditiveCategory.add (u ≫ (a₂ ≫ v₃)) ((ρ ≫ xt) ≫ v₃) := by
-        rw [hχ, HalfAdditiveCategory.add_comp, Cat.assoc]
+        rw [hχ, HalfAdditiveCategory.add_comp, CategoryTheory.Category.assoc]
       calc (ρ ≫ π) ≫ β
-          = ρ ≫ (π ≫ β) := Cat.assoc _ _ _
+          = ρ ≫ (π ≫ β) := CategoryTheory.Category.assoc _ _ _
         _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β)) (HalfAdditiveCategory.zeroHom Q B₃) :=
             (HalfAdditiveCategory.add_zero _).symm
         _ = HalfAdditiveCategory.add (ρ ≫ (π ≫ β))
@@ -3493,13 +3493,13 @@ theorem five_lemma [AbelianCategory 𝒞]
     -- a right inverse of `j := (image v₃).arr`, which is monic, hence iso.
     have hρπ_cover : Cover (ρ ≫ π) := cover_comp hρ_cover hπ_cover
     have hsq : (ρ ≫ π) ≫ β = (χ ≫ image.lift v₃) ≫ (image v₃).arr := by
-      rw [hχv₃, Cat.assoc, image.lift_fac]
+      rw [hχv₃, CategoryTheory.Category.assoc, image.lift_fac]
     obtain ⟨g, _, hg⟩ := cover_mono_diagonal hρπ_cover (image v₃).monic hsq
     -- hg : g ≫ (image v₃).arr = β = id_{B₃}, so (image v₃).arr is split epi; it is monic ⟹ iso
-    have hsplit : g ≫ (image v₃).arr = Cat.id B₃ := by rw [hg, hβ]
-    have hother : (image v₃).arr ≫ g = Cat.id (image v₃).dom :=
-      (image v₃).monic ((image v₃).arr ≫ g) (Cat.id _) (by
-        rw [Cat.assoc, hsplit, Cat.comp_id, Cat.id_comp])
+    have hsplit : g ≫ (image v₃).arr = 𝟙 B₃ := by rw [hg, hβ]
+    have hother : (image v₃).arr ≫ g = 𝟙 (image v₃).dom :=
+      (image v₃).monic ((image v₃).arr ≫ g) (𝟙 _) (by
+        rw [CategoryTheory.Category.assoc, hsplit, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp])
     show IsIso (image v₃).arr
     exact ⟨g, hother, hsplit⟩
   exact monic_cover_iso v₃ hcover hmono
@@ -3595,36 +3595,36 @@ theorem snake_lemma [AbelianCategory 𝒞]
   -- ====================== the four induced maps κ_f, κ_g, π_f, π_g ======================
   -- κ_f : Kernel α → Kernel β,  κ_f ≫ kernelMap β = kernelMap α ≫ f
   have hκf0 : (kernelMap α ≫ f) ≫ β = zeroMorphism (Kernel α) B' := by
-    calc (kernelMap α ≫ f) ≫ β = kernelMap α ≫ (f ≫ β) := Cat.assoc _ _ _
+    calc (kernelMap α ≫ f) ≫ β = kernelMap α ≫ (f ≫ β) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap α ≫ (α ≫ f') := by rw [hαβ]
-      _ = (kernelMap α ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+      _ = (kernelMap α ≫ α) ≫ f' := (CategoryTheory.Category.assoc _ _ _).symm
       _ = zeroMorphism (Kernel α) A' ≫ f' := by rw [kernelMap_comp α]
       _ = zeroMorphism (Kernel α) B' := zeroMorphism_comp_left f'
   let κ_f : Kernel α ⟶ Kernel β := kernelLift β (kernelMap α ≫ f) hκf0
   have hκf : κ_f ≫ kernelMap β = kernelMap α ≫ f := kernelLift_fac β (kernelMap α ≫ f) hκf0
   -- κ_g : Kernel β → Kernel γ,  κ_g ≫ kernelMap γ = kernelMap β ≫ g
   have hκg0 : (kernelMap β ≫ g) ≫ γ = zeroMorphism (Kernel β) C' := by
-    calc (kernelMap β ≫ g) ≫ γ = kernelMap β ≫ (g ≫ γ) := Cat.assoc _ _ _
+    calc (kernelMap β ≫ g) ≫ γ = kernelMap β ≫ (g ≫ γ) := CategoryTheory.Category.assoc _ _ _
       _ = kernelMap β ≫ (β ≫ g') := by rw [hβγ]
-      _ = (kernelMap β ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+      _ = (kernelMap β ≫ β) ≫ g' := (CategoryTheory.Category.assoc _ _ _).symm
       _ = zeroMorphism (Kernel β) B' ≫ g' := by rw [kernelMap_comp β]
       _ = zeroMorphism (Kernel β) C' := zeroMorphism_comp_left g'
   let κ_g : Kernel β ⟶ Kernel γ := kernelLift γ (kernelMap β ≫ g) hκg0
   have hκg : κ_g ≫ kernelMap γ = kernelMap β ≫ g := kernelLift_fac γ (kernelMap β ≫ g) hκg0
   -- π_f : Cokernel α → Cokernel β,  cokernelMap α ≫ π_f = f' ≫ cokernelMap β
   have hπf0 : α ≫ (f' ≫ cokernelMap β) = zeroMorphism A (Cokernel β) := by
-    calc α ≫ (f' ≫ cokernelMap β) = (α ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+    calc α ≫ (f' ≫ cokernelMap β) = (α ≫ f') ≫ cokernelMap β := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (f ≫ β) ≫ cokernelMap β := by rw [hαβ]
-      _ = f ≫ (β ≫ cokernelMap β) := Cat.assoc _ _ _
+      _ = f ≫ (β ≫ cokernelMap β) := CategoryTheory.Category.assoc _ _ _
       _ = f ≫ zeroMorphism B (Cokernel β) := by rw [comp_cokernelMap β]
       _ = zeroMorphism A (Cokernel β) := zero_morphism_comp f (zeroMorphism B (Cokernel β))
   let π_f : Cokernel α ⟶ Cokernel β := cokernelDesc α (f' ≫ cokernelMap β) hπf0
   have hπf : cokernelMap α ≫ π_f = f' ≫ cokernelMap β := cokernelDesc_fac α (f' ≫ cokernelMap β) hπf0
   -- π_g : Cokernel β → Cokernel γ,  cokernelMap β ≫ π_g = g' ≫ cokernelMap γ
   have hπg0 : β ≫ (g' ≫ cokernelMap γ) = zeroMorphism B (Cokernel γ) := by
-    calc β ≫ (g' ≫ cokernelMap γ) = (β ≫ g') ≫ cokernelMap γ := (Cat.assoc _ _ _).symm
+    calc β ≫ (g' ≫ cokernelMap γ) = (β ≫ g') ≫ cokernelMap γ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (g ≫ γ) ≫ cokernelMap γ := by rw [hβγ]
-      _ = g ≫ (γ ≫ cokernelMap γ) := Cat.assoc _ _ _
+      _ = g ≫ (γ ≫ cokernelMap γ) := CategoryTheory.Category.assoc _ _ _
       _ = g ≫ zeroMorphism C (Cokernel γ) := by rw [comp_cokernelMap γ]
       _ = zeroMorphism B (Cokernel γ) := zero_morphism_comp g (zeroMorphism C (Cokernel γ))
   let π_g : Cokernel β ⟶ Cokernel γ := cokernelDesc β (g' ≫ cokernelMap γ) hπg0
@@ -3638,11 +3638,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
   have hpK_cover : Cover p_K := cover_pullback (kernelMap γ) hg
   -- `p_B ≫ β` is killed by `g'`:  (p_B β) g' = p_B (β g') = p_B (g γ) = (p_K kγ) γ = p_K·0 = 0.
   have hpBβ_g' : (p_B ≫ β) ≫ g' = zeroMorphism pb.cone.pt C' := by
-    calc (p_B ≫ β) ≫ g' = p_B ≫ (β ≫ g') := Cat.assoc _ _ _
+    calc (p_B ≫ β) ≫ g' = p_B ≫ (β ≫ g') := CategoryTheory.Category.assoc _ _ _
       _ = p_B ≫ (g ≫ γ) := by rw [hβγ]
-      _ = (p_B ≫ g) ≫ γ := (Cat.assoc _ _ _).symm
+      _ = (p_B ≫ g) ≫ γ := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (p_K ≫ kernelMap γ) ≫ γ := by rw [hpbw]
-      _ = p_K ≫ (kernelMap γ ≫ γ) := Cat.assoc _ _ _
+      _ = p_K ≫ (kernelMap γ ≫ γ) := CategoryTheory.Category.assoc _ _ _
       _ = p_K ≫ zeroMorphism (Kernel γ) C' := by rw [kernelMap_comp γ]
       _ = zeroMorphism pb.cone.pt C' := zero_morphism_comp p_K (zeroMorphism (Kernel γ) C')
   -- push `p_B ≫ β` through `ker g' = im f'`:  cover `q : Q → P`, `a' : Q → A'`,
@@ -3666,13 +3666,13 @@ theorem snake_lemma [AbelianCategory 𝒞]
       HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B))
     have hw_g : w ≫ g = zeroMorphism KP C := by
       have key : (u₁ ≫ q ≫ p_B) ≫ g = (u₂ ≫ q ≫ p_B) ≫ g := by
-        calc (u₁ ≫ q ≫ p_B) ≫ g = u₁ ≫ q ≫ (p_B ≫ g) := by simp only [Cat.assoc]
+        calc (u₁ ≫ q ≫ p_B) ≫ g = u₁ ≫ q ≫ (p_B ≫ g) := by simp only [CategoryTheory.Category.assoc]
           _ = u₁ ≫ q ≫ (p_K ≫ kernelMap γ) := by rw [hpbw]
-          _ = (u₁ ≫ (q ≫ p_K)) ≫ kernelMap γ := by simp only [Cat.assoc]
+          _ = (u₁ ≫ (q ≫ p_K)) ≫ kernelMap γ := by simp only [CategoryTheory.Category.assoc]
           _ = (u₂ ≫ (q ≫ p_K)) ≫ kernelMap γ := by rw [hu_c]
-          _ = u₂ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [Cat.assoc]
+          _ = u₂ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [CategoryTheory.Category.assoc]
           _ = u₂ ≫ q ≫ (p_B ≫ g) := by rw [hpbw]
-          _ = (u₂ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+          _ = (u₂ ≫ q ≫ p_B) ≫ g := by simp only [CategoryTheory.Category.assoc]
       show HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B)) ≫ g = _
       rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
           zeroHom_eq_zeroMorphism' KP C]
@@ -3688,26 +3688,26 @@ theorem snake_lemma [AbelianCategory 𝒞]
         show HalfAdditiveCategory.add (u₁ ≫ a') (neg (u₂ ≫ a')) ≫ f' = _
         rw [HalfAdditiveCategory.add_comp, neg_comp]
         -- (u₁ a') f' = u₁ (a' f') = u₁ (q (p_B β)) ; similarly u₂.
-        have e₁ : (u₁ ≫ a') ≫ f' = u₁ ≫ q ≫ (p_B ≫ β) := by rw [Cat.assoc, hqa']
-        have e₂ : (u₂ ≫ a') ≫ f' = u₂ ≫ q ≫ (p_B ≫ β) := by rw [Cat.assoc, hqa']
+        have e₁ : (u₁ ≫ a') ≫ f' = u₁ ≫ q ≫ (p_B ≫ β) := by rw [CategoryTheory.Category.assoc, hqa']
+        have e₂ : (u₂ ≫ a') ≫ f' = u₂ ≫ q ≫ (p_B ≫ β) := by rw [CategoryTheory.Category.assoc, hqa']
         rw [e₁, e₂]
         show HalfAdditiveCategory.add (u₁ ≫ q ≫ (p_B ≫ β)) (neg (u₂ ≫ q ≫ (p_B ≫ β)))
             = HalfAdditiveCategory.add (u₁ ≫ q ≫ p_B) (neg (u₂ ≫ q ≫ p_B)) ≫ β
         rw [HalfAdditiveCategory.add_comp, neg_comp]
-        simp only [Cat.assoc]
-      calc (r ≫ d) ≫ f' = r ≫ (d ≫ f') := Cat.assoc _ _ _
+        simp only [CategoryTheory.Category.assoc]
+      calc (r ≫ d) ≫ f' = r ≫ (d ≫ f') := CategoryTheory.Category.assoc _ _ _
         _ = r ≫ (w ≫ β) := by rw [hdf']
-        _ = (r ≫ w) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (r ≫ w) ≫ β := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (b ≫ f) ≫ β := by rw [hrb]
-        _ = b ≫ (f ≫ β) := Cat.assoc _ _ _
+        _ = b ≫ (f ≫ β) := CategoryTheory.Category.assoc _ _ _
         _ = b ≫ (α ≫ f') := by rw [hαβ]
-        _ = (b ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+        _ = (b ≫ α) ≫ f' := (CategoryTheory.Category.assoc _ _ _).symm
     -- d ≫ cokernelMap α = 0 (cancel the cover r: r ≫ d ≫ cokα = (b α) cokα = b·0 = 0).
     have hd_cok : d ≫ cokernelMap α = zeroMorphism KP (Cokernel α) := by
       apply cover_epi hr_cover
-      calc r ≫ (d ≫ cokernelMap α) = (r ≫ d) ≫ cokernelMap α := (Cat.assoc _ _ _).symm
+      calc r ≫ (d ≫ cokernelMap α) = (r ≫ d) ≫ cokernelMap α := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (b ≫ α) ≫ cokernelMap α := by rw [hrd]
-        _ = b ≫ (α ≫ cokernelMap α) := Cat.assoc _ _ _
+        _ = b ≫ (α ≫ cokernelMap α) := CategoryTheory.Category.assoc _ _ _
         _ = b ≫ zeroMorphism A (Cokernel α) := by rw [comp_cokernelMap α]
         _ = zeroMorphism R (Cokernel α) := zero_morphism_comp b (zeroMorphism A (Cokernel α))
         _ = r ≫ zeroMorphism KP (Cokernel α) :=
@@ -3723,7 +3723,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
         show HalfAdditiveCategory.add (u₁ ≫ a') (neg (u₂ ≫ a')) ≫ cokernelMap α
             = HalfAdditiveCategory.add (u₁ ≫ (a' ≫ cokernelMap α)) (neg (u₂ ≫ (a' ≫ cokernelMap α)))
         rw [HalfAdditiveCategory.add_comp, neg_comp]
-        simp only [Cat.assoc]
+        simp only [CategoryTheory.Category.assoc]
       rw [← hdist, hd_cok, ← zeroHom_eq_zeroMorphism' KP (Cokernel α)]
     refine add_right_cancel (Y := neg (u₂ ≫ e)) ?_
     rw [hsub, add_neg]
@@ -3736,18 +3736,18 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hκfκg0 : κ_f ≫ κ_g = zeroMorphism (Kernel α) (Kernel γ) := by
       apply kernelMap_mono γ
       rw [zeroMorphism_comp_left (kernelMap γ)]
-      calc (κ_f ≫ κ_g) ≫ kernelMap γ = κ_f ≫ (κ_g ≫ kernelMap γ) := Cat.assoc _ _ _
+      calc (κ_f ≫ κ_g) ≫ kernelMap γ = κ_f ≫ (κ_g ≫ kernelMap γ) := CategoryTheory.Category.assoc _ _ _
         _ = κ_f ≫ (kernelMap β ≫ g) := by rw [hκg]
-        _ = (κ_f ≫ kernelMap β) ≫ g := (Cat.assoc _ _ _).symm
+        _ = (κ_f ≫ kernelMap β) ≫ g := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (kernelMap α ≫ f) ≫ g := by rw [hκf]
-        _ = kernelMap α ≫ (f ≫ g) := Cat.assoc _ _ _
+        _ = kernelMap α ≫ (f ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = kernelMap α ≫ zeroMorphism A C := by rw [hfg0]
         _ = zeroMorphism (Kernel α) C := zero_morphism_comp (kernelMap α) (zeroMorphism A C)
     -- kernelMap κ_g ≫ kernelMap β : Kernel κ_g → B is killed by g.
     have hkg_g : (kernelMap κ_g ≫ kernelMap β) ≫ g = zeroMorphism (Kernel κ_g) C := by
-      calc (kernelMap κ_g ≫ kernelMap β) ≫ g = kernelMap κ_g ≫ (kernelMap β ≫ g) := Cat.assoc _ _ _
+      calc (kernelMap κ_g ≫ kernelMap β) ≫ g = kernelMap κ_g ≫ (kernelMap β ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = kernelMap κ_g ≫ (κ_g ≫ kernelMap γ) := by rw [hκg]
-        _ = (kernelMap κ_g ≫ κ_g) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+        _ = (kernelMap κ_g ≫ κ_g) ≫ kernelMap γ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = zeroMorphism (Kernel κ_g) (Kernel γ) ≫ kernelMap γ := by rw [kernelMap_comp κ_g]
         _ = zeroMorphism (Kernel κ_g) C := zeroMorphism_comp_left (kernelMap γ)
     obtain ⟨P₁, cov₁, xA, hcov₁, hxA⟩ :=
@@ -3756,11 +3756,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hxAα : xA ≫ α = zeroMorphism P₁ A' := by
       apply hf'
       rw [zeroMorphism_comp_left f']
-      calc (xA ≫ α) ≫ f' = xA ≫ (α ≫ f') := Cat.assoc _ _ _
+      calc (xA ≫ α) ≫ f' = xA ≫ (α ≫ f') := CategoryTheory.Category.assoc _ _ _
         _ = xA ≫ (f ≫ β) := by rw [hαβ]
-        _ = (xA ≫ f) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (xA ≫ f) ≫ β := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (cov₁ ≫ (kernelMap κ_g ≫ kernelMap β)) ≫ β := by rw [hxA]
-        _ = cov₁ ≫ kernelMap κ_g ≫ (kernelMap β ≫ β) := by simp only [Cat.assoc]
+        _ = cov₁ ≫ kernelMap κ_g ≫ (kernelMap β ≫ β) := by simp only [CategoryTheory.Category.assoc]
         _ = cov₁ ≫ kernelMap κ_g ≫ zeroMorphism (Kernel β) B' := by rw [kernelMap_comp β]
         _ = zeroMorphism P₁ B' := by
             rw [zero_morphism_comp (kernelMap κ_g) (zeroMorphism (Kernel β) B'),
@@ -3770,12 +3770,12 @@ theorem snake_lemma [AbelianCategory 𝒞]
     -- cov₁ ≫ kernelMap κ_g = x₁ ≫ κ_f  (cancel mono kernelMap β).
     have hcomm₁ : cov₁ ≫ kernelMap κ_g = x₁ ≫ κ_f := by
       apply kernelMap_mono β
-      calc (cov₁ ≫ kernelMap κ_g) ≫ kernelMap β = cov₁ ≫ (kernelMap κ_g ≫ kernelMap β) := Cat.assoc _ _ _
+      calc (cov₁ ≫ kernelMap κ_g) ≫ kernelMap β = cov₁ ≫ (kernelMap κ_g ≫ kernelMap β) := CategoryTheory.Category.assoc _ _ _
         _ = xA ≫ f := hxA
         _ = (x₁ ≫ kernelMap α) ≫ f := by rw [hx₁]
-        _ = x₁ ≫ (kernelMap α ≫ f) := Cat.assoc _ _ _
+        _ = x₁ ≫ (kernelMap α ≫ f) := CategoryTheory.Category.assoc _ _ _
         _ = x₁ ≫ (κ_f ≫ kernelMap β) := by rw [hκf]
-        _ = (x₁ ≫ κ_f) ≫ kernelMap β := (Cat.assoc _ _ _).symm
+        _ = (x₁ ≫ κ_f) ≫ kernelMap β := (CategoryTheory.Category.assoc _ _ _).symm
     obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono κ_g) hcov₁ hcomm₁
     exact relExact_intro hκfκg0 cc hcc
   · -- ====================== RelExact κ_g δ (exact at Kernel γ) ======================
@@ -3797,29 +3797,29 @@ theorem snake_lemma [AbelianCategory 𝒞]
       have hlqa' : lq ≫ a' = zeroMorphism pq.cone.pt A' := by
         apply hf'
         rw [zeroMorphism_comp_left f']
-        calc (lq ≫ a') ≫ f' = lq ≫ (a' ≫ f') := Cat.assoc _ _ _
+        calc (lq ≫ a') ≫ f' = lq ≫ (a' ≫ f') := CategoryTheory.Category.assoc _ _ _
           _ = lq ≫ (q ≫ p_B ≫ β) := by rw [hqa']
-          _ = (lq ≫ q) ≫ (p_B ≫ β) := by simp only [Cat.assoc]
+          _ = (lq ≫ q) ≫ (p_B ≫ β) := by simp only [CategoryTheory.Category.assoc]
           _ = (cov_q ≫ lp) ≫ (p_B ≫ β) := by rw [hlqq]
-          _ = cov_q ≫ (lp ≫ p_B) ≫ β := by simp only [Cat.assoc]
+          _ = cov_q ≫ (lp ≫ p_B) ≫ β := by simp only [CategoryTheory.Category.assoc]
           _ = cov_q ≫ (kernelMap β ≫ β) := by rw [hlp_B]
           _ = cov_q ≫ zeroMorphism (Kernel β) B' := by rw [kernelMap_comp β]
           _ = zeroMorphism pq.cone.pt B' := zero_morphism_comp cov_q (zeroMorphism (Kernel β) B')
       -- cov_q ≫ κ_g = lq ≫ c.
       have hcovq_κg : cov_q ≫ κ_g = lq ≫ c := by
         calc cov_q ≫ κ_g = cov_q ≫ (lp ≫ p_K) := by rw [hlp_K]
-          _ = (cov_q ≫ lp) ≫ p_K := (Cat.assoc _ _ _).symm
+          _ = (cov_q ≫ lp) ≫ p_K := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (lq ≫ q) ≫ p_K := by rw [← hlqq]
-          _ = lq ≫ (q ≫ p_K) := Cat.assoc _ _ _
+          _ = lq ≫ (q ≫ p_K) := CategoryTheory.Category.assoc _ _ _
           _ = lq ≫ c := rfl
       -- cov_q ≫ (κ_g ≫ δ) = lq ≫ a' ≫ cokernelMap α = 0.
       apply cover_epi hcov_q
       rw [zero_morphism_comp cov_q (zeroMorphism (Kernel β) (Cokernel α))]
-      calc cov_q ≫ (κ_g ≫ δ) = (cov_q ≫ κ_g) ≫ δ := (Cat.assoc _ _ _).symm
+      calc cov_q ≫ (κ_g ≫ δ) = (cov_q ≫ κ_g) ≫ δ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (lq ≫ c) ≫ δ := by rw [hcovq_κg]
-        _ = lq ≫ (c ≫ δ) := Cat.assoc _ _ _
+        _ = lq ≫ (c ≫ δ) := CategoryTheory.Category.assoc _ _ _
         _ = lq ≫ e := by rw [hcδ]
-        _ = (lq ≫ a') ≫ cokernelMap α := by show lq ≫ (a' ≫ cokernelMap α) = _; rw [Cat.assoc]
+        _ = (lq ≫ a') ≫ cokernelMap α := by show lq ≫ (a' ≫ cokernelMap α) = _; rw [CategoryTheory.Category.assoc]
         _ = zeroMorphism pq.cone.pt A' ≫ cokernelMap α := by rw [hlqa']
         _ = zeroMorphism pq.cone.pt (Cokernel α) := zeroMorphism_comp_left (cokernelMap α)
     -- back-map: ker δ ⊆ im κ_g.  Pull cover c back along kernelMap δ.
@@ -3830,12 +3830,12 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hcδw : lQ ≫ c = cov₂ ≫ kernelMap δ := pcδ.cone.w
     -- lQ ≫ a' is killed by cokernelMap α  (since (cov₂ ≫ kernelMap δ) ≫ δ = 0 = lQ ≫ e).
     have hlQa'cok : (lQ ≫ a') ≫ cokernelMap α = zeroMorphism pcδ.cone.pt (Cokernel α) := by
-      calc (lQ ≫ a') ≫ cokernelMap α = lQ ≫ (a' ≫ cokernelMap α) := Cat.assoc _ _ _
+      calc (lQ ≫ a') ≫ cokernelMap α = lQ ≫ (a' ≫ cokernelMap α) := CategoryTheory.Category.assoc _ _ _
         _ = lQ ≫ e := rfl
         _ = lQ ≫ (c ≫ δ) := by rw [hcδ]
-        _ = (lQ ≫ c) ≫ δ := (Cat.assoc _ _ _).symm
+        _ = (lQ ≫ c) ≫ δ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (cov₂ ≫ kernelMap δ) ≫ δ := by rw [hcδw]
-        _ = cov₂ ≫ (kernelMap δ ≫ δ) := Cat.assoc _ _ _
+        _ = cov₂ ≫ (kernelMap δ ≫ δ) := CategoryTheory.Category.assoc _ _ _
         _ = cov₂ ≫ zeroMorphism (Kernel δ) (Cokernel α) := by rw [kernelMap_comp δ]
         _ = zeroMorphism pcδ.cone.pt (Cokernel α) :=
             zero_morphism_comp cov₂ (zeroMorphism (Kernel δ) (Cokernel α))
@@ -3846,13 +3846,13 @@ theorem snake_lemma [AbelianCategory 𝒞]
     let bk : P₂ ⟶ B := HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f))
     have hbkβ : bk ≫ β = zeroMorphism P₂ B' := by
       have key : (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ β = (aa ≫ f) ≫ β := by
-        calc (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ β = cov₃ ≫ lQ ≫ (q ≫ p_B ≫ β) := by simp only [Cat.assoc]
+        calc (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ β = cov₃ ≫ lQ ≫ (q ≫ p_B ≫ β) := by simp only [CategoryTheory.Category.assoc]
           _ = cov₃ ≫ lQ ≫ (a' ≫ f') := by rw [hqa']
-          _ = (cov₃ ≫ (lQ ≫ a')) ≫ f' := by simp only [Cat.assoc]
+          _ = (cov₃ ≫ (lQ ≫ a')) ≫ f' := by simp only [CategoryTheory.Category.assoc]
           _ = (aa ≫ α) ≫ f' := by rw [haa]
-          _ = aa ≫ (α ≫ f') := Cat.assoc _ _ _
+          _ = aa ≫ (α ≫ f') := CategoryTheory.Category.assoc _ _ _
           _ = aa ≫ (f ≫ β) := by rw [hαβ]
-          _ = (aa ≫ f) ≫ β := (Cat.assoc _ _ _).symm
+          _ = (aa ≫ f) ≫ β := (CategoryTheory.Category.assoc _ _ _).symm
       show HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f)) ≫ β = _
       rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
           zeroHom_eq_zeroMorphism' P₂ B']
@@ -3866,7 +3866,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
       show HalfAdditiveCategory.add (cov₃ ≫ lQ ≫ q ≫ p_B) (neg (aa ≫ f)) ≫ g = _
       rw [HalfAdditiveCategory.add_comp, neg_comp]
       have haafg : (aa ≫ f) ≫ g = HalfAdditiveCategory.zeroHom P₂ C := by
-        rw [Cat.assoc, hfg0, zero_morphism_comp aa (zeroMorphism A C),
+        rw [CategoryTheory.Category.assoc, hfg0, zero_morphism_comp aa (zeroMorphism A C),
             ← zeroHom_eq_zeroMorphism' P₂ C]
       rw [haafg, neg_zero P₂ C, HalfAdditiveCategory.add_zero]
     -- covT ≫ kernelMap δ ≫ kernelMap γ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g.
@@ -3875,21 +3875,21 @@ theorem snake_lemma [AbelianCategory 𝒞]
         show (cov₃ ≫ cov₂) ≫ kernelMap δ = _
         have hcq : cov₂ ≫ kernelMap δ = lQ ≫ q ≫ p_K := by
           rw [← hcδw]
-        rw [Cat.assoc, hcq]
+        rw [CategoryTheory.Category.assoc, hcq]
       rw [hcc]
       calc (cov₃ ≫ lQ ≫ q ≫ p_K) ≫ kernelMap γ
-          = cov₃ ≫ lQ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [Cat.assoc]
+          = cov₃ ≫ lQ ≫ q ≫ (p_K ≫ kernelMap γ) := by simp only [CategoryTheory.Category.assoc]
         _ = cov₃ ≫ lQ ≫ q ≫ (p_B ≫ g) := by rw [← hpbw]
-        _ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+        _ = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := by simp only [CategoryTheory.Category.assoc]
     have hcomm₂ : covT ≫ kernelMap δ = xk ≫ κ_g := by
       apply kernelMap_mono γ
       calc (covT ≫ kernelMap δ) ≫ kernelMap γ
           = (cov₃ ≫ lQ ≫ q ≫ p_B) ≫ g := hLHSγ
         _ = bk ≫ g := hbkg.symm
         _ = (xk ≫ kernelMap β) ≫ g := by rw [hxk]
-        _ = xk ≫ (kernelMap β ≫ g) := Cat.assoc _ _ _
+        _ = xk ≫ (kernelMap β ≫ g) := CategoryTheory.Category.assoc _ _ _
         _ = xk ≫ (κ_g ≫ kernelMap γ) := by rw [hκg]
-        _ = (xk ≫ κ_g) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+        _ = (xk ≫ κ_g) ≫ kernelMap γ := (CategoryTheory.Category.assoc _ _ _).symm
     obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono δ) hcovT hcomm₂
     exact relExact_intro hκgδ0 cc hcc
   · -- ====================== RelExact δ π_f (exact at Cokernel α) ======================
@@ -3897,13 +3897,13 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hδπf0 : δ ≫ π_f = zeroMorphism (Kernel γ) (Cokernel β) := by
       apply cover_epi hc_cover
       rw [zero_morphism_comp c (zeroMorphism (Kernel γ) (Cokernel β))]
-      calc c ≫ (δ ≫ π_f) = (c ≫ δ) ≫ π_f := (Cat.assoc _ _ _).symm
+      calc c ≫ (δ ≫ π_f) = (c ≫ δ) ≫ π_f := (CategoryTheory.Category.assoc _ _ _).symm
         _ = e ≫ π_f := by rw [hcδ]
-        _ = a' ≫ (cokernelMap α ≫ π_f) := by show (a' ≫ cokernelMap α) ≫ π_f = _; rw [Cat.assoc]
+        _ = a' ≫ (cokernelMap α ≫ π_f) := by show (a' ≫ cokernelMap α) ≫ π_f = _; rw [CategoryTheory.Category.assoc]
         _ = a' ≫ (f' ≫ cokernelMap β) := by rw [hπf]
-        _ = (a' ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+        _ = (a' ≫ f') ≫ cokernelMap β := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (q ≫ p_B ≫ β) ≫ cokernelMap β := by rw [hqa']
-        _ = q ≫ p_B ≫ (β ≫ cokernelMap β) := by simp only [Cat.assoc]
+        _ = q ≫ p_B ≫ (β ≫ cokernelMap β) := by simp only [CategoryTheory.Category.assoc]
         _ = q ≫ p_B ≫ zeroMorphism B (Cokernel β) := by rw [comp_cokernelMap β]
         _ = zeroMorphism Q (Cokernel β) := by
             rw [zero_morphism_comp p_B (zeroMorphism B (Cokernel β)),
@@ -3916,11 +3916,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hpcαw : pA' ≫ cokernelMap α = cov₂ ≫ kernelMap π_f := pcα.cone.w
     -- pA' ≫ f' killed by cokernelMap β.
     have hpA'f' : (pA' ≫ f') ≫ cokernelMap β = zeroMorphism pcα.cone.pt (Cokernel β) := by
-      calc (pA' ≫ f') ≫ cokernelMap β = pA' ≫ (f' ≫ cokernelMap β) := Cat.assoc _ _ _
+      calc (pA' ≫ f') ≫ cokernelMap β = pA' ≫ (f' ≫ cokernelMap β) := CategoryTheory.Category.assoc _ _ _
         _ = pA' ≫ (cokernelMap α ≫ π_f) := by rw [hπf]
-        _ = (pA' ≫ cokernelMap α) ≫ π_f := (Cat.assoc _ _ _).symm
+        _ = (pA' ≫ cokernelMap α) ≫ π_f := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (cov₂ ≫ kernelMap π_f) ≫ π_f := by rw [hpcαw]
-        _ = cov₂ ≫ (kernelMap π_f ≫ π_f) := Cat.assoc _ _ _
+        _ = cov₂ ≫ (kernelMap π_f ≫ π_f) := CategoryTheory.Category.assoc _ _ _
         _ = cov₂ ≫ zeroMorphism (Kernel π_f) (Cokernel β) := by rw [kernelMap_comp π_f]
         _ = zeroMorphism pcα.cone.pt (Cokernel β) :=
             zero_morphism_comp cov₂ (zeroMorphism (Kernel π_f) (Cokernel β))
@@ -3929,11 +3929,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
       relexact_cover_factor (relExact_self_cokernel β) (pA' ≫ f') hpA'f'
     -- bb ≫ g killed by γ, so lifts to Kernel γ.
     have hbbgγ : (bb ≫ g) ≫ γ = zeroMorphism P₃ C' := by
-      calc (bb ≫ g) ≫ γ = bb ≫ (g ≫ γ) := Cat.assoc _ _ _
+      calc (bb ≫ g) ≫ γ = bb ≫ (g ≫ γ) := CategoryTheory.Category.assoc _ _ _
         _ = bb ≫ (β ≫ g') := by rw [hβγ]
-        _ = (bb ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+        _ = (bb ≫ β) ≫ g' := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (cov₃ ≫ (pA' ≫ f')) ≫ g' := by rw [hbb]
-        _ = cov₃ ≫ pA' ≫ (f' ≫ g') := by simp only [Cat.assoc]
+        _ = cov₃ ≫ pA' ≫ (f' ≫ g') := by simp only [CategoryTheory.Category.assoc]
         _ = cov₃ ≫ pA' ≫ zeroMorphism A' C' := by rw [hf'g'0]
         _ = zeroMorphism P₃ C' := by
             rw [zero_morphism_comp pA' (zeroMorphism A' C'),
@@ -3955,15 +3955,15 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hwBg : wB ≫ g = zeroMorphism pcx.cone.pt C := by
       have hc_kγ : c ≫ kernelMap γ = q ≫ p_B ≫ g := by
         show (q ≫ p_K) ≫ kernelMap γ = _
-        rw [Cat.assoc, ← hpbw]
+        rw [CategoryTheory.Category.assoc, ← hpbw]
       have key : (cov₄ ≫ bb) ≫ g = (lQ ≫ q ≫ p_B) ≫ g := by
-        calc (cov₄ ≫ bb) ≫ g = cov₄ ≫ (bb ≫ g) := Cat.assoc _ _ _
+        calc (cov₄ ≫ bb) ≫ g = cov₄ ≫ (bb ≫ g) := CategoryTheory.Category.assoc _ _ _
           _ = cov₄ ≫ (xk ≫ kernelMap γ) := by rw [hxk]
-          _ = (cov₄ ≫ xk) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
+          _ = (cov₄ ≫ xk) ≫ kernelMap γ := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (lQ ≫ c) ≫ kernelMap γ := by rw [← hcxw]
-          _ = lQ ≫ (c ≫ kernelMap γ) := Cat.assoc _ _ _
+          _ = lQ ≫ (c ≫ kernelMap γ) := CategoryTheory.Category.assoc _ _ _
           _ = lQ ≫ (q ≫ p_B ≫ g) := by rw [hc_kγ]
-          _ = (lQ ≫ q ≫ p_B) ≫ g := by simp only [Cat.assoc]
+          _ = (lQ ≫ q ≫ p_B) ≫ g := by simp only [CategoryTheory.Category.assoc]
       show HalfAdditiveCategory.add (cov₄ ≫ bb) (neg (lQ ≫ q ≫ p_B)) ≫ g = _
       rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
           zeroHom_eq_zeroMorphism' pcx.cone.pt C]
@@ -3976,30 +3976,30 @@ theorem snake_lemma [AbelianCategory 𝒞]
         show HalfAdditiveCategory.add (cov₄ ≫ cov₃ ≫ pA') (neg (lQ ≫ a')) ≫ f' = _
         rw [HalfAdditiveCategory.add_comp, neg_comp]
         have e₁ : (cov₄ ≫ cov₃ ≫ pA') ≫ f' = (cov₄ ≫ bb) ≫ β := by
-          calc (cov₄ ≫ cov₃ ≫ pA') ≫ f' = cov₄ ≫ (cov₃ ≫ (pA' ≫ f')) := by simp only [Cat.assoc]
+          calc (cov₄ ≫ cov₃ ≫ pA') ≫ f' = cov₄ ≫ (cov₃ ≫ (pA' ≫ f')) := by simp only [CategoryTheory.Category.assoc]
             _ = cov₄ ≫ (bb ≫ β) := by rw [hbb]
-            _ = (cov₄ ≫ bb) ≫ β := (Cat.assoc _ _ _).symm
+            _ = (cov₄ ≫ bb) ≫ β := (CategoryTheory.Category.assoc _ _ _).symm
         have e₂ : (lQ ≫ a') ≫ f' = (lQ ≫ q ≫ p_B) ≫ β := by
-          calc (lQ ≫ a') ≫ f' = lQ ≫ (a' ≫ f') := Cat.assoc _ _ _
+          calc (lQ ≫ a') ≫ f' = lQ ≫ (a' ≫ f') := CategoryTheory.Category.assoc _ _ _
             _ = lQ ≫ (q ≫ p_B ≫ β) := by rw [hqa']
-            _ = (lQ ≫ q ≫ p_B) ≫ β := by simp only [Cat.assoc]
+            _ = (lQ ≫ q ≫ p_B) ≫ β := by simp only [CategoryTheory.Category.assoc]
         rw [e₁, e₂]
         show HalfAdditiveCategory.add ((cov₄ ≫ bb) ≫ β) (neg ((lQ ≫ q ≫ p_B) ≫ β))
             = HalfAdditiveCategory.add (cov₄ ≫ bb) (neg (lQ ≫ q ≫ p_B)) ≫ β
         rw [HalfAdditiveCategory.add_comp, neg_comp]
-      calc (cov₅ ≫ dA') ≫ f' = cov₅ ≫ (dA' ≫ f') := Cat.assoc _ _ _
+      calc (cov₅ ≫ dA') ≫ f' = cov₅ ≫ (dA' ≫ f') := CategoryTheory.Category.assoc _ _ _
         _ = cov₅ ≫ (wB ≫ β) := by rw [hdA'f']
-        _ = (cov₅ ≫ wB) ≫ β := (Cat.assoc _ _ _).symm
+        _ = (cov₅ ≫ wB) ≫ β := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (aB ≫ f) ≫ β := by rw [haB]
-        _ = aB ≫ (f ≫ β) := Cat.assoc _ _ _
+        _ = aB ≫ (f ≫ β) := CategoryTheory.Category.assoc _ _ _
         _ = aB ≫ (α ≫ f') := by rw [hαβ]
-        _ = (aB ≫ α) ≫ f' := (Cat.assoc _ _ _).symm
+        _ = (aB ≫ α) ≫ f' := (CategoryTheory.Category.assoc _ _ _).symm
     -- dA' ≫ cokernelMap α = 0  (cancel cover cov₅).
     have hdA'cok : dA' ≫ cokernelMap α = zeroMorphism pcx.cone.pt (Cokernel α) := by
       apply cover_epi hcov₅
-      calc cov₅ ≫ (dA' ≫ cokernelMap α) = (cov₅ ≫ dA') ≫ cokernelMap α := (Cat.assoc _ _ _).symm
+      calc cov₅ ≫ (dA' ≫ cokernelMap α) = (cov₅ ≫ dA') ≫ cokernelMap α := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (aB ≫ α) ≫ cokernelMap α := by rw [hcov₅dA']
-        _ = aB ≫ (α ≫ cokernelMap α) := Cat.assoc _ _ _
+        _ = aB ≫ (α ≫ cokernelMap α) := CategoryTheory.Category.assoc _ _ _
         _ = aB ≫ zeroMorphism A (Cokernel α) := by rw [comp_cokernelMap α]
         _ = zeroMorphism P₅ (Cokernel α) := zero_morphism_comp aB (zeroMorphism A (Cokernel α))
         _ = cov₅ ≫ zeroMorphism pcx.cone.pt (Cokernel α) :=
@@ -4025,14 +4025,14 @@ theorem snake_lemma [AbelianCategory 𝒞]
       have hL : covT ≫ kernelMap π_f = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α := by
         show (cov₄ ≫ cov₃ ≫ cov₂) ≫ kernelMap π_f = _
         calc (cov₄ ≫ cov₃ ≫ cov₂) ≫ kernelMap π_f
-            = cov₄ ≫ cov₃ ≫ (cov₂ ≫ kernelMap π_f) := by simp only [Cat.assoc]
+            = cov₄ ≫ cov₃ ≫ (cov₂ ≫ kernelMap π_f) := by simp only [CategoryTheory.Category.assoc]
           _ = cov₄ ≫ cov₃ ≫ (pA' ≫ cokernelMap α) := by rw [← hpcαw]
-          _ = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α := by simp only [Cat.assoc]
+          _ = (cov₄ ≫ cov₃ ≫ pA') ≫ cokernelMap α := by simp only [CategoryTheory.Category.assoc]
       have hR : (cov₄ ≫ xk) ≫ δ = (lQ ≫ a') ≫ cokernelMap α := by
         calc (cov₄ ≫ xk) ≫ δ = (lQ ≫ c) ≫ δ := by rw [← hcxw]
-          _ = lQ ≫ (c ≫ δ) := Cat.assoc _ _ _
+          _ = lQ ≫ (c ≫ δ) := CategoryTheory.Category.assoc _ _ _
           _ = lQ ≫ e := by rw [hcδ]
-          _ = (lQ ≫ a') ≫ cokernelMap α := by show lQ ≫ (a' ≫ cokernelMap α) = _; rw [Cat.assoc]
+          _ = (lQ ≫ a') ≫ cokernelMap α := by show lQ ≫ (a' ≫ cokernelMap α) = _; rw [CategoryTheory.Category.assoc]
       rw [hL, hR, hbridge]
     obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_f) hcovT
       (show covT ≫ kernelMap π_f = (cov₄ ≫ xk) ≫ δ from hcomm₃)
@@ -4042,11 +4042,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hπfπg0 : π_f ≫ π_g = zeroMorphism (Cokernel α) (Cokernel γ) := by
       apply cover_epi (cokernelMap_cover α)
       rw [zero_morphism_comp (cokernelMap α) (zeroMorphism (Cokernel α) (Cokernel γ))]
-      calc cokernelMap α ≫ (π_f ≫ π_g) = (cokernelMap α ≫ π_f) ≫ π_g := (Cat.assoc _ _ _).symm
+      calc cokernelMap α ≫ (π_f ≫ π_g) = (cokernelMap α ≫ π_f) ≫ π_g := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (f' ≫ cokernelMap β) ≫ π_g := by rw [hπf]
-        _ = f' ≫ (cokernelMap β ≫ π_g) := Cat.assoc _ _ _
+        _ = f' ≫ (cokernelMap β ≫ π_g) := CategoryTheory.Category.assoc _ _ _
         _ = f' ≫ (g' ≫ cokernelMap γ) := by rw [hπg]
-        _ = (f' ≫ g') ≫ cokernelMap γ := (Cat.assoc _ _ _).symm
+        _ = (f' ≫ g') ≫ cokernelMap γ := (CategoryTheory.Category.assoc _ _ _).symm
         _ = zeroMorphism A' C' ≫ cokernelMap γ := by rw [hf'g'0]
         _ = zeroMorphism A' (Cokernel γ) := zeroMorphism_comp_left (cokernelMap γ)
     -- back-map: factor kernelMap π_g through π_f.  Pull kernelMap π_g back along cover cokernelMap β.
@@ -4057,11 +4057,11 @@ theorem snake_lemma [AbelianCategory 𝒞]
     have hpbβw : pB' ≫ cokernelMap β = cov₄ ≫ kernelMap π_g := pbβ.cone.w
     -- pB' ≫ g' is killed by cokernelMap γ.
     have hpB'g' : (pB' ≫ g') ≫ cokernelMap γ = zeroMorphism pbβ.cone.pt (Cokernel γ) := by
-      calc (pB' ≫ g') ≫ cokernelMap γ = pB' ≫ (g' ≫ cokernelMap γ) := Cat.assoc _ _ _
+      calc (pB' ≫ g') ≫ cokernelMap γ = pB' ≫ (g' ≫ cokernelMap γ) := CategoryTheory.Category.assoc _ _ _
         _ = pB' ≫ (cokernelMap β ≫ π_g) := by rw [hπg]
-        _ = (pB' ≫ cokernelMap β) ≫ π_g := (Cat.assoc _ _ _).symm
+        _ = (pB' ≫ cokernelMap β) ≫ π_g := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (cov₄ ≫ kernelMap π_g) ≫ π_g := by rw [hpbβw]
-        _ = cov₄ ≫ (kernelMap π_g ≫ π_g) := Cat.assoc _ _ _
+        _ = cov₄ ≫ (kernelMap π_g ≫ π_g) := CategoryTheory.Category.assoc _ _ _
         _ = cov₄ ≫ zeroMorphism (Kernel π_g) (Cokernel γ) := by rw [kernelMap_comp π_g]
         _ = zeroMorphism pbβ.cone.pt (Cokernel γ) :=
             zero_morphism_comp cov₄ (zeroMorphism (Kernel π_g) (Cokernel γ))
@@ -4079,13 +4079,13 @@ theorem snake_lemma [AbelianCategory 𝒞]
       HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β))
     have hw₄g' : w₄ ≫ g' = zeroMorphism pbg.cone.pt C' := by
       have key : (e₃ ≫ e₂ ≫ pB') ≫ g' = (bB ≫ β) ≫ g' := by
-        calc (e₃ ≫ e₂ ≫ pB') ≫ g' = e₃ ≫ (e₂ ≫ (pB' ≫ g')) := by simp only [Cat.assoc]
+        calc (e₃ ≫ e₂ ≫ pB') ≫ g' = e₃ ≫ (e₂ ≫ (pB' ≫ g')) := by simp only [CategoryTheory.Category.assoc]
           _ = e₃ ≫ (zc ≫ γ) := by rw [hzc]
-          _ = (e₃ ≫ zc) ≫ γ := (Cat.assoc _ _ _).symm
+          _ = (e₃ ≫ zc) ≫ γ := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (bB ≫ g) ≫ γ := by rw [hbBg]
-          _ = bB ≫ (g ≫ γ) := Cat.assoc _ _ _
+          _ = bB ≫ (g ≫ γ) := CategoryTheory.Category.assoc _ _ _
           _ = bB ≫ (β ≫ g') := by rw [hβγ]
-          _ = (bB ≫ β) ≫ g' := (Cat.assoc _ _ _).symm
+          _ = (bB ≫ β) ≫ g' := (CategoryTheory.Category.assoc _ _ _).symm
       show HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β)) ≫ g' = _
       rw [HalfAdditiveCategory.add_comp, neg_comp, key, add_neg,
           zeroHom_eq_zeroMorphism' pbg.cone.pt C']
@@ -4101,26 +4101,26 @@ theorem snake_lemma [AbelianCategory 𝒞]
       -- LHS = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β)
       have hL : covT ≫ kernelMap π_g = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by
         show (e₄ ≫ e₃ ≫ e₂ ≫ cov₄) ≫ kernelMap π_g = _
-        simp only [Cat.assoc]; rw [← hpbβw]
+        simp only [CategoryTheory.Category.assoc]; rw [← hpbβw]
       -- w₄ ≫ cokernelMap β = (e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β  (the bB≫β summand dies).
       have hwcok : w₄ ≫ cokernelMap β = (e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β := by
         show HalfAdditiveCategory.add (e₃ ≫ e₂ ≫ pB') (neg (bB ≫ β)) ≫ cokernelMap β = _
         rw [HalfAdditiveCategory.add_comp, neg_comp]
         have hbBβcok : (bB ≫ β) ≫ cokernelMap β
             = HalfAdditiveCategory.zeroHom pbg.cone.pt (Cokernel β) := by
-          rw [Cat.assoc, comp_cokernelMap β,
+          rw [CategoryTheory.Category.assoc, comp_cokernelMap β,
               zero_morphism_comp bB (zeroMorphism B (Cokernel β)),
               ← zeroHom_eq_zeroMorphism' pbg.cone.pt (Cokernel β)]
         rw [hbBβcok, neg_zero pbg.cone.pt (Cokernel β), HalfAdditiveCategory.add_zero]
       -- xCok ≫ π_f = e₄ ≫ (e₃ ≫ e₂ ≫ pB') ≫ cokβ = RHS.
       have hR : xCok ≫ π_f = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by
-        calc xCok ≫ π_f = a' ≫ (cokernelMap α ≫ π_f) := Cat.assoc _ _ _
+        calc xCok ≫ π_f = a' ≫ (cokernelMap α ≫ π_f) := CategoryTheory.Category.assoc _ _ _
           _ = a' ≫ (f' ≫ cokernelMap β) := by rw [hπf]
-          _ = (a' ≫ f') ≫ cokernelMap β := (Cat.assoc _ _ _).symm
+          _ = (a' ≫ f') ≫ cokernelMap β := (CategoryTheory.Category.assoc _ _ _).symm
           _ = (e₄ ≫ w₄) ≫ cokernelMap β := by rw [ha']
-          _ = e₄ ≫ (w₄ ≫ cokernelMap β) := Cat.assoc _ _ _
+          _ = e₄ ≫ (w₄ ≫ cokernelMap β) := CategoryTheory.Category.assoc _ _ _
           _ = e₄ ≫ ((e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β) := by rw [hwcok]
-          _ = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by simp only [Cat.assoc]
+          _ = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by simp only [CategoryTheory.Category.assoc]
       rw [hL, hR]
     obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_g) hcovT hcomm₄
     exact relExact_intro hπfπg0 cc hcc

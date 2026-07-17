@@ -61,8 +61,8 @@ namespace Freyd
   Both fields are stated abstractly so that ANY functor providing them — not just
   one particular construction — discharges the reduction. -/
 structure ReflectingAdditiveFunctor
-    {𝒞 : Type u} [Cat.{v} 𝒞] [HalfAdditiveCategory 𝒞]
-    {𝒟 : Type w} [Cat.{v} 𝒟] [HalfAdditiveCategory 𝒟]
+    {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HalfAdditiveCategory 𝒞]
+    {𝒟 : Type w} [CategoryTheory.Category.{v} 𝒟] [HalfAdditiveCategory 𝒟]
     (F : 𝒞 → 𝒟) [hF : Functor F] : Prop where
   /-- `F` reflects isomorphisms: if `F.map f` is an iso then so is `f`. -/
   reflects_iso : ∀ {X Y : 𝒞} {f : X ⟶ Y}, IsIso (hF.map f) → IsIso f
@@ -77,7 +77,7 @@ structure ReflectingAdditiveFunctor
     `shear_isIso_of_addInv`).  Hence `ReflectingAdditiveFunctor` is satisfiable —
     the abelian-cluster reduction below is a genuine implication, not `ex falso`. -/
 theorem reflectingAdditive_id_of_additive
-    (𝒞 : Type u) [Cat.{v} 𝒞] [AdditiveCategory 𝒞] :
+    (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] [AdditiveCategory 𝒞] :
     ReflectingAdditiveFunctor (𝒞 := 𝒞) (𝒟 := 𝒞) (fun X => X) where
   reflects_iso h := h
   maps_shear_iso x :=
@@ -91,8 +91,8 @@ theorem reflectingAdditive_id_of_additive
   thing assumed is the existence of a reflecting-additive functor, which is the
   honest statement of "exact iso-reflecting representation". -/
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HalfAdditiveCategory 𝒞]
-variable {𝒟 : Type w} [Cat.{v} 𝒟] [HalfAdditiveCategory 𝒟]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HalfAdditiveCategory 𝒞]
+variable {𝒟 : Type w} [CategoryTheory.Category.{v} 𝒟] [HalfAdditiveCategory 𝒟]
 
 /-- **The shear is iso, reflected from the additive target.**
 

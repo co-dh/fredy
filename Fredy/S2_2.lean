@@ -10,6 +10,7 @@
 import Fredy.S1_1
 import Fredy.S2_1
 
+open CategoryTheory
 
 universe v u
 
@@ -1157,7 +1158,7 @@ instance instDistributiveAllegoryDowndealHom : DistributiveAllegory.{u} (Downdea
   encode finite joins as a `List`. -/
 
 /-- The finite join of a list of base homs (`[] ↦ 𝟘`, `x :: xs ↦ x ∪ join xs`). -/
-def listJoinD {a b : 𝒜} : List (a ⟶ b) → a ⟶ b
+def listJoinD {a b : 𝒜} : List (a ⟶ b) → (a ⟶ b)
   | [] => 𝟘
   | x :: xs => x ∪ listJoinD xs
 

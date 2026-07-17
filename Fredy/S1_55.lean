@@ -34,7 +34,7 @@ import Fredy.S1_47
 import Fredy.S1_52
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe w u v
 
@@ -43,7 +43,7 @@ namespace Freyd
 /-! ## §1.55 The category of sets and its powers -/
 
 /-- §1.55  The CATEGORY OF SETS 𝒮: objects are types, morphisms are functions. -/
-instance setCat : Cat.{w} (Type w) where
+instance setCat : CategoryTheory.Category.{w} (Type w) where
   Hom A B := A → B
   id _ := fun a => a
   comp f g := fun a => g (f a)
@@ -53,7 +53,7 @@ instance setCat : Cat.{w} (Type w) where
 
 /-- §1.55  A POWER 𝒮^I of the category of sets: objects are I-indexed families
     of sets, morphisms are I-indexed families of functions, composed pointwise. -/
-instance powerCat (I : Type w) : Cat.{w} (I → Type w) where
+instance powerCat (I : Type w) : CategoryTheory.Category.{w} (I → Type w) where
   Hom X Y := ∀ i, X i → Y i
   id _ := fun _ a => a
   comp f g := fun i a => g i (f i a)
@@ -64,7 +64,7 @@ instance powerCat (I : Type w) : Cat.{w} (I → Type w) where
 /-! ## §1.55 The product functor into a power, and its faithfulness -/
 
 section
-variable {𝒞 : Type u} [Cat.{w} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{w} 𝒞]
 
 /-- The PRODUCT FUNCTOR of an I-indexed family of functors `F i : 𝒞 → 𝒮`,
     sending `A ↦ (i ↦ F i A)` into the power 𝒮^I. -/
@@ -94,28 +94,29 @@ end
 section HomRep
 
 /-- The covariant hom-functor `Hom(i, -) : 𝒞 → 𝒮`, `f ↦ (h ↦ h ≫ f)` (§1.272). -/
-instance homFunctor {𝒞 : Type u} [Cat.{w} 𝒞] (i : 𝒞) : Functor (fun A : 𝒞 => (i ⟶ A)) where
+instance homFunctor {𝒞 : Type u} [CategoryTheory.Category.{w} 𝒞] (i : 𝒞) : Functor (fun A : 𝒞 => (i ⟶ A)) where
   map f := fun h => h ≫ f
-  map_id A := by funext h; exact Cat.comp_id h
-  map_comp f g := by funext h; exact (Cat.assoc h f g).symm
+  map_id A := by funext h; exact CategoryTheory.Category.comp_id h
+  map_comp f g := by funext h; exact (CategoryTheory.Category.assoc h f g).symm
 
 /-- The **Henkin–Lubkin representation** `T : 𝒞 → 𝒮^|𝒞|`, `A ↦ (i ↦ Hom(i, A))` —
     the witness used by `henkin_lubkin`, here named so its exactness can be stated. -/
-def homRep (𝒞 : Type u) [Cat.{u} 𝒞] : 𝒞 → (𝒞 → Type u) := familyFunctor (fun i A => (i ⟶ A))
+def homRep (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] : 𝒞 → (𝒞 → Type u) := familyFunctor (fun i A => (i ⟶ A))
 
-instance homRepFunctor (𝒞 : Type u) [Cat.{u} 𝒞] : Functor (homRep 𝒞) :=
+instance homRepFunctor (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] : Functor (homRep 𝒞) :=
   familyFunctorFunctor (fun i A => (i ⟶ A))
 
 /-- The Henkin–Lubkin representation `homRep` SEPARATES MAPS (re-derives the
     faithfulness of `henkin_lubkin` for the explicit witness). -/
-theorem homRep_separates (𝒞 : Type u) [Cat.{u} 𝒞] : SeparatesMaps (homRep 𝒞) := by
+theorem homRep_separates (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] : SeparatesMaps (homRep 𝒞) := by
   intro A B f g h
   exact cayley_faithful f g (fun {X} hX => congrFun (congrFun h X) hX)
 
 /-- **Exactness, limit side (i):** `homRep` PRESERVES monos.  `Hom(i, f)` is
     injective for every `i` precisely because `f` is left-cancellable, so the
     induced family of functions is a mono in the power `𝒮^|𝒞|`. -/
-theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (homRep 𝒞) := by
+theorem homRep_preserves_mono (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] :
+    PreservesMono (bundledFunctor (homRep 𝒞)) := by
   intro X Y f hf W p q h
   funext i a
   exact hf (p i a) (q i a) (congrFun (congrFun h i) a)
@@ -123,15 +124,16 @@ theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (ho
 /-- **Exactness, limit side (ii):** `homRep` REFLECTS monos.  Probe `Monic (T f)`
     with the representable at `W`: `k ↦ k ≫ g` and `k ↦ k ≫ h` agree after `T f`
     when `g ≫ f = h ≫ f`, so they are equal; evaluating at `id_W` gives `g = h`. -/
-theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homRep 𝒞) := by
+theorem homRep_reflects_mono (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] :
+    ReflectsMono (bundledFunctor (homRep 𝒞)) := by
   intro X Y f hf W g h hgh
   let p : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ g
   let q : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ h
   have hpq : p ≫ (homRepFunctor 𝒞).map f = q ≫ (homRepFunctor 𝒞).map f := by
     funext i k; show (k ≫ g) ≫ f = (k ≫ h) ≫ f
-    rw [Cat.assoc, hgh, ← Cat.assoc]
+    rw [CategoryTheory.Category.assoc, hgh, ← CategoryTheory.Category.assoc]
   have hpq' : p = q := hf p q hpq
-  simpa [p, q, Cat.id_comp] using congrFun (congrFun hpq' W) (Cat.id W)
+  simpa [p, q, CategoryTheory.Category.id_comp] using congrFun (congrFun hpq' W) (𝟙 W)
 
 /-- **Exactness, cover side (conditional):** in a regular category, if `i` is
     PROJECTIVE then `Hom(i, -)` carries a cover `f` to a surjection — every
@@ -141,17 +143,17 @@ theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homR
     the §1.543 capitalization supplies — now proven Sorry-free as
     `Fredy.capitalization_lemma` — so this pinpoints the remaining work for an
     *exact* Henkin–Lubkin representation as WIRING that proven lemma in.) -/
-theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+theorem hom_lifts_cover_of_projective {𝒞 : Type u} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞] {i X Y : 𝒞}
-    (hi : ∀ {P : 𝒞} (e : P ⟶ i), Cover e → ∃ s : i ⟶ P, s ≫ e = Cat.id i)
+    (hi : ∀ {P : 𝒞} (e : P ⟶ i), Cover e → ∃ s : i ⟶ P, s ≫ e = 𝟙 i)
     {f : X ⟶ Y} (hf : Cover f) (h : i ⟶ Y) : ∃ h' : i ⟶ X, h' ≫ f = h := by
   let pb := HasPullbacks.has f h
   obtain ⟨s, hs⟩ := hi pb.cone.π₂ (cover_pullback h hf)
   refine ⟨s ≫ pb.cone.π₁, ?_⟩
-  calc (s ≫ pb.cone.π₁) ≫ f = s ≫ (pb.cone.π₁ ≫ f) := Cat.assoc _ _ _
+  calc (s ≫ pb.cone.π₁) ≫ f = s ≫ (pb.cone.π₁ ≫ f) := CategoryTheory.Category.assoc _ _ _
     _ = s ≫ (pb.cone.π₂ ≫ h) := by rw [pb.cone.w]
-    _ = (s ≫ pb.cone.π₂) ≫ h := (Cat.assoc _ _ _).symm
-    _ = h := by rw [hs, Cat.id_comp]
+    _ = (s ≫ pb.cone.π₂) ≫ h := (CategoryTheory.Category.assoc _ _ _).symm
+    _ = h := by rw [hs, CategoryTheory.Category.id_comp]
 
 /-- **Exact Henkin–Lubkin, given capitalization:** if every object of the
     regular category `𝒞` is projective (a *capital* category — what §1.543
@@ -161,9 +163,9 @@ theorem hom_lifts_cover_of_projective {𝒞 : Type u} [Cat.{w} 𝒞] [HasPullbac
     `homRep_preserves_mono`/`_reflects_mono`, this is the full exactness of the
     representation; the projectivity hypothesis is taken as `hproj` here, to be
     discharged by applying the (proven) capitalization lemma. -/
-theorem homRep_preserves_cover_pointwise {𝒞 : Type u} [Cat.{u} 𝒞] [HasPullbacks 𝒞]
+theorem homRep_preserves_cover_pointwise {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasPullbacks 𝒞]
     [PullbacksTransferCovers 𝒞]
-    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C)
+    (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = 𝟙 C)
     {X Y : 𝒞} {f : X ⟶ Y} (hf : Cover f) (i : 𝒞) (h : homRep 𝒞 Y i) :
     ∃ h' : homRep 𝒞 X i, (homRepFunctor 𝒞).map f i h' = h :=
   hom_lifts_cover_of_projective (hproj i) hf h
@@ -173,7 +175,7 @@ end HomRep
 /-! ## §1.55 The points functor 𝒞 → 𝒮 -/
 
 section Points
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasTerminal 𝒞]
 
 /-- §1.55  The POINTS (global-sections) functor `𝒞 → 𝒮`, `A ↦ (1 ⟶ A)`,
     `f ↦ (x ↦ x ≫ f)`.  (The points functor underlies the deferred *exact*
@@ -182,8 +184,8 @@ def Pts (A : 𝒞) : Type v := one ⟶ A
 
 instance ptsFunctor : Functor (Pts (𝒞 := 𝒞)) where
   map f := fun x => x ≫ f
-  map_id A := by funext x; exact Cat.comp_id x
-  map_comp f g := by funext x; exact (Cat.assoc x f g).symm
+  map_id A := by funext x; exact CategoryTheory.Category.comp_id x
+  map_comp f g := by funext x; exact (CategoryTheory.Category.assoc x f g).symm
 
 end Points
 
@@ -194,12 +196,12 @@ end Points
     representation `i ↦ Hom(i, -)`, `f ↦ (h ↦ h ≫ f)`; collective separation is
     `cayley_faithful` (taking `i = A`, `h = id_A`).  Constructive and choice-free,
     valid for ANY small category — the regularity hypothesis is not used here. -/
-theorem exists_separating_family (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
+theorem exists_separating_family (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] :
     ∃ (F : 𝒞 → (𝒞 → Type u)) (hF : ∀ i, Functor (F i)),
       ∀ {A B : 𝒞} {f g : A ⟶ B}, (∀ i, (hF i).map f = (hF i).map g) → f = g := by
   refine ⟨fun i A => (i ⟶ A), fun i => ⟨fun {_ _} f h => h ≫ f, ?_, ?_⟩, ?_⟩
-  · intro A; funext h; exact Cat.comp_id h
-  · intro A B C f g; funext h; exact (Cat.assoc h f g).symm
+  · intro A; funext h; exact CategoryTheory.Category.comp_id h
+  · intro A B C f g; funext h; exact (CategoryTheory.Category.assoc h f g).symm
   · intro A B f g hsep
     exact cayley_faithful f g (fun {X} hX => congrFun (hsep X) hX)
 
@@ -208,7 +210,7 @@ theorem exists_separating_family (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCateg
     separates morphisms.  The witness is the covariant hom-functor representation;
     the proof is Sorry-free and choice-free (depends only on `Quot.sound`, via
     `funext`).  See the file header for the faithful-vs-exact scope note. -/
-theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
+theorem henkin_lubkin (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] [PreRegularCategory 𝒞] :
     ∃ (T : 𝒞 → (𝒞 → Type u)) (_ : Functor T), SeparatesMaps T := by
   obtain ⟨F, hF, hsep⟩ := exists_separating_family 𝒞
   letI : ∀ i, Functor (F i) := hF
@@ -246,7 +248,7 @@ theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
     The category is SPECIAL (§1.552) iff this holds.
     Equivalence with specialness (the universally-quantified sentences condition) uses
     the capitalization lemma (§1.543), proven Sorry-free as `Fredy.capitalization_lemma`. -/
-def IsSpecialPreReg (𝒞 : Type u) [Cat.{w} 𝒞] [HasTerminal 𝒞] : Prop :=
+def IsSpecialPreReg (𝒞 : Type u) [CategoryTheory.Category.{w} 𝒞] [HasTerminal 𝒞] : Prop :=
   ∀ {A U : 𝒞} (f : A ⟶ U), Subterminator U → IsIso f ∨ IsIso (term U)
 
 /-! §1.552 SECOND CHARACTERIZATION:
@@ -258,7 +260,7 @@ def IsSpecialPreReg (𝒞 : Type u) [Cat.{w} 𝒞] [HasTerminal 𝒞] : Prop :=
 /-- **§1.552 (Char 2 ←, one-valued case)**: a one-valued Cartesian category satisfies
     the subterminator condition.  Every subterminator `U` already has `IsIso (term U)`
     by one-valuedness, so the second disjunct fires unconditionally. -/
-theorem special552_oneValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory 𝒞]
+theorem special552_oneValued (𝒞 : Type u) [CategoryTheory.Category.{w} 𝒞] [CartesianCategory 𝒞]
     (h1v : OneValued (𝒞 := 𝒞)) : IsSpecialPreReg 𝒞 :=
   fun _f hU => Or.inr (h1v _ hU)
 
@@ -275,7 +277,7 @@ theorem special552_oneValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory �
     direction (that `IsSpecialPreReg` forces the well-supported-or-zero partition in
     the two-valued case), which requires the exact Henkin-Lubkin representation and
     is left as a TODO below. -/
-theorem special552_twoValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory 𝒞]
+theorem special552_twoValued (𝒞 : Type u) [CategoryTheory.Category.{w} 𝒞] [CartesianCategory 𝒞]
     (h2v : TwoValued (𝒞 := 𝒞)) : IsSpecialPreReg 𝒞 := by
   intro A U f hU
   rcases Classical.em (IsIso (term U)) with h | hni
@@ -285,7 +287,7 @@ theorem special552_twoValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory �
     have hfe_iso : IsIso (f ≫ e) := h2v.zero_strict (f ≫ e)
     obtain ⟨e_inv, he1, he2⟩ := he_iso
     -- f = (f ≫ e) ≫ e⁻¹ is a composite of isos
-    have hf_eq : f = (f ≫ e) ≫ e_inv := by rw [Cat.assoc, he1, Cat.comp_id]
+    have hf_eq : f = (f ≫ e) ≫ e_inv := by rw [CategoryTheory.Category.assoc, he1, CategoryTheory.Category.comp_id]
     exact Or.inl (hf_eq ▸ isIso_comp hfe_iso ⟨e, he2, he1⟩)
 
 /-- **§1.552 (strict coterminator consequence):** in a special pre-regular category, every
@@ -295,7 +297,7 @@ theorem special552_twoValued (𝒞 : Type u) [Cat.{w} 𝒞] [CartesianCategory �
     Proof: `IsSpecialPreReg` gives `IsIso f ∨ IsIso (term U)`; since `term U` is not iso
     the first disjunct holds.  This is the direction `IsSpecialPreReg ⟹ strict-coterminator`
     of §1.552, provable directly from the elementary subterminator condition. -/
-theorem special552_proper_subterminator_strict {𝒞 : Type u} [Cat.{w} 𝒞] [HasTerminal 𝒞]
+theorem special552_proper_subterminator_strict {𝒞 : Type u} [CategoryTheory.Category.{w} 𝒞] [HasTerminal 𝒞]
     (hsp : IsSpecialPreReg 𝒞)
     {U : 𝒞} (hSub : Subterminator U) (hprop : ¬ IsIso (term U))
     {A : 𝒞} (f : A ⟶ U) : IsIso f :=
@@ -321,7 +323,7 @@ theorem special552_proper_subterminator_strict {𝒞 : Type u} [Cat.{w} 𝒞] [H
     in the (⟹) direction; that syntactic-apparatus wiring is deferred as a
     -- BOOK §1.552 TODO: wire capitalization into universality over pre-regular sentences. -/
 theorem special552_twoValued_wellSupportedOrZero
-    {𝒞 : Type u} [Cat.{w} 𝒞] [CartesianCategory 𝒞] [HasImages 𝒞]
+    {𝒞 : Type u} [CategoryTheory.Category.{w} 𝒞] [CartesianCategory 𝒞] [HasImages 𝒞]
     (h2v : TwoValued (𝒞 := 𝒞)) (hsp : IsSpecialPreReg 𝒞)
     (A : 𝒞) : WellSupported A ∨ ∃ e : A ⟶ h2v.zeroObj, IsIso e := by
   -- S = image(term A) is a subterminator

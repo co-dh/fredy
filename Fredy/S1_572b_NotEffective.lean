@@ -31,6 +31,8 @@ Layout:
 
 namespace Freyd.Rcat
 
+open CategoryTheory
+
 /-! ## Stage 1a: numbers as lists — `consN`-lists over the Cantor pairing
 
   A list of numbers is coded by `nil = 0`, `consN a l = cp a l + 1` (the `+ 1`
@@ -2214,9 +2216,9 @@ noncomputable def ERel : BinRel ExtNat omega omega where
   isMonicPair := by
     intro X f g hA hB
     have h_fst : (f ≫ (image FE).arr) ≫ fst = (g ≫ (image FE).arr) ≫ fst := by
-      simpa [Cat.assoc] using hA
+      simpa [CategoryTheory.Category.assoc] using hA
     have h_snd : (f ≫ (image FE).arr) ≫ snd = (g ≫ (image FE).arr) ≫ snd := by
-      simpa [Cat.assoc] using hB
+      simpa [CategoryTheory.Category.assoc] using hB
     have hfg : f ≫ (image FE).arr = g ≫ (image FE).arr := by
       rw [pair_uniq _ _ (f ≫ (image FE).arr) rfl rfl, pair_uniq _ _ (g ≫ (image FE).arr) rfl rfl,
         h_fst, h_snd]
@@ -2404,7 +2406,7 @@ theorem EE_mem (q : El (ERel ⊚ ERel).src) :
 theorem ERel_equivalence : EquivalenceRelation ERel := by
   refine ⟨?_, ?_, ?_⟩
   · -- reflexive
-    obtain ⟨h, hA, hB⟩ := searchIntoE (Cat.id (omega : ExtNat)) (Cat.id omega)
+    obtain ⟨h, hA, hB⟩ := searchIntoE (𝟙 (omega : ExtNat)) (𝟙 omega)
       (fun n => ESet_refl n)
     exact ⟨h, hA, hB⟩
   · -- symmetric
@@ -2514,9 +2516,9 @@ theorem ERel_not_effective : ¬ IsEffective ERel := by
   have hxeq : ERel.colA ≫ x = ERel.colB ≫ x := by
     have hll := level_legs_comp x
     calc ERel.colA ≫ x = (h₁ ≫ (graph x ⊚ (graph x)°).colA) ≫ x := by rw [h₁A]
-      _ = h₁ ≫ ((graph x ⊚ (graph x)°).colA ≫ x) := Cat.assoc _ _ _
+      _ = h₁ ≫ ((graph x ⊚ (graph x)°).colA ≫ x) := CategoryTheory.Category.assoc _ _ _
       _ = h₁ ≫ ((graph x ⊚ (graph x)°).colB ≫ x) := by rw [hll]
-      _ = (h₁ ≫ (graph x ⊚ (graph x)°).colB) ≫ x := (Cat.assoc _ _ _).symm
+      _ = (h₁ ≫ (graph x ⊚ (graph x)°).colB) ≫ x := (CategoryTheory.Category.assoc _ _ _).symm
       _ = ERel.colB ≫ x := by rw [h₁B]
   have hxESet : ∀ a b : Nat, ESet a b → x.1 a = x.1 b := by
     intro a b hab

@@ -31,7 +31,7 @@ import Fredy.S1_41
 
 namespace Freyd
 
-open Colim
+open CategoryTheory Colim
 
 universe u
 
@@ -41,30 +41,30 @@ universe u
     `Cover`-definition argument, since `cover_comp` from S1_56 carries an images hypothesis).
     NOTE: `Fredy.S1_62.cover_comp_iso` proves the same statement but only under `[PreLogos 𝒞]`;
     here we have merely `[Cat 𝒞]`/pre-regular, so this weaker-hypothesis variant is kept. -/
-theorem cover_comp_iso_cat {𝒞 : Type u} [Cat.{u} 𝒞] {X Y Z : 𝒞} {f : X ⟶ Y} {e : Y ⟶ Z}
+theorem cover_comp_iso_cat {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] {X Y Z : 𝒞} {f : X ⟶ Y} {e : Y ⟶ Z}
     (hf : Cover f) (he : IsIso e) : Cover (f ≫ e) := by
   obtain ⟨einv, hee, heinv⟩ := he
   intro C m g hm hgm
   have hmono' : Monic (m ≫ einv) := by
     intro W a b hab; apply hm
     have hcomp : (a ≫ m ≫ einv) ≫ e = (b ≫ m ≫ einv) ≫ e := by rw [hab]
-    calc a ≫ m = a ≫ m ≫ (einv ≫ e) := by rw [heinv, Cat.comp_id]
-      _ = (a ≫ m ≫ einv) ≫ e := by rw [Cat.assoc, Cat.assoc]
+    calc a ≫ m = a ≫ m ≫ (einv ≫ e) := by rw [heinv, CategoryTheory.Category.comp_id]
+      _ = (a ≫ m ≫ einv) ≫ e := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
       _ = (b ≫ m ≫ einv) ≫ e := hcomp
-      _ = b ≫ m ≫ (einv ≫ e) := by rw [Cat.assoc, Cat.assoc]
-      _ = b ≫ m := by rw [heinv, Cat.comp_id]
+      _ = b ≫ m ≫ (einv ≫ e) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = b ≫ m := by rw [heinv, CategoryTheory.Category.comp_id]
   have hfact : g ≫ (m ≫ einv) = f := by
-    calc g ≫ (m ≫ einv) = (g ≫ m) ≫ einv := by rw [Cat.assoc]
+    calc g ≫ (m ≫ einv) = (g ≫ m) ≫ einv := by rw [CategoryTheory.Category.assoc]
       _ = (f ≫ e) ≫ einv := by rw [hgm]
-      _ = f ≫ (e ≫ einv) := by rw [Cat.assoc]
-      _ = f := by rw [hee, Cat.comp_id]
+      _ = f ≫ (e ≫ einv) := by rw [CategoryTheory.Category.assoc]
+      _ = f := by rw [hee, CategoryTheory.Category.comp_id]
   have hmiso : IsIso (m ≫ einv) := hf (m ≫ einv) g hmono' hfact
-  have hmeq : m = (m ≫ einv) ≫ e := by rw [Cat.assoc, heinv, Cat.comp_id]
+  have hmeq : m = (m ≫ einv) ≫ e := by rw [CategoryTheory.Category.assoc, heinv, CategoryTheory.Category.comp_id]
   rw [hmeq]; exact isIso_comp hmiso ⟨einv, hee, heinv⟩
 
 /-- `WellSupported` does not depend on which terminal is chosen (terminals are uniquely isomorphic,
     and `term A` to either one differs by that iso, which cover-composition absorbs). -/
-theorem wellSupported_terminal_invariant {𝒞 : Type u} [Cat.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) {A : 𝒞}
+theorem wellSupported_terminal_invariant {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) {A : 𝒞}
     (hws : @WellSupported _ _ h1 A) : @WellSupported _ _ h2 A := by
   have hterm : h2.trm A = h1.trm A ≫ h2.trm h1.one := h2.uniq _ _
   show Cover (h2.trm A); rw [hterm]
@@ -74,36 +74,36 @@ theorem wellSupported_terminal_invariant {𝒞 : Type u} [Cat.{u} 𝒞] (h1 h2 :
   have hmono' : Monic (m ≫ einv) := by
     intro W a c hac; apply hm
     have hc : (a ≫ m ≫ einv) ≫ h2.trm h1.one = (c ≫ m ≫ einv) ≫ h2.trm h1.one := by rw [hac]
-    calc a ≫ m = a ≫ m ≫ (einv ≫ h2.trm h1.one) := by rw [heinv, Cat.comp_id]
-      _ = (a ≫ m ≫ einv) ≫ h2.trm h1.one := by rw [Cat.assoc, Cat.assoc]
+    calc a ≫ m = a ≫ m ≫ (einv ≫ h2.trm h1.one) := by rw [heinv, CategoryTheory.Category.comp_id]
+      _ = (a ≫ m ≫ einv) ≫ h2.trm h1.one := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
       _ = (c ≫ m ≫ einv) ≫ h2.trm h1.one := hc
-      _ = c ≫ m ≫ (einv ≫ h2.trm h1.one) := by rw [Cat.assoc, Cat.assoc]
-      _ = c ≫ m := by rw [heinv, Cat.comp_id]
+      _ = c ≫ m ≫ (einv ≫ h2.trm h1.one) := by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      _ = c ≫ m := by rw [heinv, CategoryTheory.Category.comp_id]
   have hfact : g ≫ (m ≫ einv) = h1.trm A := h1.uniq _ _
   have hmiso : IsIso (m ≫ einv) := hws (m ≫ einv) g hmono' hfact
-  have hmeq : m = (m ≫ einv) ≫ h2.trm h1.one := by rw [Cat.assoc, heinv, Cat.comp_id]
+  have hmeq : m = (m ≫ einv) ≫ h2.trm h1.one := by rw [CategoryTheory.Category.assoc, heinv, CategoryTheory.Category.comp_id]
   rw [hmeq]; exact isIso_comp hmiso ⟨einv, hee, heinv⟩
 
 /-- `WellPointed` does not depend on which terminal is chosen: a point at `h2.one` transports to a
     point at `h1.one` by pre-composing with the terminal iso, and a factorization back. -/
-theorem wellPointed_terminal_invariant {𝒞 : Type u} [Cat.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) {A : 𝒞}
+theorem wellPointed_terminal_invariant {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] (h1 h2 : HasTerminal 𝒞) {A : 𝒞}
     (hwp : @WellPointed _ _ h1 A) : @WellPointed _ _ h2 A := by
   intro Dd m hm hniso
   obtain ⟨x, hx⟩ := hwp m hm hniso
   refine ⟨h1.trm h2.one ≫ x, ?_⟩
   rintro ⟨y, hy⟩
   refine hx ⟨h2.trm h1.one ≫ y, ?_⟩
-  have hid : h2.trm h1.one ≫ h1.trm h2.one = Cat.id h1.one := h1.uniq _ _
-  calc (h2.trm h1.one ≫ y) ≫ m = h2.trm h1.one ≫ (y ≫ m) := Cat.assoc _ _ _
+  have hid : h2.trm h1.one ≫ h1.trm h2.one = 𝟙 h1.one := h1.uniq _ _
+  calc (h2.trm h1.one ≫ y) ≫ m = h2.trm h1.one ≫ (y ≫ m) := CategoryTheory.Category.assoc _ _ _
     _ = h2.trm h1.one ≫ (h1.trm h2.one ≫ x) := by rw [hy]
-    _ = (h2.trm h1.one ≫ h1.trm h2.one) ≫ x := (Cat.assoc _ _ _).symm
-    _ = Cat.id h1.one ≫ x := by rw [hid]
-    _ = x := Cat.id_comp x
+    _ = (h2.trm h1.one ≫ h1.trm h2.one) ≫ x := (CategoryTheory.Category.assoc _ _ _).symm
+    _ = 𝟙 h1.one ≫ x := by rw [hid]
+    _ = x := CategoryTheory.Category.id_comp x
 
 /-- **A `CapStep` preserves well-supportedness.**  `term (step A) : step A ⟶ 1_T`.  `step (term A)`
     is a cover (`stepCover`, since `term A` is one); `step 1` is terminal in `T` (`stepTerminal` +
     `stepTerminalArrow`), so `term (step A) = step (term A) ≫ iso` and cover ∘ iso is a cover. -/
-theorem wellSupported_step {S : Type u} [Cat.{u} S] [PreRegularCategory S]
+theorem wellSupported_step {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S]
     (st : CapStep S) {A : S} (hws : WellSupported A) :
     letI : Cat st.T := st.catT
     letI : PreRegularCategory st.T := st.preT
@@ -176,7 +176,7 @@ noncomputable def colimTerminalAtStage {ι : Type u} {D : Colim.Directed ι}
   have heq : C.objIncl n (ht n).one = htCol.one :=
     objIncl_terminal_eq C hC ht htpres n (Classical.choice hne)
   refine @HasTerminal.mk C.Obj _ (C.objIncl n (ht n).one)
-    (fun X => htCol.trm X ≫ (heq ▸ (Cat.id htCol.one : htCol.one ⟶ htCol.one))) ?_
+    (fun X => htCol.trm X ≫ (heq ▸ (𝟙 htCol.one : htCol.one ⟶ htCol.one))) ?_
   intro X; rw [heq]; exact fun f g => htCol.uniq f g
 
 /-- **Descent of well-supportedness.**  If the colimit object `objIncl n A₀` is well-supported (over

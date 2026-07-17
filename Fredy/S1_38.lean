@@ -23,7 +23,7 @@ import Fredy.S1_41
 import Fredy.S1_81
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
@@ -108,7 +108,7 @@ def composeComposablePath {Q : QSequence} {𝒜 : Type u} [Cat.{v} 𝒜]
     (interp   : Q.objects → 𝒜)
     (arrowMap : (a : Q.arrows) → interp (Q.src a) ⟶ interp (Q.tgt a))
     : (path : List Q.arrows) → (h : path ≠ []) → ComposablePath Q path
-    → interp (Q.src (path.head h)) ⟶ interp (Q.tgt (path.getLast h))
+    → (interp (Q.src (path.head h)) ⟶ interp (Q.tgt (path.getLast h)))
   | [a],            _,  _        => arrowMap a
   | a :: b :: rest, _, ⟨hab, hc⟩ =>
       arrowMap a ≫ (hab ▸ composeComposablePath interp arrowMap (b :: rest)

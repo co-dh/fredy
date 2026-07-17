@@ -16,11 +16,11 @@ import Fredy.S1_52
 import Fredy.S1_56
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -32,11 +32,11 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
     (The map condition: 1_A ≤ R°R and there is a section.) -/
 def Choice (C : 𝒞) : Prop :=
   ∀ {A : 𝒞} (R : BinRel 𝒞 A C), Entire R →
-    ∃ (f : A ⟶ C), ∃ (h : A ⟶ R.src), h ≫ R.colA = Cat.id A ∧ h ≫ R.colB = f
+    ∃ (f : A ⟶ C), ∃ (h : A ⟶ R.src), h ≫ R.colA = 𝟙 A ∧ h ≫ R.colB = f
 
 /-- C is PROJECTIVE if every cover f : A ↠ C splits (∃ s: C→A with s≫f = id). -/
 def Projective (C : 𝒞) : Prop :=
-  ∀ {A : 𝒞} (f : A ⟶ C), Cover f → ∃ (s : C ⟶ A), s ≫ f = Cat.id C
+  ∀ {A : 𝒞} (f : A ⟶ C), Cover f → ∃ (s : C ⟶ A), s ≫ f = 𝟙 C
 
 /-- Every object is choice iff every object is projective (§1.57). -/
 theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Projective C) := by
@@ -46,11 +46,11 @@ theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Proj
     -- hence (graph f)° is entire (by tabulated_is_entire_iff_left_cover).  Apply
     -- Choice at A (the target of the reciprocal) to extract the section.
     have hent : Entire ((graph f)°) :=
-      ((tabulated_is_entire_iff_left_cover f (Cat.id A) ((graph f)°).isMonicPair).mpr hcov)
+      ((tabulated_is_entire_iff_left_cover f (𝟙 A) ((graph f)°).isMonicPair).mpr hcov)
     rcases h A ((graph f)°) hent with ⟨s, k, hkA, hkB⟩
     -- hkA: k ≫ f = id_C,  hkB: k ≫ id_A = s  →  k = s  →  s ≫ f = id_C
     dsimp [graph, reciprocal] at hkA hkB
-    rw [Cat.comp_id] at hkB
+    rw [CategoryTheory.Category.comp_id] at hkB
     -- hkB: k = s, so rewrite the goal (s ≫ f = id_C) to k ≫ f = id_C
     refine ⟨s, ?_⟩
     rw [← hkB]
@@ -66,7 +66,7 @@ theorem choice_iff_projective : (∀ C : 𝒞, Choice C) ↔ (∀ C : 𝒞, Proj
     refine ⟨s ≫ R.colB, s, hs, rfl⟩
 
 /-- AC REGULAR CATEGORY: all objects are choice. -/
-class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
+class ACRegularCategory (𝒞 : Type u) [CategoryTheory.Category.{v} 𝒞] extends
     HasTerminal 𝒞, HasBinaryProducts 𝒞, HasPullbacks 𝒞, HasImages 𝒞 where
   all_choice : ∀ C : 𝒞, Choice C
 
@@ -74,7 +74,7 @@ class ACRegularCategory (𝒞 : Type u) [Cat.{v} 𝒞] extends
     split epi (cover with section) and m is monic. -/
 theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     ∃ (C : 𝒞) (p : A ⟶ C) (m : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Monic m ∧ p ≫ m = f := by
+      (∃ (s : C ⟶ A), s ≫ p = 𝟙 C) ∧ Monic m ∧ p ≫ m = f := by
   -- Resolve instance diamond: the variable line supplies HasImages etc.,
   -- and ACRegularCategory supplies them again.  Use letI to pick one.
   letI : HasBinaryProducts 𝒞 := ACRegularCategory.toHasBinaryProducts
@@ -84,10 +84,10 @@ theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
   have h_all_proj : ∀ C : 𝒞, Projective C := by
     intro C A' f' hcov
     have hent : Entire ((graph f')°) :=
-      ((tabulated_is_entire_iff_left_cover f' (Cat.id A') ((graph f')°).isMonicPair).mpr hcov)
+      ((tabulated_is_entire_iff_left_cover f' (𝟙 A') ((graph f')°).isMonicPair).mpr hcov)
     rcases ACRegularCategory.all_choice A' ((graph f')°) hent with ⟨s, k, hkA, hkB⟩
     dsimp [graph, reciprocal] at hkA hkB
-    rw [Cat.comp_id] at hkB
+    rw [CategoryTheory.Category.comp_id] at hkB
     -- hkB: k = s, hkA: k ≫ f' = id_C.  Provide s and rewrite to k.
     refine ⟨s, ?_⟩
     rw [← hkB]
@@ -102,26 +102,26 @@ theorem ac_factorization [ACRegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B) :
     have hmono_comp : Monic (m ≫ I.arr) := by
       intro W u v huv
       have h1 : u ≫ m = v ≫ m := I.monic _ _ (by
-        simpa [Cat.assoc] using huv)
+        simpa [CategoryTheory.Category.assoc] using huv)
       exact hm _ _ h1
     have h_allows : Allows ⟨D, m ≫ I.arr, hmono_comp⟩ f := by
       refine ⟨g, ?_⟩
-      calc g ≫ (m ≫ I.arr) = (g ≫ m) ≫ I.arr := (Cat.assoc _ _ _).symm
+      calc g ≫ (m ≫ I.arr) = (g ≫ m) ≫ I.arr := (CategoryTheory.Category.assoc _ _ _).symm
         _ = (image.lift f) ≫ I.arr := by rw [hfac]
         _ = f := image.lift_fac f
     have h_le : I.le ⟨D, m ≫ I.arr, hmono_comp⟩ := image_min f _ h_allows
     rcases h_le with ⟨h, hh⟩
     -- hh: h ≫ (m ≫ I.arr) = I.arr
     dsimp at hh
-    have hhm : h ≫ m = Cat.id I.dom := I.monic (h ≫ m) (Cat.id I.dom) (by
-      calc (h ≫ m) ≫ I.arr = h ≫ (m ≫ I.arr) := Cat.assoc _ _ _
+    have hhm : h ≫ m = 𝟙 I.dom := I.monic (h ≫ m) (𝟙 I.dom) (by
+      calc (h ≫ m) ≫ I.arr = h ≫ (m ≫ I.arr) := CategoryTheory.Category.assoc _ _ _
         _ = I.arr := hh
-        _ = Cat.id I.dom ≫ I.arr := (Cat.id_comp _).symm)
-    have hmh : m ≫ h = Cat.id D := hm (m ≫ h) (Cat.id D) (by
-      calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := Cat.assoc _ _ _
-        _ = m ≫ Cat.id I.dom := by rw [hhm]
-        _ = m := Cat.comp_id _
-        _ = Cat.id D ≫ m := (Cat.id_comp _).symm)
+        _ = 𝟙 I.dom ≫ I.arr := (CategoryTheory.Category.id_comp _).symm)
+    have hmh : m ≫ h = 𝟙 D := hm (m ≫ h) (𝟙 D) (by
+      calc (m ≫ h) ≫ m = m ≫ (h ≫ m) := CategoryTheory.Category.assoc _ _ _
+        _ = m ≫ 𝟙 I.dom := by rw [hhm]
+        _ = m := CategoryTheory.Category.comp_id _
+        _ = 𝟙 D ≫ m := (CategoryTheory.Category.id_comp _).symm)
     -- IsIso m expects: ∃ g, m ≫ g = id_D ∧ g ≫ m = id_I.dom
     exact ⟨h, hmh, hhm⟩
   -- Split the cover via projectivity
@@ -185,43 +185,43 @@ theorem ac_factorization_via_idempotent
       e ≫ e = e ∧ e ≫ x = x ∧
       (kernelPairRel e) ⊂ (kernelPairRel x) ∧ (kernelPairRel x) ⊂ (kernelPairRel e))
     {A B : 𝒞} (x : A ⟶ B) : ∃ (C : 𝒞) (p : A ⟶ C) (n : C ⟶ B),
-      (∃ (s : C ⟶ A), s ≫ p = Cat.id C) ∧ Monic n ∧ p ≫ n = x := by
+      (∃ (s : C ⟶ A), s ≫ p = 𝟙 C) ∧ Monic n ∧ p ≫ n = x := by
   -- The outer variable [HasPullbacks 𝒞] (from line 27) provides the pullback
   -- instance; we use it directly for kernelPair, kp₁, etc.
   rcases h_exists x with ⟨e, hee, hex, _hle1, hle2⟩
   -- Equalizer C ↣ A of id_A and e
-  let m := eqMap (Cat.id A) e
+  let m := eqMap (𝟙 A) e
   -- e ≫ id = e = e ≫ e, so e lifts through the equalizer
-  have he_eq : e ≫ Cat.id A = e ≫ e := by rw [Cat.comp_id, hee]
-  let p := eqLift (Cat.id A) e e he_eq
-  have hp_fac : p ≫ m = e := eqLift_fac (Cat.id A) e e he_eq
-  have hm_eq : m ≫ Cat.id A = m ≫ e := eqMap_eq (Cat.id A) e
+  have he_eq : e ≫ 𝟙 A = e ≫ e := by rw [CategoryTheory.Category.comp_id, hee]
+  let p := eqLift (𝟙 A) e e he_eq
+  have hp_fac : p ≫ m = e := eqLift_fac (𝟙 A) e e he_eq
+  have hm_eq : m ≫ 𝟙 A = m ≫ e := eqMap_eq (𝟙 A) e
   have hm_e : m ≫ e = m := by
-    simpa [Cat.comp_id] using hm_eq.symm
+    simpa [CategoryTheory.Category.comp_id] using hm_eq.symm
   -- m is monic (equalizer maps are monic)
-  have hm_mono : Monic m := eqMap_mono (Cat.id A) e
+  have hm_mono : Monic m := eqMap_mono (𝟙 A) e
   -- p has left inverse m (since m ≫ e = m, split the idempotent e)
-  have hm_p : m ≫ p = Cat.id (eqObj (Cat.id A) e) := by
+  have hm_p : m ≫ p = 𝟙 (eqObj (𝟙 A) e) := by
     apply hm_mono
     calc
-      (m ≫ p) ≫ m = m ≫ (p ≫ m) := Cat.assoc _ _ _
+      (m ≫ p) ≫ m = m ≫ (p ≫ m) := CategoryTheory.Category.assoc _ _ _
       _ = m ≫ e := by rw [hp_fac]
       _ = m := hm_e
-      _ = Cat.id _ ≫ m := (Cat.id_comp _).symm
+      _ = 𝟙 _ ≫ m := (CategoryTheory.Category.id_comp _).symm
   -- Build the factorization: x = e ≫ x = p ≫ m ≫ x
-  let C := eqObj (Cat.id A) e
+  let C := eqObj (𝟙 A) e
   let n : C ⟶ B := m ≫ x
   have hx_fac : p ≫ n = x := by
     dsimp [n]
     calc
-      p ≫ (m ≫ x) = (p ≫ m) ≫ x := (Cat.assoc _ _ _).symm
+      p ≫ (m ≫ x) = (p ≫ m) ≫ x := (CategoryTheory.Category.assoc _ _ _).symm
       _ = e ≫ x := by rw [hp_fac]
       _ = x := hex
   -- n is monic: proof uses level(x) ⊂ level(e) (hle2)
   have hn_mono : Monic n := by
     intro W u v h
     have h_mx_eq : (u ≫ m) ≫ x = (v ≫ m) ≫ x := by
-      dsimp [n] at h; simpa [Cat.assoc] using h
+      dsimp [n] at h; simpa [CategoryTheory.Category.assoc] using h
     -- w : W → kernelPair x witnesses (u≫m, v≫m) in ker(x)
     let w := (HasPullbacks.has x x).lift ⟨W, u ≫ m, v ≫ m, h_mx_eq⟩
     have hw1 : w ≫ kp₁ (f := x) = u ≫ m := kp_lift_p₁ (u ≫ m) (v ≫ m) h_mx_eq
@@ -232,13 +232,13 @@ theorem ac_factorization_via_idempotent
     -- Work with kernelPairRel accessors directly (avoid kp₁/kp₂ conversion issues)
     have hleft : (w ≫ h_map) ≫ (kernelPairRel e).colA = u ≫ m := by
       calc
-        (w ≫ h_map) ≫ (kernelPairRel e).colA = w ≫ (h_map ≫ (kernelPairRel e).colA) := Cat.assoc _ _ _
+        (w ≫ h_map) ≫ (kernelPairRel e).colA = w ≫ (h_map ≫ (kernelPairRel e).colA) := CategoryTheory.Category.assoc _ _ _
         _ = w ≫ (kernelPairRel x).colA := by rw [hA]
         _ = w ≫ kp₁ (f := x) := by simp [kernelPairRel]
         _ = u ≫ m := hw1
     have hright : (w ≫ h_map) ≫ (kernelPairRel e).colB = v ≫ m := by
       calc
-        (w ≫ h_map) ≫ (kernelPairRel e).colB = w ≫ (h_map ≫ (kernelPairRel e).colB) := Cat.assoc _ _ _
+        (w ≫ h_map) ≫ (kernelPairRel e).colB = w ≫ (h_map ≫ (kernelPairRel e).colB) := CategoryTheory.Category.assoc _ _ _
         _ = w ≫ (kernelPairRel x).colB := by rw [hB]
         _ = w ≫ kp₂ (f := x) := by simp [kernelPairRel]
         _ = v ≫ m := hw2
@@ -248,11 +248,11 @@ theorem ac_factorization_via_idempotent
         (u ≫ m) ≫ e = ((w ≫ h_map) ≫ (kernelPairRel e).colA) ≫ e :=
           (congrArg (· ≫ e) hleft).symm
         _ = ((w ≫ h_map) ≫ (kernelPairRel e).colB) ≫ e := by
-          simp [kernelPairRel, Cat.assoc, kp_sq (f := e)]
+          simp [kernelPairRel, CategoryTheory.Category.assoc, kp_sq (f := e)]
         _ = (v ≫ m) ≫ e := congrArg (· ≫ e) hright
     -- Simplify via m ≫ e = m: (u ≫ m) ≫ e = u ≫ (m ≫ e) = u ≫ m
     have huv : u ≫ m = v ≫ m := by
-      simpa [Cat.assoc, hm_e] using hae_be
+      simpa [CategoryTheory.Category.assoc, hm_e] using hae_be
     exact hm_mono _ _ huv
   exact ⟨C, p, n, ⟨m, hm_p⟩, hn_mono, hx_fac⟩
 

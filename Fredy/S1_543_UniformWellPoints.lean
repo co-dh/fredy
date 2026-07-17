@@ -42,12 +42,13 @@ import Fredy.S1_543_SliceEquivalence
 open Freyd
 open Freyd.Colim
 open Freyd.LaxColim
+open CategoryTheory
 
 namespace Freyd.UniformWellPoints
 
 universe u
 
-variable {S : Type u} [Cat.{u} S] [PreRegularCategory S]
+variable {S : Type u} [CategoryTheory.Category.{u} S] [PreRegularCategory S]
 
 open Freyd.UniformCap
 open Freyd.CofinalProj
@@ -59,7 +60,7 @@ variable [DecidableEq S]
 /-! ## Generic iso-conjugation reflection (any `Cat`) -/
 
 section IsoConj
-variable {𝒜 : Type u} [Cat.{u} 𝒜]
+variable {𝒜 : Type u} [CategoryTheory.Category.{u} 𝒜]
 
 /-- **Point-transport across iso conjugation.**  If `m = i ≫ s ≫ j` with `j` iso, and `x'` is a point
     of `cod s` that `s` does not factor (`¬∃ y', y' ≫ s = x'`), then `x' ≫ j` is a point of `cod m`
@@ -76,8 +77,8 @@ theorem point_transport_unconj {one E T E' T' : 𝒜} {m : E ⟶ T} {i : E ⟶ E
   have h2 : (y ≫ m) ≫ jinv = (x' ≫ j) ≫ jinv := by rw [hy]
   rw [hfac] at h2
   have hL : (y ≫ (i ≫ s ≫ j)) ≫ jinv = (y ≫ i) ≫ s := by
-    rw [Cat.assoc y, Cat.assoc i, Cat.assoc s, hj1, Cat.comp_id, ← Cat.assoc y i]
-  have hR : (x' ≫ j) ≫ jinv = x' := by rw [Cat.assoc, hj1, Cat.comp_id]
+    rw [CategoryTheory.Category.assoc y, CategoryTheory.Category.assoc i, CategoryTheory.Category.assoc s, hj1, CategoryTheory.Category.comp_id, ← CategoryTheory.Category.assoc y i]
+  have hR : (x' ≫ j) ≫ jinv = x' := by rw [CategoryTheory.Category.assoc, hj1, CategoryTheory.Category.comp_id]
   rw [hL, hR] at h2
   exact h2
 
@@ -88,19 +89,19 @@ theorem mono_of_iso_comp_mono {X Y Z : 𝒜} {e : X ⟶ Y} {s : Y ⟶ Z}
   intro W u v huv
   -- `(u ≫ einv) ≫ (e ≫ s) = u ≫ s`; same for `v`; mono cancels to `u ≫ einv = v ≫ einv`.
   have hkey : (u ≫ einv) ≫ (e ≫ s) = (v ≫ einv) ≫ (e ≫ s) := by
-    rw [Cat.assoc, ← Cat.assoc einv, he2, Cat.id_comp,
-        Cat.assoc, ← Cat.assoc einv, he2, Cat.id_comp, huv]
+    rw [CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc einv, he2, CategoryTheory.Category.id_comp,
+        CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc einv, he2, CategoryTheory.Category.id_comp, huv]
   have h2 := h _ _ hkey
   -- cancel the iso `einv` on the right: post-compose with `e`.
   have := congrArg (fun t => t ≫ e) h2
-  simpa only [Cat.assoc, he2, Cat.comp_id] using this
+  simpa only [CategoryTheory.Category.assoc, he2, CategoryTheory.Category.comp_id] using this
 
 /-- `Monic` is reflected across post-composition with an iso: `Monic (s ≫ e)` with `e` iso ⟹ `Monic s`. -/
 theorem mono_of_mono_comp_iso {X Y Z : 𝒜} {s : X ⟶ Y} {e : Y ⟶ Z}
     (_he : IsIso e) (h : Monic (s ≫ e)) : Monic s := by
   intro W u v huv
   apply h
-  rw [← Cat.assoc, ← Cat.assoc, huv]
+  rw [← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, huv]
 
 /-- `Monic` is reflected across iso conjugation: `Monic (i ≫ s ≫ j)` with `i, j` iso ⟹ `Monic s`. -/
 theorem mono_unconj {W X Y Z : 𝒜} {i : W ⟶ X} {s : X ⟶ Y} {j : Y ⟶ Z}
@@ -150,7 +151,7 @@ private def prodCone (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     the product cone into the chosen base-change pullback. -/
 noncomputable def pushTerminalSlice_cmp (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     prod A (listProd (𝒞 := S) (i.1.map Prod.snd)) ⟶
-      ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)).dom :=
+      ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)).left :=
   (HasPullbacks.has (terminalSliceObj W A).hom ((cofinalProjSystem (S := S)).proj h)).lift (prodCone W A h)
 
 /-- `pushTerminalSlice_cmp` is iso (`isIso_of_two_pullbacks`: the product cone and the chosen
@@ -174,7 +175,8 @@ theorem pushTerminalSlice_cmp_hom (A : S) {i : WSList S} (h : (wsDirected S).le 
 noncomputable def pushTerminalSlice_iso (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     OverHom (sliceEmbedObj (listProd (𝒞 := S) (i.1.map Prod.snd)) A)
       ((laxOfProjSystem' (cofinalProjSystem (S := S))).F h (terminalSliceObj W A)) :=
-  ⟨pushTerminalSlice_cmp W A h, pushTerminalSlice_cmp_hom W A h⟩
+  CategoryTheory.Over.homMk
+    (pushTerminalSlice_cmp W A h) (pushTerminalSlice_cmp_hom W A h)
 
 theorem pushTerminalSlice_iso_isIso (A : S) {i : WSList S} (h : (wsDirected S).le W.base i) :
     @IsIso (Over (listProd (𝒞 := S) (i.1.map Prod.snd))) _ _ _ (pushTerminalSlice_iso W A h) :=
@@ -221,13 +223,13 @@ theorem stageInclFaithful (i : WSList S) :
     iso realignments; conjugation + the faithful embedding reflect `Monic`/`¬IsIso`.) -/
 theorem colimitMono_reflects_to_fibre (A : S)
     {iE : WSList S} {xE : (laxOfProjSystem' (cofinalProjSystem (S := S))).A iE}
-    (m : @Cat.Hom _ (uniformTargetCat W) ⟨iE, xE⟩ ⟨W.base, terminalSliceObj W A⟩)
+    (m : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver ⟨iE, xE⟩ ⟨W.base, terminalSliceObj W A⟩)
     (hm : @Monic _ (uniformTargetCat W) _ _ m) (hniso : ¬ @IsIso _ (uniformTargetCat W) _ _ m) :
     ∃ (U : WSList S) (hbU : (wsDirected S).le W.base U)
       (xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U)
       (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A))
-      (i : @Cat.Hom _ (uniformTargetCat W) ⟨iE, xE⟩ ⟨U, xE'⟩)
-      (j : @Cat.Hom _ (uniformTargetCat W)
+      (i : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver ⟨iE, xE⟩ ⟨U, xE'⟩)
+      (j : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver
         ⟨U, (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)⟩
         ⟨W.base, terminalSliceObj W A⟩),
       Monic g'' ∧ ¬ IsIso g'' ∧
@@ -282,7 +284,9 @@ theorem colimitMono_reflects_to_fibre (A : S)
   -- `¬IsIso g''`: a functor preserves iso, so `IsIso g'' ⟹ IsIso (stageInclL g'')`.
   have hg''_niso : ¬ IsIso g'' := by
     intro h
-    exact hniso_stage (@functor_preserves_iso _ _ _ (uniformTargetCat W) _ hSF _ _ g'' h)
+    exact hniso_stage
+      (functor_preserves_iso
+        (bundledFunctor (hF := hSF) (fun x => (⟨a.1, x⟩ : uniformTargetTy W))) g'' h)
   -- `m = alignGerm ⊚ (stageInclL g'' ⊚ alignGermInv)` (= `i ≫ s ≫ j`): `i = alignGerm`,
   -- `s = stageInclL g'' = (stageInclFunctorL).map g''`, `j = alignGermInv`, both flanks iso.
   exact ⟨a.1, a.2.2, L.F ((wsDirected S).trans a.2.1 haU) xE, g'',
@@ -322,12 +326,12 @@ theorem colimitMono_reflects_to_fibre (A : S)
 def StageDensity (W : WSCover S) : Prop :=
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
   ∀ (A : S), WellSupported A →
-    ∀ {E : uniformTargetTy W} (m : @Cat.Hom _ (uniformTargetCat W) E ⟨W.base, terminalSliceObj W A⟩),
+    ∀ {E : uniformTargetTy W} (m : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver E ⟨W.base, terminalSliceObj W A⟩),
       @Monic _ (uniformTargetCat W) _ _ m → ¬ @IsIso _ (uniformTargetCat W) _ _ m →
-      ∃ (x : @Cat.Hom _ (uniformTargetCat W)
+      ∃ (x : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver
               (@HasTerminal.one _ (uniformTargetCat W) (uniformStepTarget_preRegular W).toHasTerminal)
               ⟨W.base, terminalSliceObj W A⟩),
-        ¬ ∃ (y : @Cat.Hom _ (uniformTargetCat W)
+        ¬ ∃ (y : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver
                   (@HasTerminal.one _ (uniformTargetCat W)
                     (uniformStepTarget_preRegular W).toHasTerminal) E),
           @Cat.comp _ (uniformTargetCat W) _ _ _ y m = x
@@ -349,11 +353,11 @@ def FibreDensity (W : WSCover S) : Prop :=
       (xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U)
       (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)),
       Monic g'' → ¬ IsIso g'' →
-      ∃ (x' : @Cat.Hom _ (uniformTargetCat W)
+      ∃ (x' : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver
                 (@HasTerminal.one _ (uniformTargetCat W)
                   (uniformStepTarget_preRegular W).toHasTerminal)
                 ⟨U, (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)⟩),
-        ¬ ∃ (y' : @Cat.Hom _ (uniformTargetCat W)
+        ¬ ∃ (y' : @Quiver.Hom _ (uniformTargetCat W).toCategoryStruct.toQuiver
                   (@HasTerminal.one _ (uniformTargetCat W)
                     (uniformStepTarget_preRegular W).toHasTerminal) ⟨U, xE'⟩),
           @Cat.comp _ (uniformTargetCat W) _ ⟨U, xE'⟩ _ y'

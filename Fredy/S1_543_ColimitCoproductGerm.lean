@@ -14,7 +14,7 @@
 
 import Fredy.S1_543_CatColimitRegular
 
-open Freyd
+open CategoryTheory Freyd
 
 namespace Freyd.Colim
 
@@ -29,7 +29,7 @@ variable {ι : Type u} {D : Directed ι}
     is an isomorphism.  The inverse is the mediator of `(inl, inr)`; the two
     round-trips collapse by `case_uniq` (on the `coprod A B` side) and the UP
     uniqueness (on the `P` side). -/
-theorem isIso_of_coproduct_up {𝒞 : Type w} [Cat.{w} 𝒞] [HasBinaryCoproducts 𝒞]
+theorem isIso_of_coproduct_up {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasBinaryCoproducts 𝒞]
     {A B P : 𝒞} (i₁ : A ⟶ P) (i₂ : B ⟶ P)
     (hup : ∀ {Z : 𝒞} (f : A ⟶ Z) (g : B ⟶ Z),
       ∃ u : P ⟶ Z, (i₁ ≫ u = f ∧ i₂ ≫ u = g) ∧
@@ -40,20 +40,20 @@ theorem isIso_of_coproduct_up {𝒞 : Type w} [Cat.{w} 𝒞] [HasBinaryCoproduct
   refine ⟨u, ?_, ?_⟩
   · -- `case i₁ i₂ ≫ u = id (coprod A B)`: both copairing-determined, compare via `case_uniq`
     have e1 : HasBinaryCoproducts.inl ≫ (HasBinaryCoproducts.case i₁ i₂ ≫ u)
-        = HasBinaryCoproducts.inl := by rw [← Cat.assoc, HasBinaryCoproducts.case_inl, hu₁]
+        = HasBinaryCoproducts.inl := by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inl, hu₁]
     have e2 : HasBinaryCoproducts.inr ≫ (HasBinaryCoproducts.case i₁ i₂ ≫ u)
-        = HasBinaryCoproducts.inr := by rw [← Cat.assoc, HasBinaryCoproducts.case_inr, hu₂]
+        = HasBinaryCoproducts.inr := by rw [← CategoryTheory.Category.assoc, HasBinaryCoproducts.case_inr, hu₂]
     rw [HasBinaryCoproducts.case_uniq _ _ (HasBinaryCoproducts.case i₁ i₂ ≫ u) e1 e2,
-        HasBinaryCoproducts.case_uniq _ _ (Cat.id (HasBinaryCoproducts.coprod A B))
-          (Cat.comp_id _) (Cat.comp_id _)]
+        HasBinaryCoproducts.case_uniq _ _ (𝟙 (HasBinaryCoproducts.coprod A B))
+          (CategoryTheory.Category.comp_id _) (CategoryTheory.Category.comp_id _)]
   · -- `u ≫ case i₁ i₂ = id P`: both identity-like on `P`, compare via the UP uniqueness
     obtain ⟨_, _, huniq⟩ := hup i₁ i₂
     have e1 : i₁ ≫ (u ≫ HasBinaryCoproducts.case i₁ i₂) = i₁ := by
-      rw [← Cat.assoc, hu₁, HasBinaryCoproducts.case_inl]
+      rw [← CategoryTheory.Category.assoc, hu₁, HasBinaryCoproducts.case_inl]
     have e2 : i₂ ≫ (u ≫ HasBinaryCoproducts.case i₁ i₂) = i₂ := by
-      rw [← Cat.assoc, hu₂, HasBinaryCoproducts.case_inr]
+      rw [← CategoryTheory.Category.assoc, hu₂, HasBinaryCoproducts.case_inr]
     rw [huniq (u ≫ HasBinaryCoproducts.case i₁ i₂) e1 e2,
-        huniq (Cat.id P) (Cat.comp_id _) (Cat.comp_id _)]
+        huniq (𝟙 P) (CategoryTheory.Category.comp_id _) (CategoryTheory.Category.comp_id _)]
 
 /-- **Two same-codomain germs are jointly EPIC in `colimitCat` when jointly
     cancellable under transitions** (joint dual of `colimHom_monicPair_of_rep`).

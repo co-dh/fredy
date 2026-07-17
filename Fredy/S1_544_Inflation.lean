@@ -82,13 +82,13 @@ import Fredy.S1_53_SliceRegular
 import Fredy.S1_65_SlicePreTopos
 import Fredy.S1_543_CatColimitRegular
 
-open Freyd
+open CategoryTheory Freyd
 
 universe u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
 /-! ## §1.544  The inflation `A′`
 
@@ -100,17 +100,17 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts �
     of `A`.  A morphism `s ⟶ t` is a morphism `∏s ⟶ ∏t` in `A` (the forgetful functor
     sends a sequence to its right-folded product `listProd`).  `A′ ≃ A` but its binary
     product is concatenation. -/
-abbrev Infl (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] : Type u := List 𝒞
+abbrev Infl (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] : Type u := List 𝒞
 
 /-- The inflation category structure: `Hom s t := ∏s ⟶ ∏t`, identity and composition
     inherited from `A` — so the three `Cat` laws hold DEFINITIONALLY. -/
-instance inflationCat : Cat.{u} (Infl 𝒞) where
+instance inflationCat : CategoryTheory.Category.{u} (Infl 𝒞) where
   Hom s t := listProd (𝒞 := 𝒞) s ⟶ listProd t
-  id s := Cat.id (listProd s)
+  id s := 𝟙 (listProd s)
   comp f g := f ≫ g
-  id_comp f := Cat.id_comp f
-  comp_id f := Cat.comp_id f
-  assoc f g h := Cat.assoc f g h
+  id_comp f := CategoryTheory.Category.id_comp f
+  comp_id f := CategoryTheory.Category.comp_id f
+  assoc f g h := CategoryTheory.Category.assoc f g h
 
 /-- A morphism of the inflation `s ⟶ t` is *definitionally* a `𝒞`-morphism `∏s ⟶ ∏t`. -/
 theorem inflHom_eq (s t : Infl 𝒞) : (s ⟶ t) = (listProd (𝒞 := 𝒞) s ⟶ listProd t) := rfl
@@ -144,16 +144,16 @@ theorem listProd_singleton (A : 𝒞) :
 instance inflFunctor : Functor (infl : 𝒞 → Infl 𝒞) where
   map {A A'} f := pair (fst ≫ f) snd
   map_id A := by
-    show pair (fst ≫ Cat.id A) snd = Cat.id (prod A HasTerminal.one)
-    rw [Cat.comp_id]
-    exact (pair_uniq fst snd (Cat.id (prod A HasTerminal.one))
-      (Cat.id_comp fst) (Cat.id_comp snd)).symm
+    show pair (fst ≫ 𝟙 A) snd = 𝟙 (prod A HasTerminal.one)
+    rw [CategoryTheory.Category.comp_id]
+    exact (pair_uniq fst snd (𝟙 (prod A HasTerminal.one))
+      (CategoryTheory.Category.id_comp fst) (CategoryTheory.Category.id_comp snd)).symm
   map_comp {A A' A''} f g := by
     show pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
     symm
     apply pair_uniq
-    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
-    · rw [Cat.assoc, snd_pair, snd_pair]
+    · rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc]
+    · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair]
 
 /-- Terminal object of `A′`: the empty sequence (`∏[] = 1`).  (Products/equalizers come after the
     `catForget`/`catTail`/`catArrange` machinery they are built from — see `inflHasBinaryProducts`,
@@ -225,7 +225,7 @@ theorem appendArrange_proj : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
           ≫ ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendProj t' B) = b
       show pair (g ≫ fst) (appendArrange t' B (g ≫ snd) b)
           ≫ ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendProj t' B) = b
-      rw [← Cat.assoc, snd_pair]; exact appendArrange_proj t' B (g ≫ snd) b
+      rw [← CategoryTheory.Category.assoc, snd_pair]; exact appendArrange_proj t' B (g ≫ snd) b
 
 /-- `appendArrange` recovers its `∏t`-part: `appendArrange t B g b ≫ appendForget t B = g`. -/
 theorem appendArrange_forget : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
@@ -240,8 +240,8 @@ theorem appendArrange_forget : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
           ≫ pair (fst : prod a (listProd (t' ++ [B])) ⟶ a)
                  ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendForget t' B) = g
       refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_uniq _ _ g rfl rfl).symm
-      · rw [Cat.assoc, fst_pair, fst_pair]
-      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
+      · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
+      · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair]
         exact appendArrange_forget t' B (g ≫ snd) b
 
 /-- `appendProj`/`appendForget` are JOINTLY MONIC: two arrows into `∏(t ++ [B])` agreeing on
@@ -271,12 +271,12 @@ theorem append_jointly_monic : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
                     ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendForget t' B)) ≫ snd
                   = (q ≫ pair fst ((snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendForget t' B)) ≫ snd :=
         congrArg (· ≫ snd) hf
-      simp only [Cat.assoc, fst_pair, snd_pair] at hfst hsnd
-      simp only [← Cat.assoc] at hsnd
+      simp only [CategoryTheory.Category.assoc, fst_pair, snd_pair] at hfst hsnd
+      simp only [← CategoryTheory.Category.assoc] at hsnd
       -- and the `snd`-component of `hb` (the `appendProj`-equation).
       have hproj : appendProj (a :: t') B
           = (snd : prod a (listProd (t' ++ [B])) ⟶ _) ≫ appendProj t' B := rfl
-      rw [hproj] at hb; simp only [← Cat.assoc] at hb
+      rw [hproj] at hb; simp only [← CategoryTheory.Category.assoc] at hb
       apply fst_snd_jointly_monic
       · exact hfst
       · exact append_jointly_monic t' B _ _ hsnd hb
@@ -302,19 +302,19 @@ theorem append_jointly_monic : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
 /-- `appendMap` preserves identities: `appendMap B (id) = id`.  (Joint monicity: both sides agree
     on `appendProj` and `appendForget`.) -/
 theorem appendMap_id (s : List 𝒞) (B : 𝒞) :
-    appendMap B (Cat.id (listProd (𝒞 := 𝒞) s)) = Cat.id (listProd (s ++ [B])) := by
+    appendMap B (𝟙 (listProd (𝒞 := 𝒞) s)) = 𝟙 (listProd (s ++ [B])) := by
   apply append_jointly_monic s B
-  · rw [appendMap_forget, Cat.comp_id, Cat.id_comp]
-  · rw [appendMap_proj, Cat.id_comp]
+  · rw [appendMap_forget, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
+  · rw [appendMap_proj, CategoryTheory.Category.id_comp]
 
 /-- `appendMap` preserves composition: `appendMap B (f ≫ g) = appendMap B f ≫ appendMap B g`. -/
 theorem appendMap_comp {s t r : List 𝒞} (B : 𝒞)
     (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) (g : listProd t ⟶ listProd r) :
     appendMap B (f ≫ g) = appendMap B f ≫ appendMap B g := by
   apply append_jointly_monic r B
-  · simp only [Cat.assoc, appendMap_forget]
-    rw [← Cat.assoc (f := appendMap B f), appendMap_forget, Cat.assoc]
-  · simp only [Cat.assoc, appendMap_proj]
+  · simp only [CategoryTheory.Category.assoc, appendMap_forget]
+    rw [← CategoryTheory.Category.assoc (f := appendMap B f), appendMap_forget, CategoryTheory.Category.assoc]
+  · simp only [CategoryTheory.Category.assoc, appendMap_proj]
 
 /-! ## §1.544  The strict slice-append functor `A′ → A′/[B]`
 
@@ -329,27 +329,26 @@ theorem appendMap_comp {s t r : List 𝒞} (B : 𝒞)
     it is `⟨appendProj s B, term⟩`.  Its `fst`-component is the appended-factor projection.  Typed
     as an `inflationCat`-hom `(s++[B]) ⟶ infl B` (which IS this `𝒞`-arrow definitionally). -/
 def appendStruct (s : List 𝒞) (B : 𝒞) :
-    @Cat.Hom (Infl 𝒞) inflationCat (s ++ [B]) (infl B) :=
+    @Quiver.Hom (Infl 𝒞) inflationCat.toCategoryStruct.toQuiver (s ++ [B]) (infl B) :=
   (pair (appendProj s B) (term _) : listProd (𝒞 := 𝒞) (s ++ [B]) ⟶ prod B HasTerminal.one)
 
 /-- The slice-append object map `s ↦ ⟨s ++ [B], appendStruct⟩ : A′ → A′/[B]`. -/
 def appendObj (B : 𝒞) (s : Infl 𝒞) : Over (B := infl B) :=
-  { dom := (s ++ [B] : List 𝒞), hom := appendStruct s B }
+  CategoryTheory.Over.mk (appendStruct s B)
 
 /-- The slice-append morphism map: `f : ∏s ⟶ ∏t` becomes the over-hom `appendMap B f`, which
     commutes with the structure maps because `appendMap_proj` keeps the appended factor (and the
     `1`-component is forced by `term`). -/
 def appendOverHom (B : 𝒞) {s t : Infl 𝒞} (f : s ⟶ t) :
     OverHom (appendObj B s) (appendObj B t) :=
-  { f := appendMap B f,
-    w := by
+  CategoryTheory.Over.homMk (appendMap B f) (by
       show appendMap B f ≫ appendStruct t B = appendStruct s B
       -- jointly monic on `B×1` via `fst`/`snd`; `fst`-component is `appendMap_proj`, `snd` is `term`.
       apply fst_snd_jointly_monic
       · show (appendMap B f ≫ pair (appendProj t B) (term _)) ≫ fst
             = pair (appendProj s B) (term _) ≫ fst
-        rw [Cat.assoc, fst_pair, fst_pair]; exact appendMap_proj B f
-      · exact term_uniq _ _ }
+        rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]; exact appendMap_proj B f
+      · exact term_uniq _ _)
 
 /-- **§1.544 — the STRICT slice-append functor `A′ → A′/[B]`.**  Realizes the slice inclusion
     `A → A/B` on the inflation *strictly* (not up to iso): the product of `A′` is concatenation,
@@ -358,11 +357,11 @@ def appendOverHom (B : 𝒞) {s t : Infl 𝒞} (f : s ⟶ t) :
 instance appendFunctor (B : 𝒞) :
     @Functor (Infl 𝒞) inflationCat (Over (B := infl B)) (overCat (infl B)) (appendObj B) where
   map {s t} f := appendOverHom B f
-  map_id s := OverHom.ext (by
-    show appendMap B (Cat.id (listProd s)) = Cat.id (listProd (s ++ [B]))
+  map_id s := CategoryTheory.Over.OverMorphism.ext (by
+    change appendMap B (𝟙 (listProd s)) = 𝟙 (listProd (s ++ [B]))
     exact appendMap_id s B)
-  map_comp {s t r} f g := OverHom.ext (by
-    show appendMap B (f ≫ g) = appendMap B f ≫ appendMap B g
+  map_comp {s t r} f g := CategoryTheory.Over.OverMorphism.ext (by
+    change appendMap B (f ≫ g) = appendMap B f ≫ appendMap B g
     exact appendMap_comp B f g)
 
 /-! ## §1.547  Strict cancellation and the concatenation order on the inflation
@@ -426,7 +425,7 @@ theorem appendList_append (d e : List 𝒞) (s : Infl 𝒞) :
 
 /-- Tail projection `∏(s ++ d) ⟶ ∏d` onto the appended suffix `d` (recursion on `s`). -/
 def catTail : ∀ (s d : List 𝒞), listProd (𝒞 := 𝒞) (s ++ d) ⟶ listProd d
-  | [],      _ => Cat.id _
+  | [],      _ => 𝟙 _
   | _ :: s', d => (snd : prod _ (listProd (s' ++ d)) ⟶ listProd (s' ++ d)) ≫ catTail s' d
 
 /-- Rest projection `∏(s ++ d) ⟶ ∏s`, forgetting the appended suffix `d` (recursion on `s`). -/
@@ -452,11 +451,11 @@ def catMap {s t : List 𝒞} (d : List 𝒞) (f : listProd (𝒞 := 𝒞) s ⟶ 
 theorem catArrange_tail : ∀ (t d : List 𝒞) {X : 𝒞}
     (g : X ⟶ listProd (𝒞 := 𝒞) t) (b : X ⟶ listProd d),
     catArrange t d g b ≫ catTail t d = b
-  | [],      d, X, g, b => Cat.comp_id b
+  | [],      d, X, g, b => CategoryTheory.Category.comp_id b
   | a :: t', d, X, g, b => by
       show catArrange (a :: t') d g b ≫ ((snd : _) ≫ catTail t' d) = b
       show pair (g ≫ fst) (catArrange t' d (g ≫ snd) b) ≫ ((snd : _) ≫ catTail t' d) = b
-      rw [← Cat.assoc, snd_pair]; exact catArrange_tail t' d (g ≫ snd) b
+      rw [← CategoryTheory.Category.assoc, snd_pair]; exact catArrange_tail t' d (g ≫ snd) b
 
 /-- `catArrange` recovers its `∏t`-part: `catArrange t d g b ≫ catForget t d = g`. -/
 theorem catArrange_forget : ∀ (t d : List 𝒞) {X : 𝒞}
@@ -468,8 +467,8 @@ theorem catArrange_forget : ∀ (t d : List 𝒞) {X : 𝒞}
           ≫ pair (fst : prod a (listProd (t' ++ d)) ⟶ a)
                  ((snd : prod a (listProd (t' ++ d)) ⟶ _) ≫ catForget t' d) = g
       refine (pair_uniq (g ≫ fst) (g ≫ snd) _ ?_ ?_).trans (pair_uniq _ _ g rfl rfl).symm
-      · rw [Cat.assoc, fst_pair, fst_pair]
-      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair]
+      · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
+      · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair]
         exact catArrange_forget t' d (g ≫ snd) b
 
 /-- `catTail`/`catForget` are JOINTLY MONIC into `∏(t ++ d)`. -/
@@ -479,7 +478,7 @@ theorem cat_jointly_monic : ∀ (t d : List 𝒞) {X : 𝒞}
     (hb : p ≫ catTail t d = q ≫ catTail t d), p = q
   | [],      d, X, p, q, _, hb => by
       -- `∏([]++d) = ∏d`; `catTail [] d = id`, so `hb : p = q` directly.
-      rw [catTail, Cat.comp_id, Cat.comp_id] at hb; exact hb
+      rw [catTail, CategoryTheory.Category.comp_id, CategoryTheory.Category.comp_id] at hb; exact hb
   | a :: t', d, X, p, q, hf, hb => by
       have hforget : catForget (a :: t') d
           = pair (fst : prod a (listProd (t' ++ d)) ⟶ a)
@@ -493,11 +492,11 @@ theorem cat_jointly_monic : ∀ (t d : List 𝒞) {X : 𝒞}
                     ((snd : prod a (listProd (t' ++ d)) ⟶ _) ≫ catForget t' d)) ≫ snd
                   = (q ≫ pair fst ((snd : prod a (listProd (t' ++ d)) ⟶ _) ≫ catForget t' d)) ≫ snd :=
         congrArg (· ≫ snd) hf
-      simp only [Cat.assoc, fst_pair, snd_pair] at hfst hsnd
-      simp only [← Cat.assoc] at hsnd
+      simp only [CategoryTheory.Category.assoc, fst_pair, snd_pair] at hfst hsnd
+      simp only [← CategoryTheory.Category.assoc] at hsnd
       have hproj : catTail (a :: t') d
           = (snd : prod a (listProd (t' ++ d)) ⟶ _) ≫ catTail t' d := rfl
-      rw [hproj] at hb; simp only [← Cat.assoc] at hb
+      rw [hproj] at hb; simp only [← CategoryTheory.Category.assoc] at hb
       apply fst_snd_jointly_monic
       · exact hfst
       · exact cat_jointly_monic t' d _ _ hsnd hb
@@ -511,18 +510,18 @@ theorem cat_jointly_monic : ∀ (t d : List 𝒞) {X : 𝒞}
   catArrange_forget t d (catForget s d ≫ f) (catTail s d)
 
 theorem catMap_id (s d : List 𝒞) :
-    catMap d (Cat.id (listProd (𝒞 := 𝒞) s)) = Cat.id (listProd (s ++ d)) := by
+    catMap d (𝟙 (listProd (𝒞 := 𝒞) s)) = 𝟙 (listProd (s ++ d)) := by
   apply cat_jointly_monic s d
-  · rw [catMap_forget, Cat.comp_id, Cat.id_comp]
-  · rw [catMap_tail, Cat.id_comp]
+  · rw [catMap_forget, CategoryTheory.Category.comp_id, CategoryTheory.Category.id_comp]
+  · rw [catMap_tail, CategoryTheory.Category.id_comp]
 
 theorem catMap_comp {s t r : List 𝒞} (d : List 𝒞)
     (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) (g : listProd t ⟶ listProd r) :
     catMap d (f ≫ g) = catMap d f ≫ catMap d g := by
   apply cat_jointly_monic r d
-  · simp only [Cat.assoc, catMap_forget]
-    rw [← Cat.assoc (f := catMap d f), catMap_forget, Cat.assoc]
-  · simp only [Cat.assoc, catMap_tail]
+  · simp only [CategoryTheory.Category.assoc, catMap_forget]
+    rw [← CategoryTheory.Category.assoc (f := catMap d f), catMap_forget, CategoryTheory.Category.assoc]
+  · simp only [CategoryTheory.Category.assoc, catMap_tail]
 
 /-! ### `catMap d f` is a PULLBACK of `f` along the projection `catForget t d`
 
@@ -557,9 +556,9 @@ theorem catMap_isPullback {s t : List 𝒞} (d : List 𝒞) (f : listProd (𝒞 
   have hu2 : u ≫ catMap d f = q := by
     apply cat_jointly_monic t d
     · -- forget-part: `u ≫ catMap d f ≫ catForget t d = u ≫ catForget s d ≫ f = p ≫ f = q ≫ catForget t d`
-      rw [Cat.assoc, catMap_forget, ← Cat.assoc, hu1, hcw]
+      rw [CategoryTheory.Category.assoc, catMap_forget, ← CategoryTheory.Category.assoc, hu1, hcw]
     · -- tail-part: `u ≫ catMap d f ≫ catTail t d = u ≫ catTail s d = q ≫ catTail t d`
-      rw [Cat.assoc, catMap_tail]
+      rw [CategoryTheory.Category.assoc, catMap_tail]
       exact catArrange_tail s d p (q ≫ catTail t d)
   refine ⟨u, ⟨hu1, hu2⟩, ?_⟩
   intro v0 hv1 hv2
@@ -572,7 +571,7 @@ theorem catMap_isPullback {s t : List 𝒞} (d : List 𝒞) (f : listProd (𝒞 
   · -- forget-part: both equal `p`.
     rw [hv1', hu1]
   · -- tail-part: both equal `q ≫ catTail t d` (via `catMap d f ≫ catTail t d = catTail s d`).
-    rw [← catMap_tail (d := d) f, ← Cat.assoc, ← Cat.assoc, hv2', hu2]
+    rw [← catMap_tail (d := d) f, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, hv2', hu2]
 
 
 /-! ### §1.544  `A′` is Cartesian: binary products and equalizers
@@ -614,22 +613,22 @@ instance inflHasEqualizers [HasEqualizers 𝒞] : HasEqualizers (Infl 𝒞) wher
           eq := by
             show ((fst : prod E one ⟶ E) ≫ eqMap f' g') ≫ f'
                 = ((fst : prod E one ⟶ E) ≫ eqMap f' g') ≫ g'
-            rw [Cat.assoc, Cat.assoc, eqMap_eq] }
+            rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, eqMap_eq] }
       lift c :=
         (eqLift f' g' c.map c.eq ≫ prodOneRightInv E :
           listProd (𝒞 := 𝒞) c.dom ⟶ listProd [E])
       fac c := by
         show (eqLift f' g' c.map c.eq ≫ prodOneRightInv E)
             ≫ ((fst : prod E one ⟶ E) ≫ eqMap f' g') = c.map
-        rw [← Cat.assoc, Cat.assoc (eqLift f' g' c.map c.eq),
-          show prodOneRightInv E ≫ fst = Cat.id E from fst_pair _ _, Cat.comp_id,
+        rw [← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc (eqLift f' g' c.map c.eq),
+          show prodOneRightInv E ≫ fst = 𝟙 E from fst_pair _ _, CategoryTheory.Category.comp_id,
           eqLift_fac]
       uniq c m hm := by
         -- `m : ∏c.dom ⟶ E×1`; `m ≫ (fst ≫ eqMap) = c.map`.  `m ≫ fst` is the unique `A`-lift.
         let cmap : listProd (𝒞 := 𝒞) c.dom ⟶ listProd s := c.map
         have hmfst : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ listProd s)
             ((m ≫ (fst : prod E one ⟶ E)) ≫ eqMap f' g') cmap := by
-          rw [Cat.assoc]; exact hm
+          rw [CategoryTheory.Category.assoc]; exact hm
         have hceq : cmap ≫ f' = cmap ≫ g' := c.eq
         have hlift : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ E)
             (m ≫ (fst : prod E one ⟶ E)) (eqLift f' g' cmap hceq) :=
@@ -637,7 +636,7 @@ instance inflHasEqualizers [HasEqualizers 𝒞] : HasEqualizers (Infl 𝒞) wher
         -- `m = (m ≫ fst) ≫ unitor⁻¹`, and `m ≫ fst = eqLift` (the unique `A`-lift).
         have key : @Eq (listProd (𝒞 := 𝒞) c.dom ⟶ prod E one)
             ((m ≫ (fst : prod E one ⟶ E)) ≫ prodOneRightInv E) m := by
-          rw [Cat.assoc, fst_prodOneRightInv]; exact Cat.comp_id m
+          rw [CategoryTheory.Category.assoc, fst_prodOneRightInv]; exact CategoryTheory.Category.comp_id m
         rw [← key, hlift] }
 
 /-- `A′` has pullbacks (Cartesian ⟹ pullbacks, `products_equalizers_implies_pullbacks`). -/
@@ -667,13 +666,13 @@ theorem inflMono_to_mono {C t : Infl 𝒞} {m : listProd (𝒞 := 𝒞) C ⟶ li
   intro W p q hpq
   -- lift `p q : W ⟶ ∏C` to `A`-arrows out of `∏[W] = W×1` via the unitor `fst`.
   have hlift : ((fst : prod W one ⟶ W) ≫ p) ≫ m = ((fst : prod W one ⟶ W) ≫ q) ≫ m := by
-    rw [Cat.assoc, Cat.assoc, hpq]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, hpq]
   have hC : (fst : prod W one ⟶ W) ≫ p = (fst : prod W one ⟶ W) ≫ q :=
     hm' (V := ([W] : List 𝒞)) ((fst : prod W one ⟶ W) ≫ p) ((fst : prod W one ⟶ W) ≫ q) hlift
   -- cancel the iso `fst : W×1 ⟶ W` on the left (precompose `prodOneRightInv W`).
   have := congrArg (fun u => prodOneRightInv W ≫ u) hC
-  simpa only [← Cat.assoc, show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _,
-    Cat.id_comp] using this
+  simpa only [← CategoryTheory.Category.assoc, show prodOneRightInv W ≫ fst = 𝟙 W from fst_pair _ _,
+    CategoryTheory.Category.id_comp] using this
 
 /-- `Cover` carries from `A′` to `A` (same underlying arrow `∏s ⟶ ∏t`).  An `A`-mono `m : C ⟶ ∏t`
     that the underlying `f` factors through is wrapped to the `A′`-mono `fst ≫ m : [C] ⟶ t` (`fst`
@@ -686,10 +685,10 @@ theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ 
   have hm𝒞 : Monic (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := by
     intro W p q hpq
     have h1 : (p ≫ (fst : prod C one ⟶ C)) ≫ m = (q ≫ (fst : prod C one ⟶ C)) ≫ m := by
-      rw [Cat.assoc, Cat.assoc]; exact hpq
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hpq
     have h2 : p ≫ (fst : prod C one ⟶ C) = q ≫ (fst : prod C one ⟶ C) := hm _ _ h1
     have := congrArg (fun u => u ≫ prodOneRightInv C) h2
-    simpa only [Cat.assoc, fst_prodOneRightInv, Cat.comp_id] using this
+    simpa only [CategoryTheory.Category.assoc, fst_prodOneRightInv, CategoryTheory.Category.comp_id] using this
   -- `[C] : Infl`, `∏[C] = C×1`; bind the underlying `A`-arrow `M := fst ≫ m : C×1 ⟶ ∏t`, which IS
   -- the `A′`-arrow `[C] ⟶ t` (defeq).  Stating the `A′`-mono over `M` avoids the `A′`-vs-`A` `≫` clash.
   let M : listProd (𝒞 := 𝒞) ([C] : List 𝒞) ⟶ listProd t := (fst : prod C one ⟶ C) ≫ m
@@ -699,14 +698,14 @@ theorem inflCover_to_cover {s t : Infl 𝒞} {f : listProd (𝒞 := 𝒞) s ⟶ 
   let g' : listProd (𝒞 := 𝒞) s ⟶ listProd ([C] : List 𝒞) := g ≫ prodOneRightInv C
   have hfac : g' ≫ M = f := by
     show (g ≫ prodOneRightInv C) ≫ ((fst : prod C one ⟶ C) ≫ m) = f
-    rw [← Cat.assoc, Cat.assoc g, show prodOneRightInv C ≫ fst = Cat.id C from fst_pair _ _,
-      Cat.comp_id, hgm]
+    rw [← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc g, show prodOneRightInv C ≫ fst = 𝟙 C from fst_pair _ _,
+      CategoryTheory.Category.comp_id, hgm]
   have hiso : IsIso (𝒞 := Infl 𝒞) (X := ([C] : List 𝒞)) (Y := t) M :=
     hf (C := ([C] : List 𝒞)) M g' hmInfl hfac
   -- `IsIso(A′) (fst ≫ m) = IsIso(A) (fst ≫ m)`; `m = prodOneRightInv C ≫ (fst ≫ m)`, iso∘iso.
   have hiso𝒞 : IsIso (𝒞 := 𝒞) ((fst : prod C one ⟶ C) ≫ m) := hiso
   have hmeq : m = prodOneRightInv C ≫ ((fst : prod C one ⟶ C) ≫ m) := by
-    rw [← Cat.assoc, show prodOneRightInv C ≫ fst = Cat.id C from fst_pair _ _, Cat.id_comp]
+    rw [← CategoryTheory.Category.assoc, show prodOneRightInv C ≫ fst = 𝟙 C from fst_pair _ _, CategoryTheory.Category.id_comp]
   have hinvIso : IsIso (𝒞 := 𝒞) (prodOneRightInv C) :=
     ⟨(fst : prod C one ⟶ C), fst_pair _ _, fst_prodOneRightInv⟩
   rw [hmeq]; exact isIso_comp (𝒞 := 𝒞) hinvIso hiso𝒞
@@ -749,7 +748,7 @@ theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
       π₂ := ((fst : prod W one ⟶ W) ≫ d.π₂ : listProd (𝒞 := 𝒞) [W] ⟶ listProd cc),
       w := by
         show ((fst : prod W one ⟶ W) ≫ d.π₁) ≫ f = ((fst : prod W one ⟶ W) ≫ d.π₂) ≫ g
-        rw [Cat.assoc, Cat.assoc, d.w] }
+        rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, d.w] }
   obtain ⟨u, ⟨hu1, hu2⟩, huniq⟩ := hc dInfl
   -- `u : ∏[W] ⟶ c.pt`, i.e. `W×1 ⟶ ∏c.pt`.  The `A`-lift is `prodOneRightInv W ≫ u : W ⟶ ∏c.pt`.
   -- Bind the legs/lift as `A`-arrows so `hu1`/`hu2`'s compositions are read in `A` (avoiding the
@@ -763,16 +762,16 @@ theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
   · -- `(prodOneRightInv W ≫ u) ≫ c.π₁ = d.π₁`
     show (prodOneRightInv W ≫ u𝒞) ≫ cπ₁ = d.π₁
     calc (prodOneRightInv W ≫ u𝒞) ≫ cπ₁
-          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₁) := Cat.assoc _ _ _
+          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₁) := CategoryTheory.Category.assoc _ _ _
       _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₁) := by rw [huc1]
-      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₁ := (Cat.assoc _ _ _).symm
-      _ = d.π₁ := by rw [show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _, Cat.id_comp]
+      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₁ := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = d.π₁ := by rw [show prodOneRightInv W ≫ fst = 𝟙 W from fst_pair _ _, CategoryTheory.Category.id_comp]
   · show (prodOneRightInv W ≫ u𝒞) ≫ cπ₂ = d.π₂
     calc (prodOneRightInv W ≫ u𝒞) ≫ cπ₂
-          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₂) := Cat.assoc _ _ _
+          = prodOneRightInv W ≫ (u𝒞 ≫ cπ₂) := CategoryTheory.Category.assoc _ _ _
       _ = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ d.π₂) := by rw [huc2]
-      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₂ := (Cat.assoc _ _ _).symm
-      _ = d.π₂ := by rw [show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _, Cat.id_comp]
+      _ = (prodOneRightInv W ≫ (fst : prod W one ⟶ W)) ≫ d.π₂ := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = d.π₂ := by rw [show prodOneRightInv W ≫ fst = 𝟙 W from fst_pair _ _, CategoryTheory.Category.id_comp]
   · -- uniqueness: any `A`-lift `v : W ⟶ ∏c.pt` agreeing on both legs equals `prodOneRightInv W ≫ u`.
     intro v hv1 hv2
     have hvc1 : (v : W ⟶ listProd c.pt) ≫ cπ₁ = d.π₁ := hv1
@@ -783,16 +782,16 @@ theorem inflIsPullback_to_isPullback {a b cc : Infl 𝒞}
       refine huniq vInfl ?_ ?_
       · show ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₁ = (fst : prod W one ⟶ W) ≫ d.π₁
         calc ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₁
-              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₁) := Cat.assoc _ _ _
+              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₁) := CategoryTheory.Category.assoc _ _ _
           _ = (fst : prod W one ⟶ W) ≫ d.π₁ := by rw [hvc1]
       · show ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₂ = (fst : prod W one ⟶ W) ≫ d.π₂
         calc ((fst : prod W one ⟶ W) ≫ v) ≫ cπ₂
-              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₂) := Cat.assoc _ _ _
+              = (fst : prod W one ⟶ W) ≫ (v ≫ cπ₂) := CategoryTheory.Category.assoc _ _ _
           _ = (fst : prod W one ⟶ W) ≫ d.π₂ := by rw [hvc2]
     -- cancel the unitor: `v = prodOneRightInv W ≫ (fst ≫ v) = prodOneRightInv W ≫ u`.
     calc v = prodOneRightInv W ≫ ((fst : prod W one ⟶ W) ≫ v) := by
-            rw [← Cat.assoc, show prodOneRightInv W ≫ fst = Cat.id W from fst_pair _ _,
-              Cat.id_comp]
+            rw [← CategoryTheory.Category.assoc, show prodOneRightInv W ≫ fst = 𝟙 W from fst_pair _ _,
+              CategoryTheory.Category.id_comp]
       _ = prodOneRightInv W ≫ vInfl := rfl
       _ = prodOneRightInv W ≫ u𝒞 := by rw [hvInfl]
 
@@ -863,13 +862,13 @@ theorem infl_preserves_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
   have hdw : dπ₁ ≫ If = dπ₂ ≫ Ig := d.w
   have hpw : p₁ ≫ f = p₂ ≫ g := by
     show (dπ₁ ≫ fst) ≫ f = (dπ₂ ≫ fst) ≫ g
-    rw [Cat.assoc, Cat.assoc, ← hIf, ← hIg, ← Cat.assoc, ← Cat.assoc, hdw]
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, ← hIf, ← hIg, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, hdw]
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hc ⟨listProd (𝒞 := 𝒞) d.pt, p₁, p₂, hpw⟩
   -- The `A′`-lift is `U := u ≫ prodOneRightInv c.pt : ∏d.pt ⟶ c.pt×1`.
   let U : listProd (𝒞 := 𝒞) d.pt ⟶ prod c.pt one := u ≫ prodOneRightInv c.pt
   have hUfst : U ≫ (fst : prod c.pt one ⟶ c.pt) = u := by
     show (u ≫ prodOneRightInv c.pt) ≫ (fst : prod c.pt one ⟶ c.pt) = u
-    rw [Cat.assoc, show prodOneRightInv c.pt ≫ fst = Cat.id c.pt from fst_pair _ _, Cat.comp_id]
+    rw [CategoryTheory.Category.assoc, show prodOneRightInv c.pt ≫ fst = 𝟙 c.pt from fst_pair _ _, CategoryTheory.Category.comp_id]
   -- `U ≫ infl c.π_i = d.π_i` by joint monicity on `_×1`: `fst`-leg is `u ≫ c.π_i = p_i`, `snd`→`term`.
   have hUleg : ∀ {Z : 𝒞} (k : c.pt ⟶ Z) (Ik : prod c.pt one ⟶ prod Z one)
       (e : listProd (𝒞 := 𝒞) d.pt ⟶ prod Z one),
@@ -878,7 +877,7 @@ theorem infl_preserves_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
     intro Z k Ik e hIk hk
     apply fst_snd_jointly_monic
     · -- `fst`: `(U ≫ Ik) ≫ fst = (U ≫ fst) ≫ k = u ≫ k = e ≫ fst`.
-      rw [Cat.assoc, inflMap_fst k Ik hIk, ← Cat.assoc, hUfst, hk]
+      rw [CategoryTheory.Category.assoc, inflMap_fst k Ik hIk, ← CategoryTheory.Category.assoc, hUfst, hk]
     · exact term_uniq _ _
   refine ⟨U, ⟨hUleg c.π₁ (inflFunctor.map c.π₁) dπ₁ rfl hu₁,
               hUleg c.π₂ (inflFunctor.map c.π₂) dπ₂ rfl hu₂⟩, ?_⟩
@@ -894,9 +893,9 @@ theorem infl_preserves_isPullback {A B C : 𝒞} {f : A ⟶ C} {g : B ⟶ C}
   have hIπ₂ : Iπ₂ ≫ (fst : prod B one ⟶ B) = (fst : prod c.pt one ⟶ c.pt) ≫ c.π₂ :=
     inflMap_fst c.π₂ Iπ₂ rfl
   have hvfst₁ : (v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt)) ≫ c.π₁ = p₁ := by
-    rw [Cat.assoc, ← hIπ₁, ← Cat.assoc, hvI₁]
+    rw [CategoryTheory.Category.assoc, ← hIπ₁, ← CategoryTheory.Category.assoc, hvI₁]
   have hvfst₂ : (v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt)) ≫ c.π₂ = p₂ := by
-    rw [Cat.assoc, ← hIπ₂, ← Cat.assoc, hvI₂]
+    rw [CategoryTheory.Category.assoc, ← hIπ₂, ← CategoryTheory.Category.assoc, hvI₂]
   have hvu : v𝒞 ≫ (fst : prod c.pt one ⟶ c.pt) = u := huniq _ hvfst₁ hvfst₂
   -- `v = U` by joint monicity: `fst`-leg is `v ≫ fst = u = U ≫ fst`, `snd`-leg forced by `term`.
   show v𝒞 = U
@@ -930,10 +929,10 @@ theorem catMap_mono {s t : List 𝒞} (d : List 𝒞) {m : listProd (𝒞 := �
   apply cat_jointly_monic s d (X := listProd (𝒞 := 𝒞) W)
   · -- forget: cancel `m` (mono in `A`) after post-composing `catForget t d`.
     refine hm𝒞 (W := listProd (𝒞 := 𝒞) W) (p ≫ catForget s d) (q ≫ catForget s d) ?_
-    rw [Cat.assoc, Cat.assoc, ← catMap_forget d m, ← Cat.assoc, ← Cat.assoc, hpq']
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, ← catMap_forget d m, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, hpq']
   · -- tail: post-compose `catTail t d`, which `catMap d m` carries to `catTail s d`.
     show p ≫ catTail s d = q ≫ catTail s d
-    rw [← catMap_tail (d := d) m, ← Cat.assoc, ← Cat.assoc, hpq']
+    rw [← catMap_tail (d := d) m, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, hpq']
 
 /-- **§1.544 — `A′` is pre-regular** (Cartesian + pullbacks transfer covers).  `PreRegularCategory 𝒞`
     supplies products + pullbacks, hence equalizers (`products_pullbacks_implies_equalizers`), which
@@ -970,15 +969,15 @@ theorem cover_comp_iso_right {X Y Y' : 𝒞} {e : X ⟶ Y} (he : Cover e) {i : Y
     intro W p q hpq
     apply hm
     have := congrArg (fun u => u ≫ i) hpq
-    simpa only [Cat.assoc, hi'i, Cat.comp_id] using this
+    simpa only [CategoryTheory.Category.assoc, hi'i, CategoryTheory.Category.comp_id] using this
   have hfac : g ≫ (m ≫ i') = e := by
-    calc g ≫ (m ≫ i') = (g ≫ m) ≫ i' := (Cat.assoc _ _ _).symm
+    calc g ≫ (m ≫ i') = (g ≫ m) ≫ i' := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (e ≫ i) ≫ i' := by rw [hgm]
-      _ = e ≫ (i ≫ i') := Cat.assoc _ _ _
-      _ = e := by rw [hii, Cat.comp_id]
+      _ = e ≫ (i ≫ i') := CategoryTheory.Category.assoc _ _ _
+      _ = e := by rw [hii, CategoryTheory.Category.comp_id]
   have hmi'_iso : IsIso (m ≫ i') := he (m ≫ i') g hmi'_mono hfac
   -- `m = (m ≫ i') ≫ i` (since `i' ≫ i = id`), a composite of two isos.
-  have hmeq : m = (m ≫ i') ≫ i := by rw [Cat.assoc, hi'i, Cat.comp_id]
+  have hmeq : m = (m ≫ i') ≫ i := by rw [CategoryTheory.Category.assoc, hi'i, CategoryTheory.Category.comp_id]
   rw [hmeq]; exact isIso_comp hmi'_iso ⟨i', hii, hi'i⟩
 
 /-- The `A`-arrow `fst ≫ m` (`J×1 ⟶ ∏t`) is monic when `m : J ↣ ∏t` is (`fst` iso, cancel via
@@ -987,13 +986,13 @@ theorem fst_comp_monic {J : 𝒞} {Z : 𝒞} {m : J ⟶ Z} (hm : Monic m) :
     Monic ((fst : prod J one ⟶ J) ≫ m) := by
   intro W p q hpq
   have h1 : (p ≫ (fst : prod J one ⟶ J)) ≫ m = (q ≫ (fst : prod J one ⟶ J)) ≫ m := by
-    rw [Cat.assoc, Cat.assoc]; exact hpq
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact hpq
   have h2 : p ≫ (fst : prod J one ⟶ J) = q ≫ (fst : prod J one ⟶ J) := hm _ _ h1
   have := congrArg (fun u => u ≫ prodOneRightInv J) h2
-  simpa only [Cat.assoc, fst_prodOneRightInv, Cat.comp_id] using this
+  simpa only [CategoryTheory.Category.assoc, fst_prodOneRightInv, CategoryTheory.Category.comp_id] using this
 
 /-- The image of `f : s ⟶ t` in `A′` (i.e. of `f : ∏s ⟶ ∏t` in `A`): the SINGLETON `[J]` of the
-    `A`-image object `J := (image f).dom`, with `A′`-mono `fst ≫ (image f).arr : ∏[J] = J×1 ⟶ ∏t`. -/
+    `A`-image object `J := (image f).left`, with `A′`-mono `fst ≫ (image f).arr : ∏[J] = J×1 ⟶ ∏t`. -/
 noncomputable def inflImage [RegularCategory 𝒞] {s t : Infl 𝒞}
     (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) : Subobject (Infl 𝒞) t :=
   let f' : listProd (𝒞 := 𝒞) s ⟶ listProd t := f
@@ -1029,8 +1028,8 @@ theorem inflImage_isImage [RegularCategory 𝒞] {s t : Infl 𝒞}
   have hfac : @Eq (listProd (𝒞 := 𝒞) s ⟶ listProd t) (e ≫ (inflImage f).arr) f := by
     show (image.lift (𝒞 := 𝒞) f' ≫ prodOneRightInv J)
         ≫ ((fst : prod J one ⟶ J) ≫ (image (𝒞 := 𝒞) f').arr) = f'
-    rw [← Cat.assoc, Cat.assoc (image.lift (𝒞 := 𝒞) f'),
-      show prodOneRightInv J ≫ fst = Cat.id J from fst_pair _ _, Cat.comp_id,
+    rw [← CategoryTheory.Category.assoc, CategoryTheory.Category.assoc (image.lift (𝒞 := 𝒞) f'),
+      show prodOneRightInv J ≫ fst = 𝟙 J from fst_pair _ _, CategoryTheory.Category.comp_id,
       image.lift_fac]
   exact Colim.coverMono_isImage (𝒞 := Infl 𝒞) (inflImage f).monic hcov hfac
 
@@ -1053,18 +1052,17 @@ noncomputable instance inflRegular [RegularCategory 𝒞] : RegularCategory (Inf
 /-- The single-factor slice base-change object map `A′/V → A′/(V++[B])`, `⟨s,h⟩ ↦ ⟨s++[B], appendMap B h⟩`.
     The structure map `appendMap B h : ∏(s++[B]) ⟶ ∏(V++[B])` extends `h` by `id` on the `B`-factor. -/
 def sliceAppendObj (B : 𝒞) {V : Infl 𝒞} (X : Over (B := V)) : Over (B := (V ++ [B] : List 𝒞)) :=
-  { dom := (X.dom ++ [B] : List 𝒞),
-    hom := (appendMap B X.hom : listProd (𝒞 := 𝒞) (X.dom ++ [B]) ⟶ listProd (V ++ [B])) }
+  CategoryTheory.Over.mk
+    (appendMap B X.hom : listProd (𝒞 := 𝒞) (X.left ++ [B]) ⟶ listProd (V ++ [B]))
 
-/-- The single-factor slice base-change morphism map: an over-hom `g : X ⟶ Y` (i.e. `g.f ≫ Y.hom =
-    X.hom`) maps to `appendMap B g.f`, whose triangle `appendMap B g.f ≫ appendMap B Y.hom =
-    appendMap B X.hom` is `appendMap_comp` applied to `g.f ≫ Y.hom = X.hom`. -/
+/-- The single-factor slice base-change morphism map: an over-hom `g : X ⟶ Y` (i.e. `g.left ≫ Y.hom =
+    X.hom`) maps to `appendMap B g.left`, whose triangle `appendMap B g.left ≫ appendMap B Y.hom =
+    appendMap B X.hom` is `appendMap_comp` applied to `g.left ≫ Y.hom = X.hom`. -/
 def sliceAppendMap (B : 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)} (g : OverHom X Y) :
     OverHom (sliceAppendObj B X) (sliceAppendObj B Y) :=
-  { f := appendMap B g.f,
-    w := by
-      show appendMap B g.f ≫ appendMap B Y.hom = appendMap B X.hom
-      rw [← appendMap_comp]; exact congrArg (appendMap B) g.w }
+  CategoryTheory.Over.homMk (appendMap B g.left) (by
+      show appendMap B g.left ≫ appendMap B Y.hom = appendMap B X.hom
+      rw [← appendMap_comp]; exact congrArg (appendMap B) (CategoryTheory.Over.w g))
 
 /-- **The single-factor slice base-change is a STRICT functor `A′/V → A′/(V++[B])`.**  Object map
     `sliceAppendObj B`, morphism map `sliceAppendMap B`; laws from `appendMap_id`/`appendMap_comp`. -/
@@ -1072,12 +1070,12 @@ instance sliceAppendFunctor (B : 𝒞) (V : Infl 𝒞) :
     @Functor (Over (B := V)) (overCat V) (Over (B := (V ++ [B] : List 𝒞)))
       (overCat (V ++ [B] : List 𝒞)) (sliceAppendObj B) where
   map {X Y} g := sliceAppendMap B g
-  map_id X := OverHom.ext (by
-    show appendMap B (Cat.id (listProd X.dom)) = Cat.id (listProd (X.dom ++ [B]))
-    exact appendMap_id X.dom B)
-  map_comp {X Y Z} g h := OverHom.ext (by
-    show appendMap B (g.f ≫ h.f) = appendMap B g.f ≫ appendMap B h.f
-    exact appendMap_comp B g.f h.f)
+  map_id X := CategoryTheory.Over.OverMorphism.ext (by
+    show appendMap B (𝟙 (listProd X.left)) = 𝟙 (listProd (X.left ++ [B]))
+    exact appendMap_id X.left B)
+  map_comp {X Y Z} g h := CategoryTheory.Over.OverMorphism.ext (by
+    show appendMap B (g.left ≫ h.left) = appendMap B g.left ≫ appendMap B h.left
+    exact appendMap_comp B g.left h.left)
 
 /-! ### The whole-suffix slice base-change `A′/V → A′/(V ++ d)` (the §1.547 inner transition)
 
@@ -1091,16 +1089,15 @@ instance sliceAppendFunctor (B : 𝒞) (V : Infl 𝒞) :
 
 /-- The whole-suffix slice base-change object map `A′/V → A′/(V++d)`, `⟨s,h⟩ ↦ ⟨s++d, catMap d h⟩`. -/
 def sliceCatObj (d : List 𝒞) {V : Infl 𝒞} (X : Over (B := V)) : Over (B := (V ++ d : List 𝒞)) :=
-  { dom := (X.dom ++ d : List 𝒞),
-    hom := (catMap d X.hom : listProd (𝒞 := 𝒞) (X.dom ++ d) ⟶ listProd (V ++ d)) }
+  CategoryTheory.Over.mk
+    (catMap d X.hom : listProd (𝒞 := 𝒞) (X.left ++ d) ⟶ listProd (V ++ d))
 
-/-- The whole-suffix slice base-change morphism map: `g ↦ catMap d g.f`, triangle from `catMap_comp`. -/
+/-- The whole-suffix slice base-change morphism map: `g ↦ catMap d g.left`, triangle from `catMap_comp`. -/
 def sliceCatMap (d : List 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)} (g : OverHom X Y) :
     OverHom (sliceCatObj d X) (sliceCatObj d Y) :=
-  { f := catMap d g.f,
-    w := by
-      show catMap d g.f ≫ catMap d Y.hom = catMap d X.hom
-      rw [← catMap_comp]; exact congrArg (catMap d) g.w }
+  CategoryTheory.Over.homMk (catMap d g.left) (by
+      show catMap d g.left ≫ catMap d Y.hom = catMap d X.hom
+      rw [← catMap_comp]; exact congrArg (catMap d) (CategoryTheory.Over.w g))
 
 /-- **The whole-suffix slice base-change is a STRICT functor `A′/V → A′/(V++d)`.**  The §1.547 inner
     directed transition realized by concatenation; laws from `catMap_id`/`catMap_comp`.  Sorry-free. -/
@@ -1108,12 +1105,12 @@ instance sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
     @Functor (Over (B := V)) (overCat V) (Over (B := (V ++ d : List 𝒞)))
       (overCat (V ++ d : List 𝒞)) (sliceCatObj d) where
   map {X Y} g := sliceCatMap d g
-  map_id X := OverHom.ext (by
-    show catMap d (Cat.id (listProd X.dom)) = Cat.id (listProd (X.dom ++ d))
-    exact catMap_id X.dom d)
-  map_comp {X Y Z} g h := OverHom.ext (by
-    show catMap d (g.f ≫ h.f) = catMap d g.f ≫ catMap d h.f
-    exact catMap_comp d g.f h.f)
+  map_id X := CategoryTheory.Over.OverMorphism.ext (by
+    show catMap d (𝟙 (listProd X.left)) = 𝟙 (listProd (X.left ++ d))
+    exact catMap_id X.left d)
+  map_comp {X Y Z} g h := CategoryTheory.Over.OverMorphism.ext (by
+    show catMap d (g.left ≫ h.left) = catMap d g.left ≫ catMap d h.left
+    exact catMap_comp d g.left h.left)
 
 /-- **The strict slice transition PRESERVES the terminal object** (a down-payment on the (B-package)
     preservation hyps).  The slice terminal of `A′/V` is `⟨V, id V⟩` (`overTerm`); the append functor
@@ -1121,9 +1118,9 @@ instance sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
     `A′/(V++d)`.  So `sliceCatFunctor d V` carries `1_{A′/V}` to `1_{A′/(V++d)}` on the nose. -/
 theorem sliceCatObj_terminal (d : List 𝒞) (V : Infl 𝒞) :
     sliceCatObj d (overTerm V) = overTerm (V ++ d : List 𝒞) := by
-  show (⟨(V ++ d : List 𝒞), catMap d (Cat.id (listProd V))⟩ : Over (B := (V ++ d : List 𝒞)))
-      = ⟨(V ++ d : List 𝒞), Cat.id (listProd (V ++ d))⟩
-  rw [catMap_id]
+  unfold sliceCatObj overTerm
+  congr 1
+  exact catMap_id V d
 
 /-! ## §1.547  The STRICT inner directed system of inflation slices
 
@@ -1170,7 +1167,7 @@ theorem prefixSuffix_eq {V U : List 𝒞} (h : prefixLe V U) : V ++ prefixSuffix
 /-- The inner stage object family: stage `w` is the slice `A′/w`. -/
 def innerSliceObj (w : List 𝒞) : Type u := Over (B := (w : Infl 𝒞))
 
-instance innerSliceCat (w : List 𝒞) : Cat.{u} (innerSliceObj (𝒞 := 𝒞) w) := overCat (w : Infl 𝒞)
+instance innerSliceCat (w : List 𝒞) : CategoryTheory.Category.{u} (innerSliceObj (𝒞 := 𝒞) w) := overCat (w : Infl 𝒞)
 
 /-- The inner transition object map `A′/V → A′/U` for `V ⊑ U`: append the suffix `U.drop V.length`
     (`sliceCatObj`), then TRANSPORT along `V ++ suffix = U` to land in `A′/U`.  Strict (concatenation). -/
@@ -1195,11 +1192,11 @@ theorem listProd_append_nil (s : List 𝒞) : listProd (𝒞 := 𝒞) (s ++ []) 
     `cf : P ⟶ ∏s'` that is HEq the identity, the `pair fst (snd ≫ cf)` is HEq `id (∏(a::s'))`.
     Stated with `P`, `cf` abstract so the dependent reindexing can be `subst`-ed cleanly. -/
 theorem catForget_cons_kernel {a : 𝒞} {s' : List 𝒞} {P : 𝒞} (hP : P = listProd (𝒞 := 𝒞) s')
-    (cf : P ⟶ listProd (𝒞 := 𝒞) s') (hcf : HEq cf (Cat.id (listProd (𝒞 := 𝒞) s'))) :
+    (cf : P ⟶ listProd (𝒞 := 𝒞) s') (hcf : HEq cf (𝟙 (listProd (𝒞 := 𝒞) s'))) :
     HEq (pair (fst : prod a P ⟶ a) ((snd : prod a P ⟶ P) ≫ cf))
-        (Cat.id (listProd (𝒞 := 𝒞) (a :: s'))) := by
+        (𝟙 (listProd (𝒞 := 𝒞) (a :: s'))) := by
   subst hP
-  rw [eq_of_heq hcf, Cat.comp_id]
+  rw [eq_of_heq hcf, CategoryTheory.Category.comp_id]
   exact heq_of_eq pair_fst_snd
 
 /-- Pairing kernel: given `P = B` and a second component `c : X ⟶ P` HEq `g ≫ snd : X ⟶ B`, the pair
@@ -1212,17 +1209,17 @@ theorem pair_snd_kernel {X A B P : 𝒞} (hP : P = B) (g1 : X ⟶ A)
 /-- Kernel for `catForget_comp_nil_heq`: given `P = ∏s` and `cf : P ⟶ ∏s` HEq `id`, the composite
     `cf ≫ f` is HEq `f` (after `subst`, `cf = id`, so `cf ≫ f = id ≫ f = f`). -/
 theorem catForget_comp_kernel {s t : List 𝒞} {P : 𝒞} (hP : P = listProd (𝒞 := 𝒞) s)
-    (cf : P ⟶ listProd (𝒞 := 𝒞) s) (hcf : HEq cf (Cat.id (listProd (𝒞 := 𝒞) s)))
+    (cf : P ⟶ listProd (𝒞 := 𝒞) s) (hcf : HEq cf (𝟙 (listProd (𝒞 := 𝒞) s)))
     (f : listProd (𝒞 := 𝒞) s ⟶ listProd t) : HEq (cf ≫ f) f := by
   subst hP
-  rw [eq_of_heq hcf, Cat.id_comp]
+  rw [eq_of_heq hcf, CategoryTheory.Category.id_comp]
 
 /-- `catForget s []` HEq `id` — forgetting an empty suffix is the identity (up to `s++[]=s`).
     Induction; the cons step delegates the dependent reindexing to `catForget_cons_kernel`. -/
 theorem catForget_nil_heq : ∀ (s : List 𝒞),
-    HEq (catForget (𝒞 := 𝒞) s []) (Cat.id (listProd (𝒞 := 𝒞) s))
+    HEq (catForget (𝒞 := 𝒞) s []) (𝟙 (listProd (𝒞 := 𝒞) s))
   | [] => by
-      have : catForget (𝒞 := 𝒞) [] [] = Cat.id (listProd (𝒞 := 𝒞) []) := term_uniq _ _
+      have : catForget (𝒞 := 𝒞) [] [] = 𝟙 (listProd (𝒞 := 𝒞) []) := term_uniq _ _
       rw [this]
   | a :: s' => by
       have hf : catForget (𝒞 := 𝒞) (a :: s') []
@@ -1266,13 +1263,13 @@ theorem catMap_nil_heq {s t : List 𝒞} (f : listProd (𝒞 := 𝒞) s ⟶ list
   -- `catForget s [] ≫ f ≍ id ≫ f = f`; thread `catForget_nil_heq` through `≫ f`.
   exact catForget_comp_nil_heq f
 
-/-- Generic `Over`-transport (in ANY category `𝒟`): if `e : B = B'`, `hd : X.dom = Y.dom`, and the
+/-- Generic `Over`-transport (in ANY category `𝒟`): if `e : B = B'`, `hd : X.left = Y.left`, and the
     homs agree (`HEq`), then `e ▸ X = Y`.  Componentwise extensionality for the inner-system laws. -/
-theorem over_transport_ext {𝒟 : Type u} [Cat.{u} 𝒟] {B B' : 𝒟} (e : B = B')
-    {X : Over B} {Y : Over B'} (hd : X.dom = Y.dom) (hh : HEq X.hom Y.hom) : e ▸ X = Y := by
+theorem over_transport_ext {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {B B' : 𝒟} (e : B = B')
+    {X : Over B} {Y : Over B'} (hd : X.left = Y.left) (hh : HEq X.hom Y.hom) : e ▸ X = Y := by
   subst e
   obtain ⟨xd, xh⟩ := X; obtain ⟨yd, yh⟩ := Y
-  cases hd; cases hh; rfl
+  cases xh; cases yh; cases hd; cases hh; rfl
 
 /-- **`F_refl` for the strict inner system** — the empty-suffix transition is the identity on `A′/V`
     (modulo `V ++ [] = V`).  Reduces to `over_transport_ext` + `catMap_nil_heq`. -/
@@ -1280,8 +1277,8 @@ theorem innerSliceTr_refl {V : List 𝒞} (X : innerSliceObj (𝒞 := 𝒞) V) :
     innerSliceTr (List.prefix_refl V) X = X := by
   unfold innerSliceTr
   apply over_transport_ext
-  · -- dom: `(sliceCatObj suffix X).dom = X.dom`, i.e. `X.dom ++ V.drop V.length = X.dom`.
-    show X.dom ++ prefixSuffix V V = X.dom
+  · -- dom: `(sliceCatObj suffix X).left = X.left`, i.e. `X.left ++ V.drop V.length = X.left`.
+    show X.left ++ prefixSuffix V V = X.left
     rw [prefixSuffix, List.drop_length, List.append_nil]
   · -- hom: `catMap (V.drop V.length) X.hom` HEq `X.hom`.
     show HEq (catMap (prefixSuffix V V) X.hom) X.hom
@@ -1345,8 +1342,8 @@ theorem catForget_append_heq : ∀ (x d e : List 𝒞),
               ≫ pair (fst : prod a (listProd (x' ++ d)) ⟶ a) ((snd : _) ≫ catForget x' d)
             = _
         refine pair_uniq _ _ _ ?_ ?_
-        · rw [Cat.assoc, fst_pair, fst_pair]
-        · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, Cat.assoc]
+        · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
+        · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc]
       rw [hf, hg]
       exact pair_fst_snd_heq (by rw [List.append_assoc]) _ _ (catForget_append_heq x' d e)
 
@@ -1360,8 +1357,8 @@ theorem catArrange_snd_comp : ∀ (t d : List 𝒞) {W X : 𝒞} (h : W ⟶ X)
       show h ≫ pair (g ≫ fst) (catArrange t' d (g ≫ snd) b)
           = pair ((h ≫ g) ≫ fst) (catArrange t' d ((h ≫ g) ≫ snd) (h ≫ b))
       refine pair_uniq _ _ _ ?_ ?_
-      · rw [Cat.assoc, fst_pair, Cat.assoc]
-      · rw [Cat.assoc, snd_pair, catArrange_snd_comp t' d h (g ≫ snd) b, Cat.assoc]
+      · rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc]
+      · rw [CategoryTheory.Category.assoc, snd_pair, catArrange_snd_comp t' d h (g ≫ snd) b, CategoryTheory.Category.assoc]
 
 /-- Generic cons-step kernel for `catTail`: `snd ≫ ·` preserves HEq across a domain reindexing `Q = P`.
     Given `u : P ⟶ R`, `v : Q ⟶ R` with `u ≍ v`, `snd ≫ u` (over `prod a P`) is HEq `snd ≫ v`. -/
@@ -1383,10 +1380,10 @@ theorem catTail_append_heq : ∀ (x d e : List 𝒞),
       show HEq (catTail (𝒞 := 𝒞) [] (d ++ e))
                (catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) ([] ++ d) e ≫ catTail (𝒞 := 𝒞) [] d)
                                          (catTail (𝒞 := 𝒞) ([] ++ d) e))
-      have hL : catTail (𝒞 := 𝒞) [] (d ++ e) = Cat.id (listProd (d ++ e)) := rfl
+      have hL : catTail (𝒞 := 𝒞) [] (d ++ e) = 𝟙 (listProd (d ++ e)) := rfl
       have hR : catArrange (𝒞 := 𝒞) d e (catForget (𝒞 := 𝒞) ([] ++ d) e ≫ catTail (𝒞 := 𝒞) [] d)
-                  (catTail (𝒞 := 𝒞) ([] ++ d) e) = Cat.id (listProd (d ++ e)) := by
-        show catArrange d e (catForget d e ≫ Cat.id _) (catTail d e) = _
+                  (catTail (𝒞 := 𝒞) ([] ++ d) e) = 𝟙 (listProd (d ++ e)) := by
+        show catArrange d e (catForget d e ≫ 𝟙 _) (catTail d e) = _
         exact catMap_id d e
       rw [hL, hR]
   | a :: x', d, e => by
@@ -1407,7 +1404,7 @@ theorem catTail_append_heq : ∀ (x d e : List 𝒞),
               ≫ (catForget (𝒞 := 𝒞) (x' ++ d) e ≫ catTail (𝒞 := 𝒞) x' d) := by
           show pair (fst : prod a (listProd ((x' ++ d) ++ e)) ⟶ a) ((snd : _) ≫ catForget (x' ++ d) e)
                 ≫ ((snd : prod a (listProd (x' ++ d)) ⟶ _) ≫ catTail x' d) = _
-          rw [← Cat.assoc, snd_pair, Cat.assoc]
+          rw [← CategoryTheory.Category.assoc, snd_pair, CategoryTheory.Category.assoc]
         have ht : catTail (𝒞 := 𝒞) ((a :: x') ++ d) e
             = (snd : prod a (listProd ((x' ++ d) ++ e)) ⟶ _) ≫ catTail (𝒞 := 𝒞) (x' ++ d) e := rfl
         rw [hb, ht]
@@ -1457,7 +1454,7 @@ theorem catMap_append_heq {s t : List 𝒞} (d e : List 𝒞) (f : listProd (�
     -- compute `R ≫ (catForget(t++d)e ≫ catForget t d) = (catForget(s++d)e ≫ catForget s d) ≫ f`.
     have hcomp : R ≫ (catForget (𝒞 := 𝒞) (t ++ d) e ≫ catForget (𝒞 := 𝒞) t d)
         = (catForget (𝒞 := 𝒞) (s ++ d) e ≫ catForget (𝒞 := 𝒞) s d) ≫ f := by
-      rw [← Cat.assoc, hRf, Cat.assoc, catMap_forget, ← Cat.assoc]
+      rw [← CategoryTheory.Category.assoc, hRf, CategoryTheory.Category.assoc, catMap_forget, ← CategoryTheory.Category.assoc]
     rw [hcomp]
     -- `(catForget(s++d)e ≫ catForget s d) ≫ f ≍ catForget s (d++e) ≫ f`  (bridge A at s).
     exact comp_heq _ _ f f hS rfl rfl (catForget_append_heq s d e).symm (HEq.refl f)
@@ -1471,7 +1468,7 @@ theorem catMap_append_heq {s t : List 𝒞} (d e : List 𝒞) (f : listProd (�
     rw [catArrange_snd_comp]
     have hleg1 : R ≫ (catForget (𝒞 := 𝒞) (t ++ d) e ≫ catTail (𝒞 := 𝒞) t d)
         = catForget (𝒞 := 𝒞) (s ++ d) e ≫ catTail (𝒞 := 𝒞) s d := by
-      rw [← Cat.assoc, hRf, Cat.assoc, catMap_tail]
+      rw [← CategoryTheory.Category.assoc, hRf, CategoryTheory.Category.assoc, catMap_tail]
     have hleg2 : R ≫ catTail (𝒞 := 𝒞) (t ++ d) e = catTail (𝒞 := 𝒞) (s ++ d) e := hRt
     rw [hleg1, hleg2]
     exact (catTail_append_heq s d e).symm
@@ -1483,11 +1480,11 @@ theorem catMap_append_heq {s t : List 𝒞} (d e : List 𝒞) (f : listProd (�
   rw [← hR'eq]; exact hRR'.symm
 
 /-- Transporting an `Over` along a base equality `e : B = B'` leaves its `dom` unchanged. -/
-theorem over_transport_dom {𝒟 : Type u} [Cat.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
-    (e ▸ X : Over B').dom = X.dom := by subst e; rfl
+theorem over_transport_dom {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
+    (e ▸ X : Over B').left = X.left := by subst e; rfl
 
 /-- Transporting an `Over` along a base equality `e : B = B'` leaves its `hom` HEq the original. -/
-theorem over_transport_hom_heq {𝒟 : Type u} [Cat.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
+theorem over_transport_hom_heq {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {B B' : 𝒟} (e : B = B') (X : Over B) :
     HEq (e ▸ X : Over B').hom X.hom := by subst e; rfl
 
 /-- `catMap` respects HEq of its structure arrow across a LIST reindexing: if `s = s'`, `t = t'` as
@@ -1502,8 +1499,8 @@ theorem catMap_heq_congr {s t s' t' : List 𝒞} (d : List 𝒞)
 /-- **`F_trans` for the strict inner system** — the composite suffix-transition equals appending the
     concatenated suffix (modulo `(V++d)++e = V++(d++e)`).  `innerSliceTr` of a prefix step transports
     `sliceCatObj (suffix)` along `V++suffix = U`; the composite over `V ⊑ U ⊑ W` therefore has `dom`
-    `(X.dom ++ dVU) ++ dUW` and structure `catMap dUW (catMap dVU X.hom)`, while the direct `V ⊑ W`
-    step has `dom` `X.dom ++ (dVU++dUW)` and `catMap (dVU++dUW) X.hom`.  `prefixSuffix_trans`
+    `(X.left ++ dVU) ++ dUW` and structure `catMap dUW (catMap dVU X.hom)`, while the direct `V ⊑ W`
+    step has `dom` `X.left ++ (dVU++dUW)` and `catMap (dVU++dUW) X.hom`.  `prefixSuffix_trans`
     (`dVW = dVU++dUW`) reconciles the doms (`append_assoc`) and `catMap_append_heq` the structures. -/
 theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefixLe U W)
     (X : innerSliceObj (𝒞 := 𝒞) V) :
@@ -1511,22 +1508,22 @@ theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefi
   -- abbreviations for the three suffixes; `prefixSuffix_trans` gives `dVW = dVU ++ dUW`.
   have hdVW : prefixSuffix V W = prefixSuffix V U ++ prefixSuffix U W := prefixSuffix_trans hVU hUW
   -- intermediate `Y := innerSliceTr hVU X : Over U`, with computed `dom`/`hom`.
-  have hYdom : (innerSliceTr hVU X).dom = X.dom ++ prefixSuffix V U := by
+  have hYdom : (innerSliceTr hVU X).left = X.left ++ prefixSuffix V U := by
     unfold innerSliceTr; rw [over_transport_dom]; rfl
   have hYhom : HEq (innerSliceTr hVU X).hom (catMap (prefixSuffix V U) X.hom) := by
     unfold innerSliceTr; exact over_transport_hom_heq _ _
   -- the RHS `innerSliceTr hUW Y` dom/hom, peeling its outer transport.
-  have hRdom : (innerSliceTr hUW (innerSliceTr hVU X)).dom
-      = (X.dom ++ prefixSuffix V U) ++ prefixSuffix U W := by
+  have hRdom : (innerSliceTr hUW (innerSliceTr hVU X)).left
+      = (X.left ++ prefixSuffix V U) ++ prefixSuffix U W := by
     unfold innerSliceTr
     rw [over_transport_dom]
-    show (innerSliceTr hVU X).dom ++ prefixSuffix U W = _
+    show (innerSliceTr hVU X).left ++ prefixSuffix U W = _
     rw [hYdom]
   -- reduce the goal (LHS) by `over_transport_ext` to dom-eq + hom-HEq.
   unfold innerSliceTr
   apply over_transport_ext
-  · -- dom: `X.dom ++ dVW = (X.dom ++ dVU) ++ dUW`  (via `dVW = dVU++dUW` + `append_assoc`).
-    show X.dom ++ prefixSuffix V W = (innerSliceTr hUW (innerSliceTr hVU X)).dom
+  · -- dom: `X.left ++ dVW = (X.left ++ dVU) ++ dUW`  (via `dVW = dVU++dUW` + `append_assoc`).
+    show X.left ++ prefixSuffix V W = (innerSliceTr hUW (innerSliceTr hVU X)).left
     rw [hRdom, hdVW, List.append_assoc]
   · -- hom: `catMap dVW X.hom ≍ (innerSliceTr hUW Y).hom ≍ catMap dUW (catMap dVU X.hom)`.
     show HEq (catMap (prefixSuffix V W) X.hom) (innerSliceTr hUW (innerSliceTr hVU X)).hom
@@ -1596,7 +1593,7 @@ theorem innerSliceTr_trans {V U W : List 𝒞} (hVU : prefixLe V U) (hUW : prefi
     needed to recover §1.547's full coverage — is an *additional* property of the chain (the chain being
     cofinal in the index), not required to build the system. -/
 structure OrdChain {ι : Type u} (D : Colim.Directed ι)
-    (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
+    (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
   chain : ι → Infl 𝒞
   /-- the chain is `prefixLe`-monotone along the directed order -/
   mono : ∀ {i j : ι}, D.le i j → chain i <+: chain j
@@ -1604,7 +1601,7 @@ structure OrdChain {ι : Type u} (D : Colim.Directed ι)
 /-- A prefix-chain of factor-sequences: `chain n <+: chain (n+1)` for every `n`.  The data an ω-chain
     strict `CatSystem` is built over (option (b)).  Cofinality among finite sets — needed to recover
     §1.547's full coverage — is an *additional* property of the chain, not required to build the system. -/
-structure PrefixChain (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
+structure PrefixChain (𝒞 : Type u) [CategoryTheory.Category.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞] where
   chain : Nat → Infl 𝒞
   step : ∀ n, chain n <+: chain (n + 1)
 
@@ -1625,7 +1622,7 @@ def PrefixChain.toOrdChain (P : PrefixChain 𝒞) : OrdChain (uliftNatDirected.{
     `X ↦ e ▸ G X : 𝒟 → Over B'` is again a functor.  (`subst e` collapses the transport, leaving the
     original functor — a definitional repackaging.)  Used to transport `sliceCatFunctor d` (a functor
     `A′/V → A′/(V++d)`, source `Over V`, base object `V++d`) along `V++d = U` to land in `A′/U`. -/
-def transportSliceFunctor {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
+def transportSliceFunctor {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {ℰ : Type u} [CategoryTheory.Category.{u} ℰ] {B B' : ℰ} (e : B = B')
     {G : 𝒟 → Over B} (FG : @Functor 𝒟 _ (Over B) (overCat B) G) :
     @Functor 𝒟 _ (Over B') (overCat B') (fun X => e ▸ G X) := by
   subst e; exact FG
@@ -1689,85 +1686,85 @@ noncomputable def chainSliceSystem (P : PrefixChain 𝒞) :
   whose underlying object map is `innerSliceTr`.  The two `Coherent` fields are the MORPHISM-level
   analogs of `innerSliceTr_refl`/`innerSliceTr_trans` (which are the OBJECT-level laws): an identity
   transition acts as the identity *functor* and composites compose, both `HEq` (the endpoint objects
-  shift by `F_refl`/`F_trans`).  Everything reduces to the underlying `.f = catMap (suffix)` together
+  shift by `F_refl`/`F_trans`).  Everything reduces to the underlying `.left = catMap (suffix)` together
   with `catMap_nil_heq` (refl) and `catMap_append_heq` (trans) — exactly the arrows used at the object
   level — threaded through the transport via `transportSliceFunctor_map_f_heq`. -/
 
 /-- The underlying arrow of a transported slice morphism.  For `e : B = B'` and a slice functor
-    `FG : 𝒟 → Over B`, the `.f` of `(transportSliceFunctor e FG).map g` is `HEq` the `.f` of the
+    `FG : 𝒟 → Over B`, the `.left` of `(transportSliceFunctor e FG).map g` is `HEq` the `.left` of the
     original `FG.map g` (the transport only re-types the base; the underlying arrow is unchanged).
     `subst e` collapses the transport to `FG.map g` definitionally. -/
-theorem transportSliceFunctor_map_f_heq {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ]
+theorem transportSliceFunctor_map_f_heq {𝒟 : Type u} [CategoryTheory.Category.{u} 𝒟] {ℰ : Type u} [CategoryTheory.Category.{u} ℰ]
     {B B' : ℰ} (e : B = B') {G : 𝒟 → Over B}
     (FG : @Functor 𝒟 _ (Over B) (overCat B) G) {X Y : 𝒟} (g : X ⟶ Y) :
-    HEq ((transportSliceFunctor e FG).map g).f (FG.map g).f := by
+    HEq ((transportSliceFunctor e FG).map g).left (FG.map g).left := by
   subst e; rfl
 
-/-- **GENERIC** — `catMap d g.f` for the suffix `d = prefixSuffix (chain i) (chain j)` is the `.f` of
+/-- **GENERIC** — `catMap d g.left` for the suffix `d = prefixSuffix (chain i) (chain j)` is the `.left` of
     `(ordChainSliceFunctor O hij).map g` up to `HEq`, over ANY directed index.  Peels the transport
-    (`transportSliceFunctor_map_f_heq`) then `sliceCatMap`'s `.f = catMap d g.f` definitionally. -/
+    (`transportSliceFunctor_map_f_heq`) then `sliceCatMap`'s `.left = catMap d g.left` definitionally. -/
 theorem ordChainSliceFunctor_map_f_heq {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞)
     {i j : ι} (hij : D.le i j)
     {X Y : innerSliceObj (𝒞 := 𝒞) (O.chain i)} (g : X ⟶ Y) :
-    HEq ((ordChainSliceFunctor O hij).map g).f (catMap (prefixSuffix (O.chain i) (O.chain j)) g.f) :=
+    HEq ((ordChainSliceFunctor O hij).map g).left (catMap (prefixSuffix (O.chain i) (O.chain j)) g.left) :=
   transportSliceFunctor_map_f_heq _ _ g
 
-/-- `catMap d g.f` is the `.f` of `(chainSliceFunctor P hij).map g` up to `HEq` (the ℕ specialization of
+/-- `catMap d g.left` is the `.left` of `(chainSliceFunctor P hij).map g` up to `HEq` (the ℕ specialization of
     `ordChainSliceFunctor_map_f_heq`). -/
 theorem chainSliceFunctor_map_f_heq (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j)
     {X Y : innerSliceObj (𝒞 := 𝒞) (P.chain i)} (g : X ⟶ Y) :
-    HEq ((chainSliceFunctor P hij).map g).f (catMap (prefixSuffix (P.chain i) (P.chain j)) g.f) :=
+    HEq ((chainSliceFunctor P hij).map g).left (catMap (prefixSuffix (P.chain i) (P.chain j)) g.left) :=
   transportSliceFunctor_map_f_heq _ _ g
 
 /-- Two slice morphisms over (possibly different, but equal) bases are `HEq` once their endpoints are
     `HEq` as `Over`-objects and their underlying arrows are `HEq`.  Componentwise `HEq` extensionality
     for `OverHom` (the `w` field is a `Prop`, so proof-irrelevant once `f` and the endpoints match);
     `subst e` aligns the base types so the endpoint `HEq`s become genuine `Eq`s. -/
-theorem overHom_heq {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
+theorem overHom_heq {ℰ : Type u} [CategoryTheory.Category.{u} ℰ] {B B' : ℰ} (e : B = B')
     {X Y : Over B} {X' Y' : Over B'} (hX : HEq X X') (hY : HEq Y Y')
-    {a : OverHom X Y} {b : OverHom X' Y'} (hf : HEq a.f b.f) : HEq a b := by
-  subst e; cases hX; cases hY; exact heq_of_eq (OverHom.ext (eq_of_heq hf))
+    {a : OverHom X Y} {b : OverHom X' Y'} (hf : HEq a.left b.left) : HEq a b := by
+  subst e; cases hX; cases hY; exact heq_of_eq (CategoryTheory.Over.OverMorphism.ext (eq_of_heq hf))
 
 /-- **GENERIC `Coherent` for the directed strict chain system over ANY index.**  The morphism-level mate
     of `innerSliceTr_refl`/`innerSliceTr_trans`.  `refl_map`: the empty-suffix transition's functor is the
-    identity on arrows (underlying `catMap [] g.f ≍ g.f`, `catMap_nil_heq`).  `trans_map`: the composite
-    transition's functor splits (underlying `catMap (dVU++dUW) g.f ≍ catMap dUW (catMap dVU g.f)`,
+    identity on arrows (underlying `catMap [] g.left ≍ g.left`, `catMap_nil_heq`).  `trans_map`: the composite
+    transition's functor splits (underlying `catMap (dVU++dUW) g.left ≍ catMap dUW (catMap dVU g.left)`,
     `catMap_append_heq`).  Both threaded through the base-transport by `overHom_heq` on the now-`HEq`
     endpoints (`innerSliceTr_refl`/`_trans` at the OBJECT level).  Index-agnostic — uses only `D.refl`/
     `D.trans` and `Prop`-irrelevance of the `<+:` witness.  Sorry-free, propext-only. -/
 theorem ordChainSliceCoherent {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞) :
     (ordChainSliceSystem O).Coherent where
   refl_map {i x x'} g := by
-    -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain i)) g.f`, and the suffix is `[]`.
+    -- underlying `.left`: `catMap (prefixSuffix (chain i) (chain i)) g.left`, and the suffix is `[]`.
     refine overHom_heq rfl ?_ ?_ ?_
     · exact heq_of_eq (innerSliceTr_refl x)
     · exact heq_of_eq (innerSliceTr_refl x')
     · refine (ordChainSliceFunctor_map_f_heq O (D.refl i) g).trans ?_
-      show HEq (catMap (prefixSuffix (O.chain i) (O.chain i)) g.f) g.f
+      show HEq (catMap (prefixSuffix (O.chain i) (O.chain i)) g.left) g.left
       rw [prefixSuffix, List.drop_length]
-      exact catMap_nil_heq g.f
+      exact catMap_nil_heq g.left
   trans_map {i j k} hij hjk x x' g := by
-    -- underlying `.f`: `catMap (prefixSuffix (chain i) (chain k)) g.f` vs the composite.
+    -- underlying `.left`: `catMap (prefixSuffix (chain i) (chain k)) g.left` vs the composite.
     have hVU : prefixLe (O.chain i) (O.chain j) := O.mono hij
     have hUW : prefixLe (O.chain j) (O.chain k) := O.mono hjk
     refine overHom_heq rfl ?_ ?_ ?_
     · exact heq_of_eq (innerSliceTr_trans hVU hUW x)
     · exact heq_of_eq (innerSliceTr_trans hVU hUW x')
-    · -- LHS underlying = `catMap dVW g.f`; RHS = `((functF hjk).map ((functF hij).map g)).f`.
+    · -- LHS underlying = `catMap dVW g.left`; RHS = `((functF hjk).map ((functF hij).map g)).left`.
       refine (ordChainSliceFunctor_map_f_heq O (D.trans hij hjk) g).trans ?_
       refine HEq.symm (HEq.trans (ordChainSliceFunctor_map_f_heq O hjk _) ?_)
-      -- the inner `((functF hij).map g).f ≍ catMap dVU g.f`; `catMap_heq_congr` lifts through `catMap dUW`.
-      have hinner : HEq ((ordChainSliceFunctor O hij).map g).f (catMap (prefixSuffix (O.chain i)
-          (O.chain j)) g.f) := ordChainSliceFunctor_map_f_heq O hij g
+      -- the inner `((functF hij).map g).left ≍ catMap dVU g.left`; `catMap_heq_congr` lifts through `catMap dUW`.
+      have hinner : HEq ((ordChainSliceFunctor O hij).map g).left (catMap (prefixSuffix (O.chain i)
+          (O.chain j)) g.left) := ordChainSliceFunctor_map_f_heq O hij g
       refine HEq.trans (catMap_heq_congr (prefixSuffix (O.chain j) (O.chain k))
         (over_transport_dom _ _) (over_transport_dom _ _) _ _ hinner) ?_
-      -- now `catMap dUW (catMap dVU g.f) ≍ catMap dVW g.f` via `prefixSuffix_trans` + `catMap_append_heq`.
+      -- now `catMap dUW (catMap dVU g.left) ≍ catMap dVW g.left` via `prefixSuffix_trans` + `catMap_append_heq`.
       refine HEq.symm ?_
       rw [show prefixSuffix (O.chain i) (O.chain k)
           = prefixSuffix (O.chain i) (O.chain j)
             ++ prefixSuffix (O.chain j) (O.chain k) from prefixSuffix_trans hVU hUW]
       exact catMap_append_heq (prefixSuffix (O.chain i) (O.chain j))
-        (prefixSuffix (O.chain j) (O.chain k)) g.f
+        (prefixSuffix (O.chain j) (O.chain k)) g.left
 
 /-- **`Coherent` for the ℕ directed strict chain system** — the `uliftNatDirected` specialization of the
     generic `ordChainSliceCoherent`. -/
@@ -1800,33 +1797,33 @@ theorem innerSliceTr_terminal {V U : List 𝒞} (h : prefixLe V U) :
   -- transport `overTerm (V++d)` along `V++d = U` is `overTerm U`.
   apply over_transport_ext
   · show (V ++ prefixSuffix V U : List 𝒞) = U; exact he
-  · show HEq (Cat.id (listProd (𝒞 := 𝒞) (V ++ prefixSuffix V U))) (Cat.id (listProd (𝒞 := 𝒞) U))
+  · show HEq (𝟙 (listProd (𝒞 := 𝒞) (V ++ prefixSuffix V U))) (𝟙 (listProd (𝒞 := 𝒞) U))
     rw [he]
 
 /-! ### Product / equalizer preservation reduced to the strict `sliceCatObj d`
 
   `chainSliceFunctor P hij = transportSliceFunctor e (sliceCatFunctor d)` with `d = prefixSuffix
-  (chain i) (chain j)` and `e : chain i ++ d = chain j`.  Its `.map` is `HEq` the `.f` of `sliceCatMap
+  (chain i) (chain j)` and `e : chain i ++ d = chain j`.  Its `.map` is `HEq` the `.left` of `sliceCatMap
   d` (`chainSliceFunctor_map_f_heq`), whose underlying arrow is `catMap d`.  So a preservation fact
   about `chainSliceFunctor` reduces — after stripping the transport, which only re-types the base — to
   the strict statement about `catMap d` / `sliceCatObj d`.  We carry the underlying-`A′` form (in terms
   of `catMap`) since the slice product/equalizer of `Over V` is computed from the `Infl 𝒞`
   product/pullback. -/
 
-/-- **Joint monicity of the base pullback projections** `overProdFst.f`/`overProdSnd.f` of the slice
+/-- **Joint monicity of the base pullback projections** `overProdFst.left`/`overProdSnd.left` of the slice
     product `overProdPt X Y` (which is the `Infl 𝒞`-pullback of `X.hom, Y.hom`).  Two base maps into the
     product point agreeing after both projections are equal — pullback `lift_uniq`. -/
 theorem overProdJointlyMonic [HasEqualizers 𝒞] {V : Infl 𝒞} (X Y : Over (B := V))
-    {Z : Infl 𝒞} (p q : listProd (𝒞 := 𝒞) Z ⟶ listProd (𝒞 := 𝒞) (overProdPt X Y).dom)
-    (h₁ : p ≫ (overProdFst X Y).f = q ≫ (overProdFst X Y).f)
-    (h₂ : p ≫ (overProdSnd X Y).f = q ≫ (overProdSnd X Y).f) : p = q := by
+    {Z : Infl 𝒞} (p q : listProd (𝒞 := 𝒞) Z ⟶ listProd (𝒞 := 𝒞) (overProdPt X Y).left)
+    (h₁ : p ≫ (overProdFst X Y).left = q ≫ (overProdFst X Y).left)
+    (h₂ : p ≫ (overProdSnd X Y).left = q ≫ (overProdSnd X Y).left) : p = q := by
   let PB := (inflHasPullbacks (𝒞 := 𝒞)).has X.hom Y.hom
-  -- `overProdFst.f = PB.cone.π₁`, `overProdSnd.f = PB.cone.π₂` definitionally.
+  -- `overProdFst.left = PB.cone.π₁`, `overProdSnd.left = PB.cone.π₂` definitionally.
   have e₁ : p ≫ PB.cone.π₁ = q ≫ PB.cone.π₁ := h₁
   have e₂ : p ≫ PB.cone.π₂ = q ≫ PB.cone.π₂ := h₂
   -- both `p` and `q` lift the cone `⟨Z, q ≫ π₁, q ≫ π₂, …⟩`; uniqueness gives `p = q`.
   have hw : (q ≫ PB.cone.π₁) ≫ X.hom = (q ≫ PB.cone.π₂) ≫ Y.hom := by
-    rw [Cat.assoc, Cat.assoc]; exact congrArg (q ≫ ·) PB.cone.w
+    rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]; exact congrArg (q ≫ ·) PB.cone.w
   have hp := PB.lift_uniq ⟨_, q ≫ PB.cone.π₁, q ≫ PB.cone.π₂, hw⟩ p e₁ e₂
   have hq := PB.lift_uniq ⟨_, q ≫ PB.cone.π₁, q ≫ PB.cone.π₂, hw⟩ q rfl rfl
   exact hp.trans hq.symm
@@ -1845,26 +1842,26 @@ theorem sliceCatObj_prod_jointly_monic [HasEqualizers 𝒞] (d : List 𝒞) {V :
         = v ≫ (sliceCatFunctor d V).map (overProdFst X Y))
     (hs : u ≫ (sliceCatFunctor d V).map (overProdSnd X Y)
         = v ≫ (sliceCatFunctor d V).map (overProdSnd X Y)) : u = v := by
-  apply OverHom.ext
-  show u.f = v.f
-  -- `.f` of the over-hom hyps: `u.f ≫ catMap d π_i = v.f ≫ catMap d π_i`.
-  have hff : u.f ≫ catMap d (overProdFst X Y).f = v.f ≫ catMap d (overProdFst X Y).f :=
-    congrArg OverHom.f hf
-  have hss : u.f ≫ catMap d (overProdSnd X Y).f = v.f ≫ catMap d (overProdSnd X Y).f :=
-    congrArg OverHom.f hs
-  apply cat_jointly_monic (overProdPt X Y).dom d
+  apply CategoryTheory.Over.OverMorphism.ext
+  show u.left = v.left
+  -- `.left` of the over-hom hyps: `u.left ≫ catMap d π_i = v.left ≫ catMap d π_i`.
+  have hff : u.left ≫ catMap d (overProdFst X Y).left = v.left ≫ catMap d (overProdFst X Y).left :=
+    congrArg CategoryTheory.CommaMorphism.left hf
+  have hss : u.left ≫ catMap d (overProdSnd X Y).left = v.left ≫ catMap d (overProdSnd X Y).left :=
+    congrArg CategoryTheory.CommaMorphism.left hs
+  apply cat_jointly_monic (overProdPt X Y).left d
   · -- forget leg: post-compose with `catForget`, use base joint-monicity of `(π₁, π₂)`.
     apply (overProdJointlyMonic X Y)
-    · have t1 := catMap_forget (s := (overProdPt X Y).dom) (t := X.dom) d (overProdFst X Y).f
-      rw [Cat.assoc, Cat.assoc, ← t1, ← Cat.assoc, ← Cat.assoc]
-      exact congrArg (· ≫ catForget X.dom d) hff
-    · have t2 := catMap_forget (s := (overProdPt X Y).dom) (t := Y.dom) d (overProdSnd X Y).f
-      rw [Cat.assoc, Cat.assoc, ← t2, ← Cat.assoc, ← Cat.assoc]
-      exact congrArg (· ≫ catForget Y.dom d) hss
+    · have t1 := catMap_forget (s := (overProdPt X Y).left) (t := X.left) d (overProdFst X Y).left
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, ← t1, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
+      exact congrArg (· ≫ catForget X.left d) hff
+    · have t2 := catMap_forget (s := (overProdPt X Y).left) (t := Y.left) d (overProdSnd X Y).left
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, ← t2, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
+      exact congrArg (· ≫ catForget Y.left d) hss
   · -- tail leg: post-compose `hff` with `catTail`, use `catMap_tail`.
-    have t := catMap_tail (s := (overProdPt X Y).dom) (t := X.dom) d (overProdFst X Y).f
-    rw [← t, ← Cat.assoc, ← Cat.assoc]
-    exact congrArg (· ≫ catTail X.dom d) hff
+    have t := catMap_tail (s := (overProdPt X Y).left) (t := X.left) d (overProdFst X Y).left
+    rw [← t, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
+    exact congrArg (· ≫ catTail X.left d) hff
 
 /-- Pairing half of product-preservation for `sliceCatObj d`: a map `p` into `F X` and `q` into `F Y`
     (over `V++d`) factor through `F (X ×_V Y)` compatibly with the two projections.  Descends to
@@ -1877,72 +1874,72 @@ theorem sliceCatObj_prod_pair [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl �
       r ≫ (sliceCatFunctor d V).map (overProdSnd X Y) = q := by
   let PB := (inflHasPullbacks (𝒞 := 𝒞)).has X.hom Y.hom
   -- triangle data from `p`, `q`: their base projections over `V`.
-  have hpw : p.f ≫ catMap d X.hom = z.hom := p.w
-  have hqw : q.f ≫ catMap d Y.hom = z.hom := q.w
+  have hpw : p.left ≫ catMap d X.hom = z.hom := CategoryTheory.Over.w p
+  have hqw : q.left ≫ catMap d Y.hom = z.hom := CategoryTheory.Over.w q
   -- `p`/`q` agree on the `∏d`-tail (both equal `z.hom ≫ catTail V d`).  `rw` is unreliable on these
   -- `catMap`-fold lemmas (a hidden implicit mismatch in `≫`), so we chain `Eq.trans` term-side.
-  have hpt : p.f ≫ catTail X.dom d = z.hom ≫ catTail V d :=
-    (congrArg (p.f ≫ ·) (catMap_tail d X.hom).symm).trans
-      ((Cat.assoc p.f (catMap d X.hom) (catTail V d)).symm.trans
+  have hpt : p.left ≫ catTail X.left d = z.hom ≫ catTail V d :=
+    (congrArg (p.left ≫ ·) (catMap_tail d X.hom).symm).trans
+      ((CategoryTheory.Category.assoc p.left (catMap d X.hom) (catTail V d)).symm.trans
         (congrArg (· ≫ catTail V d) hpw))
-  have hqt : q.f ≫ catTail Y.dom d = z.hom ≫ catTail V d :=
-    (congrArg (q.f ≫ ·) (catMap_tail d Y.hom).symm).trans
-      ((Cat.assoc q.f (catMap d Y.hom) (catTail V d)).symm.trans
+  have hqt : q.left ≫ catTail Y.left d = z.hom ≫ catTail V d :=
+    (congrArg (q.left ≫ ·) (catMap_tail d Y.hom).symm).trans
+      ((CategoryTheory.Category.assoc q.left (catMap d Y.hom) (catTail V d)).symm.trans
         (congrArg (· ≫ catTail V d) hqw))
-  have htail : p.f ≫ catTail X.dom d = q.f ≫ catTail Y.dom d := hpt.trans hqt.symm
+  have htail : p.left ≫ catTail X.left d = q.left ≫ catTail Y.left d := hpt.trans hqt.symm
   -- `p`/`q` agree on the base over `V` after forgetting `d` (the pullback square).
-  have hpf : (p.f ≫ catForget X.dom d) ≫ X.hom = z.hom ≫ catForget V d :=
-    (Cat.assoc p.f (catForget X.dom d) X.hom).trans
-      ((congrArg (p.f ≫ ·) (catMap_forget d X.hom).symm).trans
-        ((Cat.assoc p.f (catMap d X.hom) (catForget V d)).symm.trans
+  have hpf : (p.left ≫ catForget X.left d) ≫ X.hom = z.hom ≫ catForget V d :=
+    (CategoryTheory.Category.assoc p.left (catForget X.left d) X.hom).trans
+      ((congrArg (p.left ≫ ·) (catMap_forget d X.hom).symm).trans
+        ((CategoryTheory.Category.assoc p.left (catMap d X.hom) (catForget V d)).symm.trans
           (congrArg (· ≫ catForget V d) hpw)))
-  have hqf : (q.f ≫ catForget Y.dom d) ≫ Y.hom = z.hom ≫ catForget V d :=
-    (Cat.assoc q.f (catForget Y.dom d) Y.hom).trans
-      ((congrArg (q.f ≫ ·) (catMap_forget d Y.hom).symm).trans
-        ((Cat.assoc q.f (catMap d Y.hom) (catForget V d)).symm.trans
+  have hqf : (q.left ≫ catForget Y.left d) ≫ Y.hom = z.hom ≫ catForget V d :=
+    (CategoryTheory.Category.assoc q.left (catForget Y.left d) Y.hom).trans
+      ((congrArg (q.left ≫ ·) (catMap_forget d Y.hom).symm).trans
+        ((CategoryTheory.Category.assoc q.left (catMap d Y.hom) (catForget V d)).symm.trans
           (congrArg (· ≫ catForget V d) hqw)))
-  have hsq : (p.f ≫ catForget X.dom d) ≫ X.hom = (q.f ≫ catForget Y.dom d) ≫ Y.hom :=
+  have hsq : (p.left ≫ catForget X.left d) ≫ X.hom = (q.left ≫ catForget Y.left d) ≫ Y.hom :=
     hpf.trans hqf.symm
-  -- the base lift into the pullback point `P`, and the assembled `r.f`.
-  let base := PB.lift ⟨z.dom, p.f ≫ catForget X.dom d, q.f ≫ catForget Y.dom d, hsq⟩
-  have hbf : base ≫ PB.cone.π₁ = p.f ≫ catForget X.dom d := PB.lift_fst _
-  have hbs : base ≫ PB.cone.π₂ = q.f ≫ catForget Y.dom d := PB.lift_snd _
-  let rf := catArrange (overProdPt X Y).dom d base (p.f ≫ catTail X.dom d)
-  have hrforget : rf ≫ catForget (overProdPt X Y).dom d = base :=
+  -- the base lift into the pullback point `P`, and the assembled `r.left`.
+  let base := PB.lift ⟨z.left, p.left ≫ catForget X.left d, q.left ≫ catForget Y.left d, hsq⟩
+  have hbf : base ≫ PB.cone.π₁ = p.left ≫ catForget X.left d := PB.lift_fst _
+  have hbs : base ≫ PB.cone.π₂ = q.left ≫ catForget Y.left d := PB.lift_snd _
+  let rf := catArrange (overProdPt X Y).left d base (p.left ≫ catTail X.left d)
+  have hrforget : rf ≫ catForget (overProdPt X Y).left d = base :=
     catArrange_forget _ _ _ _
-  have hrtail : rf ≫ catTail (overProdPt X Y).dom d = p.f ≫ catTail X.dom d :=
+  have hrtail : rf ≫ catTail (overProdPt X Y).left d = p.left ≫ catTail X.left d :=
     catArrange_tail _ _ _ _
   -- a `catMap`-projection through `rf`: `rf ≫ catMap d g ≫ catForget = base ≫ g` (term-side).
-  have rfForget : ∀ {t : List 𝒞} (g : listProd (𝒞 := 𝒞) (overProdPt X Y).dom ⟶ listProd t),
+  have rfForget : ∀ {t : List 𝒞} (g : listProd (𝒞 := 𝒞) (overProdPt X Y).left ⟶ listProd t),
       rf ≫ (catMap d g ≫ catForget t d) = base ≫ g := fun g =>
     (congrArg (rf ≫ ·) (catMap_forget d g)).trans
-      ((Cat.assoc rf (catForget (overProdPt X Y).dom d) g).symm.trans
+      ((CategoryTheory.Category.assoc rf (catForget (overProdPt X Y).left d) g).symm.trans
         (congrArg (· ≫ g) hrforget))
-  have rfTail : ∀ {t : List 𝒞} (g : listProd (𝒞 := 𝒞) (overProdPt X Y).dom ⟶ listProd t),
-      rf ≫ (catMap d g ≫ catTail t d) = p.f ≫ catTail X.dom d := fun g =>
+  have rfTail : ∀ {t : List 𝒞} (g : listProd (𝒞 := 𝒞) (overProdPt X Y).left ⟶ listProd t),
+      rf ≫ (catMap d g ≫ catTail t d) = p.left ≫ catTail X.left d := fun g =>
     (congrArg (rf ≫ ·) (catMap_tail d g)).trans hrtail
   -- the over-hom law `rf ≫ catMap d (π₁ ≫ X.hom) = z.hom`.
   have hrw : rf ≫ catMap d (overProdPt X Y).hom = z.hom := by
     apply cat_jointly_monic V d
-    · rw [Cat.assoc, rfForget (overProdPt X Y).hom]
+    · rw [CategoryTheory.Category.assoc, rfForget (t := V) (overProdPt X Y).hom]
       show base ≫ (PB.cone.π₁ ≫ X.hom) = z.hom ≫ catForget V d
-      rw [← Cat.assoc, hbf]; exact hpf
-    · rw [Cat.assoc, rfTail (overProdPt X Y).hom]; exact hpt
-  refine ⟨⟨rf, hrw⟩, ?_, ?_⟩
-  · -- `r ≫ Fst = p` reduces to `rf ≫ catMap d π₁ = p.f`.
-    apply OverHom.ext
-    show rf ≫ catMap d (overProdFst X Y).f = p.f
-    apply cat_jointly_monic X.dom d
-    · rw [Cat.assoc, rfForget (overProdFst X Y).f]
-      show base ≫ PB.cone.π₁ = p.f ≫ catForget X.dom d; exact hbf
-    · rw [Cat.assoc]; exact rfTail (overProdFst X Y).f
-  · -- `r ≫ Snd = q` reduces to `rf ≫ catMap d π₂ = q.f`.
-    apply OverHom.ext
-    show rf ≫ catMap d (overProdSnd X Y).f = q.f
-    apply cat_jointly_monic Y.dom d
-    · rw [Cat.assoc, rfForget (overProdSnd X Y).f]
-      show base ≫ PB.cone.π₂ = q.f ≫ catForget Y.dom d; exact hbs
-    · rw [Cat.assoc, rfTail (overProdSnd X Y).f]; exact htail
+      rw [← CategoryTheory.Category.assoc, hbf]; exact hpf
+    · rw [CategoryTheory.Category.assoc, rfTail (t := V) (overProdPt X Y).hom]; exact hpt
+  refine ⟨CategoryTheory.Over.homMk rf hrw, ?_, ?_⟩
+  · -- `r ≫ Fst = p` reduces to `rf ≫ catMap d π₁ = p.left`.
+    apply CategoryTheory.Over.OverMorphism.ext
+    show rf ≫ catMap d (overProdFst X Y).left = p.left
+    apply cat_jointly_monic X.left d
+    · rw [CategoryTheory.Category.assoc, rfForget (overProdFst X Y).left]
+      show base ≫ PB.cone.π₁ = p.left ≫ catForget X.left d; exact hbf
+    · rw [CategoryTheory.Category.assoc]; exact rfTail (overProdFst X Y).left
+  · -- `r ≫ Snd = q` reduces to `rf ≫ catMap d π₂ = q.left`.
+    apply CategoryTheory.Over.OverMorphism.ext
+    show rf ≫ catMap d (overProdSnd X Y).left = q.left
+    apply cat_jointly_monic Y.left d
+    · rw [CategoryTheory.Category.assoc, rfForget (overProdSnd X Y).left]
+      show base ≫ PB.cone.π₂ = q.left ≫ catForget Y.left d; exact hbs
+    · rw [CategoryTheory.Category.assoc, rfTail (overProdSnd X Y).left]; exact htail
 
 /-- Monic half of **equalizer**-preservation for `sliceCatObj d`: the image of the slice equalizer map
     is monic (`hepres`).  RESIDUAL: equalizer-of-singletons computation. -/
@@ -1951,38 +1948,38 @@ theorem sliceCatObj_eq_mono [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
     (u v : z ⟶ sliceCatObj d (eqObj f g))
     (h : u ≫ (sliceCatFunctor d V).map (eqMap f g) = v ≫ (sliceCatFunctor d V).map (eqMap f g)) :
     u = v := by
-  apply OverHom.ext
-  show u.f = v.f
-  -- abbreviations: `E = (eqObj f g).dom` (a `List 𝒞`), `em = (eqMap f g).f` (its base arrow).
-  -- `(eqMap f g).f` is `eqMap f.f g.f` in `Infl 𝒞` (defeq), so `eqMap_eq`/`eqLift_uniq` apply.
-  have hh : u.f ≫ catMap d (eqMap f g).f = v.f ≫ catMap d (eqMap f g).f := congrArg OverHom.f h
-  -- the base equalizer map `(eqMap f g).f` is monic (inline, via `eqLift_uniq` in `Infl 𝒞`).
-  have em_mono : ∀ {W : Infl 𝒞} (a b : W ⟶ (eqObj f g).dom),
-      a ≫ (eqMap f g).f = b ≫ (eqMap f g).f → a = b := by
+  apply CategoryTheory.Over.OverMorphism.ext
+  show u.left = v.left
+  -- abbreviations: `E = (eqObj f g).left` (a `List 𝒞`), `em = (eqMap f g).left` (its base arrow).
+  -- `(eqMap f g).left` is `eqMap f.left g.left` in `Infl 𝒞` (defeq), so `eqMap_eq`/`eqLift_uniq` apply.
+  have hh : u.left ≫ catMap d (eqMap f g).left = v.left ≫ catMap d (eqMap f g).left := congrArg CategoryTheory.CommaMorphism.left h
+  -- the base equalizer map `(eqMap f g).left` is monic (inline, via `eqLift_uniq` in `Infl 𝒞`).
+  have em_mono : ∀ {W : Infl 𝒞} (a b : W ⟶ (eqObj f g).left),
+      a ≫ (eqMap f g).left = b ≫ (eqMap f g).left → a = b := by
     intro W a b hab
-    have hk : (a ≫ (eqMap f g).f) ≫ f.f = (a ≫ (eqMap f g).f) ≫ g.f := by
-      rw [Cat.assoc, Cat.assoc]
-      exact congrArg (a ≫ ·) (congrArg OverHom.f (eqMap_eq f g))
-    rw [eqLift_uniq f.f g.f (a ≫ (eqMap f g).f) hk a rfl,
-        eqLift_uniq f.f g.f (a ≫ (eqMap f g).f) hk b hab.symm]
-  apply cat_jointly_monic (eqObj f g).dom d
+    have hk : (a ≫ (eqMap f g).left) ≫ f.left = (a ≫ (eqMap f g).left) ≫ g.left := by
+      rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc]
+      exact congrArg (a ≫ ·) (congrArg CategoryTheory.CommaMorphism.left (eqMap_eq f g))
+    rw [eqLift_uniq f.left g.left (a ≫ (eqMap f g).left) hk a rfl,
+        eqLift_uniq f.left g.left (a ≫ (eqMap f g).left) hk b hab.symm]
+  apply cat_jointly_monic (eqObj f g).left d
   · -- forget leg: post-compose with `catForget`, then `em`-mono.
     apply em_mono
-    -- `(w ≫ catForget E d) ≫ em = (w ≫ catMap d em) ≫ catForget X.dom d` term-side.
-    have key : ∀ (w : listProd (𝒞 := 𝒞) z.dom ⟶ listProd (𝒞 := 𝒞) ((eqObj f g).dom ++ d)),
-        (w ≫ catForget (eqObj f g).dom d) ≫ (eqMap f g).f
-          = (w ≫ catMap d (eqMap f g).f) ≫ catForget X.dom d := fun w =>
-      ((Cat.assoc w (catForget (eqObj f g).dom d) (eqMap f g).f).trans
-        (congrArg (w ≫ ·) (catMap_forget d (eqMap f g).f).symm)).trans
-          (Cat.assoc w (catMap d (eqMap f g).f) (catForget X.dom d)).symm
-    exact (key u.f).trans ((congrArg (· ≫ catForget X.dom d) hh).trans (key v.f).symm)
+    -- `(w ≫ catForget E d) ≫ em = (w ≫ catMap d em) ≫ catForget X.left d` term-side.
+    have key : ∀ (w : listProd (𝒞 := 𝒞) z.left ⟶ listProd (𝒞 := 𝒞) ((eqObj f g).left ++ d)),
+        (w ≫ catForget (eqObj f g).left d) ≫ (eqMap f g).left
+          = (w ≫ catMap d (eqMap f g).left) ≫ catForget X.left d := fun w =>
+      ((CategoryTheory.Category.assoc w (catForget (eqObj f g).left d) (eqMap f g).left).trans
+        (congrArg (w ≫ ·) (catMap_forget d (eqMap f g).left).symm)).trans
+          (CategoryTheory.Category.assoc w (catMap d (eqMap f g).left) (catForget X.left d)).symm
+    exact (key u.left).trans ((congrArg (· ≫ catForget X.left d) hh).trans (key v.left).symm)
   · -- tail leg: post-compose with `catTail`, use `catMap_tail` term-side.
-    have key : ∀ (w : listProd (𝒞 := 𝒞) z.dom ⟶ listProd (𝒞 := 𝒞) ((eqObj f g).dom ++ d)),
-        w ≫ catTail (eqObj f g).dom d
-          = (w ≫ catMap d (eqMap f g).f) ≫ catTail X.dom d := fun w =>
-      (congrArg (w ≫ ·) (catMap_tail d (eqMap f g).f).symm).trans
-        (Cat.assoc w (catMap d (eqMap f g).f) (catTail X.dom d)).symm
-    exact (key u.f).trans ((congrArg (· ≫ catTail X.dom d) hh).trans (key v.f).symm)
+    have key : ∀ (w : listProd (𝒞 := 𝒞) z.left ⟶ listProd (𝒞 := 𝒞) ((eqObj f g).left ++ d)),
+        w ≫ catTail (eqObj f g).left d
+          = (w ≫ catMap d (eqMap f g).left) ≫ catTail X.left d := fun w =>
+      (congrArg (w ≫ ·) (catMap_tail d (eqMap f g).left).symm).trans
+        (CategoryTheory.Category.assoc w (catMap d (eqMap f g).left) (catTail X.left d)).symm
+    exact (key u.left).trans ((congrArg (· ≫ catTail X.left d) hh).trans (key v.left).symm)
 
 /-- Lift half of equalizer-preservation for `sliceCatObj d` (`hepres_lift`).  RESIDUAL. -/
 theorem sliceCatObj_eq_lift [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)} (f g : X ⟶ Y)
@@ -1991,66 +1988,66 @@ theorem sliceCatObj_eq_lift [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
     (hk : k ≫ (sliceCatFunctor d V).map f = k ≫ (sliceCatFunctor d V).map g) :
     ∃ r : z ⟶ sliceCatObj d (eqObj f g), r ≫ (sliceCatFunctor d V).map (eqMap f g) = k := by
   -- triangle datum from `k`, and `hk` projected to the base over `V`.
-  have hkw : k.f ≫ catMap d X.hom = z.hom := k.w
-  have hhk : k.f ≫ catMap d f.f = k.f ≫ catMap d g.f := congrArg OverHom.f hk
-  -- `k.f ≫ catForget X.dom d` equalizes `f.f, g.f` (base), so it lifts through `eqMap f.f g.f`.
-  have heq : (k.f ≫ catForget X.dom d) ≫ f.f = (k.f ≫ catForget X.dom d) ≫ g.f := by
-    have lhs : (k.f ≫ catForget X.dom d) ≫ f.f = k.f ≫ (catMap d f.f ≫ catForget Y.dom d) :=
-      (Cat.assoc k.f (catForget X.dom d) f.f).trans
-        (congrArg (k.f ≫ ·) (catMap_forget d f.f).symm)
-    have rhs : (k.f ≫ catForget X.dom d) ≫ g.f = k.f ≫ (catMap d g.f ≫ catForget Y.dom d) :=
-      (Cat.assoc k.f (catForget X.dom d) g.f).trans
-        (congrArg (k.f ≫ ·) (catMap_forget d g.f).symm)
-    rw [lhs, rhs, ← Cat.assoc, ← Cat.assoc, hhk]
-  let base := eqLift f.f g.f (k.f ≫ catForget X.dom d) heq
-  have hbase : base ≫ (eqMap f g).f = k.f ≫ catForget X.dom d := eqLift_fac f.f g.f _ heq
-  let rf := catArrange (eqObj f g).dom d base (k.f ≫ catTail X.dom d)
-  have hrforget : rf ≫ catForget (eqObj f g).dom d = base := catArrange_forget _ _ _ _
-  have hrtail : rf ≫ catTail (eqObj f g).dom d = k.f ≫ catTail X.dom d := catArrange_tail _ _ _ _
+  have hkw : k.left ≫ catMap d X.hom = z.hom := CategoryTheory.Over.w k
+  have hhk : k.left ≫ catMap d f.left = k.left ≫ catMap d g.left := congrArg CategoryTheory.CommaMorphism.left hk
+  -- `k.left ≫ catForget X.left d` equalizes `f.left, g.left` (base), so it lifts through `eqMap f.left g.left`.
+  have heq : (k.left ≫ catForget X.left d) ≫ f.left = (k.left ≫ catForget X.left d) ≫ g.left := by
+    have lhs : (k.left ≫ catForget X.left d) ≫ f.left = k.left ≫ (catMap d f.left ≫ catForget Y.left d) :=
+      (CategoryTheory.Category.assoc k.left (catForget X.left d) f.left).trans
+        (congrArg (k.left ≫ ·) (catMap_forget d f.left).symm)
+    have rhs : (k.left ≫ catForget X.left d) ≫ g.left = k.left ≫ (catMap d g.left ≫ catForget Y.left d) :=
+      (CategoryTheory.Category.assoc k.left (catForget X.left d) g.left).trans
+        (congrArg (k.left ≫ ·) (catMap_forget d g.left).symm)
+    rw [lhs, rhs, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, hhk]
+  let base := eqLift f.left g.left (k.left ≫ catForget X.left d) heq
+  have hbase : base ≫ (eqMap f g).left = k.left ≫ catForget X.left d := eqLift_fac f.left g.left _ heq
+  let rf := catArrange (eqObj f g).left d base (k.left ≫ catTail X.left d)
+  have hrforget : rf ≫ catForget (eqObj f g).left d = base := catArrange_forget _ _ _ _
+  have hrtail : rf ≫ catTail (eqObj f g).left d = k.left ≫ catTail X.left d := catArrange_tail _ _ _ _
   -- term-side projections of `rf` through `catMap d g`.
-  have rfForget : ∀ {t : List 𝒞} (g' : listProd (𝒞 := 𝒞) (eqObj f g).dom ⟶ listProd t),
+  have rfForget : ∀ {t : List 𝒞} (g' : listProd (𝒞 := 𝒞) (eqObj f g).left ⟶ listProd t),
       rf ≫ (catMap d g' ≫ catForget t d) = base ≫ g' := fun g' =>
     (congrArg (rf ≫ ·) (catMap_forget d g')).trans
-      ((Cat.assoc rf (catForget (eqObj f g).dom d) g').symm.trans
+      ((CategoryTheory.Category.assoc rf (catForget (eqObj f g).left d) g').symm.trans
         (congrArg (· ≫ g') hrforget))
-  have rfTail : ∀ {t : List 𝒞} (g' : listProd (𝒞 := 𝒞) (eqObj f g).dom ⟶ listProd t),
-      rf ≫ (catMap d g' ≫ catTail t d) = k.f ≫ catTail X.dom d := fun g' =>
+  have rfTail : ∀ {t : List 𝒞} (g' : listProd (𝒞 := 𝒞) (eqObj f g).left ⟶ listProd t),
+      rf ≫ (catMap d g' ≫ catTail t d) = k.left ≫ catTail X.left d := fun g' =>
     (congrArg (rf ≫ ·) (catMap_tail d g')).trans hrtail
-  -- `k.f` projected over `V` after forgetting/tailing `d` (both pulled from `k.w`).
-  have hkf : (k.f ≫ catForget X.dom d) ≫ X.hom = z.hom ≫ catForget V d :=
-    (Cat.assoc k.f (catForget X.dom d) X.hom).trans
-      ((congrArg (k.f ≫ ·) (catMap_forget d X.hom).symm).trans
-        ((Cat.assoc k.f (catMap d X.hom) (catForget V d)).symm.trans
+  -- `k.left` projected over `V` after forgetting/tailing `d` (both pulled from `k.w`).
+  have hkf : (k.left ≫ catForget X.left d) ≫ X.hom = z.hom ≫ catForget V d :=
+    (CategoryTheory.Category.assoc k.left (catForget X.left d) X.hom).trans
+      ((congrArg (k.left ≫ ·) (catMap_forget d X.hom).symm).trans
+        ((CategoryTheory.Category.assoc k.left (catMap d X.hom) (catForget V d)).symm.trans
           (congrArg (· ≫ catForget V d) hkw)))
-  have hkt : k.f ≫ catTail X.dom d = z.hom ≫ catTail V d :=
-    (congrArg (k.f ≫ ·) (catMap_tail d X.hom).symm).trans
-      ((Cat.assoc k.f (catMap d X.hom) (catTail V d)).symm.trans
+  have hkt : k.left ≫ catTail X.left d = z.hom ≫ catTail V d :=
+    (congrArg (k.left ≫ ·) (catMap_tail d X.hom).symm).trans
+      ((CategoryTheory.Category.assoc k.left (catMap d X.hom) (catTail V d)).symm.trans
         (congrArg (· ≫ catTail V d) hkw))
   -- the over-hom law `rf ≫ catMap d ((eqObj f g).hom) = z.hom`.
   have hrw : rf ≫ catMap d (eqObj f g).hom = z.hom := by
     apply cat_jointly_monic V d
-    · rw [Cat.assoc, rfForget (eqObj f g).hom]
-      show base ≫ ((eqMap f g).f ≫ X.hom) = z.hom ≫ catForget V d
-      rw [← Cat.assoc, hbase]; exact hkf
-    · rw [Cat.assoc, rfTail (eqObj f g).hom]; exact hkt
-  refine ⟨⟨rf, hrw⟩, ?_⟩
-  -- `r ≫ map(eqMap f g) = k` reduces to `rf ≫ catMap d em = k.f`.
-  apply OverHom.ext
-  show rf ≫ catMap d (eqMap f g).f = k.f
-  apply cat_jointly_monic X.dom d
-  · rw [Cat.assoc, rfForget (eqMap f g).f]; exact hbase
-  · rw [Cat.assoc]; exact rfTail (eqMap f g).f
+    · rw [CategoryTheory.Category.assoc, rfForget (t := V) (eqObj f g).hom]
+      show base ≫ ((eqMap f g).left ≫ X.hom) = z.hom ≫ catForget V d
+      rw [← CategoryTheory.Category.assoc, hbase]; exact hkf
+    · rw [CategoryTheory.Category.assoc, rfTail (t := V) (eqObj f g).hom]; exact hkt
+  refine ⟨CategoryTheory.Over.homMk rf hrw, ?_⟩
+  -- `r ≫ map(eqMap f g) = k` reduces to `rf ≫ catMap d em = k.left`.
+  apply CategoryTheory.Over.OverMorphism.ext
+  show rf ≫ catMap d (eqMap f g).left = k.left
+  apply cat_jointly_monic X.left d
+  · rw [CategoryTheory.Category.assoc, rfForget (eqMap f g).left]; exact hbase
+  · rw [CategoryTheory.Category.assoc]; exact rfTail (eqMap f g).left
 
 /-! ### The strict slice transition PRESERVES covers and monos
 
   The §1.547 transition functor `sliceCatFunctor d` is base-change by concatenation, hence sends slice
-  covers/monos to slice covers/monos.  Both reduce, on underlying `Infl`-arrows (`.f`), to the
+  covers/monos to slice covers/monos.  Both reduce, on underlying `Infl`-arrows (`.left`), to the
   `catMap`-level facts `catMap_cover`/`catMap_mono` via the §1.531 slice⟷base correspondence
   (`cover_f_of_cover`/`cover_of_cover_f`, `sigma_preserves_mono`/`cover_of_cover_f`).  These are the
   per-transition `hcovpres`/`hmono` ingredients the generic `colimitCanonicalCover` bridge consumes. -/
 
 /-- **`sliceCatFunctor d` preserves covers**: a slice cover `φ : X ⟶ Y` of `A′/V` maps to a slice
-    cover of `A′/(V++d)`.  Underlying: `(sliceCatMap d φ).f = catMap d φ.f`, and `catMap d` preserves
+    cover of `A′/(V++d)`.  Underlying: `(sliceCatMap d φ).left = catMap d φ.left`, and `catMap d` preserves
     covers (`catMap_cover`), bridged by the §1.531 cover correspondence. -/
 theorem sliceCatObj_cover [HasEqualizers 𝒞] [PullbacksTransferCovers 𝒞] (d : List 𝒞) {V : Infl 𝒞}
     {X Y : Over (B := V)} (φ : X ⟶ Y) (hφ : Cover (𝒞 := Over (B := V)) φ) :
@@ -2066,9 +2063,9 @@ theorem sliceCatObj_mono [HasEqualizers 𝒞] (d : List 𝒞) {V : Infl 𝒞} {X
     (φ : X ⟶ Y) (hφ : OverMono (B := V) φ) :
     OverMono (B := (V ++ d : List 𝒞)) (sliceCatMap d φ) := by
   letI : HasPullbacks (Infl 𝒞) := inflHasPullbacks
-  -- underlying mono of `catMap d φ.f` (`catMap_mono` + `sigma_preserves_mono`), then reflect to the slice.
-  have hf : Monic (𝒞 := Infl 𝒞) (catMap d φ.f) := catMap_mono d (sigma_preserves_mono φ hφ)
-  -- `(sliceCatMap d φ).f = catMap d φ.f`, so a slice mono follows from `sigma_reflects_mono`.
+  -- underlying mono of `catMap d φ.left` (`catMap_mono` + `sigma_preserves_mono`), then reflect to the slice.
+  have hf : Monic (𝒞 := Infl 𝒞) (catMap d φ.left) := catMap_mono d (sigma_preserves_mono φ hφ)
+  -- `(sliceCatMap d φ).left = catMap d φ.left`, so a slice mono follows from `sigma_reflects_mono`.
   intro W g h hgh
   exact sigma_reflects_mono (𝒞 := Infl 𝒞) (B := V ++ d) (sliceCatMap d φ) hf g h hgh
 
@@ -2128,14 +2125,14 @@ theorem prodLeftMap_cover {B A1 A2 : 𝒞} (x : A1 ⟶ A2) (hx : Cover x) :
     · show pair (d.π₂ ≫ fst) d.π₁ ≫ snd = d.π₁; rw [snd_pair]
     · show pair (d.π₂ ≫ fst) d.π₁ ≫ pair fst (snd ≫ x) = d.π₂
       apply fst_snd_jointly_monic
-      · rw [Cat.assoc, fst_pair, fst_pair]
-      · rw [Cat.assoc, snd_pair, ← Cat.assoc, snd_pair, d.w]
+      · rw [CategoryTheory.Category.assoc, fst_pair, fst_pair]
+      · rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, snd_pair, d.w]
     · intro v hv1 hv2
       apply fst_snd_jointly_monic
       · rw [fst_pair]
         have hh : v ≫ pair (fst : prod B A1 ⟶ B) (snd ≫ x) = d.π₂ := hv2
         have := congrArg (· ≫ (fst : prod B A2 ⟶ B)) hh
-        simpa [Cat.assoc, fst_pair] using this
+        simpa [CategoryTheory.Category.assoc, fst_pair] using this
       · rw [snd_pair]; exact hv1
   show Cover c.π₂
   exact PullbacksTransferCovers.pullbacks_transfer_covers c hpb hx
@@ -2175,7 +2172,7 @@ theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞
       rw [hstep]
       exact cover_precomp_iso ⟨inv, hinv1, hinv2⟩ (catForget_cover (𝒞 := 𝒞) (d := d) hws t)
     intro K m h hm hfac
-    exact hcov m (catForget s d ≫ h) hm (by rw [Cat.assoc, hfac])
+    exact hcov m (catForget s d ≫ h) hm (by rw [CategoryTheory.Category.assoc, hfac])
   -- `φ` is mono: `catMap d φ` mono (it is iso).  Given `u≫φ = v≫φ` (`u v : Z → ∏s`), lift each to
   -- `Z×∏d → ∏(s+d)` via `catArrange (fst≫u/v) snd` (forget-part `fst≫u`, tail-part `snd`).  Both lifts
   -- agree under `catMap d φ` (forget-parts `fst≫u≫φ = fst≫v≫φ`, tails `snd`), so `catMap d φ`-mono
@@ -2189,13 +2186,13 @@ theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞
     have hpq : p ≫ catMap d φ = q ≫ catMap d φ := by
       apply cat_jointly_monic t d
       · show (p ≫ catMap d φ) ≫ catForget t d = (q ≫ catMap d φ) ≫ catForget t d
-        rw [Cat.assoc, catMap_forget, Cat.assoc, catMap_forget, ← Cat.assoc, ← Cat.assoc]
+        rw [CategoryTheory.Category.assoc, catMap_forget, CategoryTheory.Category.assoc, catMap_forget, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc]
         show (catArrange s d (fst ≫ u) snd ≫ catForget s d) ≫ φ
             = (catArrange s d (fst ≫ v) snd ≫ catForget s d) ≫ φ
         rw [catArrange_forget s d (fst ≫ u) snd, catArrange_forget s d (fst ≫ v) snd,
-            Cat.assoc, Cat.assoc, huv]
+            CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, huv]
       · show (p ≫ catMap d φ) ≫ catTail t d = (q ≫ catMap d φ) ≫ catTail t d
-        rw [Cat.assoc, catMap_tail, Cat.assoc, catMap_tail]
+        rw [CategoryTheory.Category.assoc, catMap_tail, CategoryTheory.Category.assoc, catMap_tail]
         show catArrange s d (fst ≫ u) snd ≫ catTail s d = catArrange s d (fst ≫ v) snd ≫ catTail s d
         rw [catArrange_tail s d (fst ≫ u) snd, catArrange_tail s d (fst ≫ v) snd]
     have heq := hcfMono p q hpq
@@ -2207,14 +2204,14 @@ theorem catMap_conservative {d : List 𝒞} (hws : WellSupported (listProd (𝒞
   exact monic_cover_iso φ hφcover hφmono
 
 /-- **`sliceCatFunctor d` is CONSERVATIVE** (reflects slice isos) when `∏d` is well-supported.  From a
-    slice iso of `sliceCatMap d φ` take the underlying `IsIso (catMap d φ.f)` (`overIso_underlying`),
-    reflect it to `IsIso φ.f` (`catMap_conservative`), then re-wrap to a slice iso
+    slice iso of `sliceCatMap d φ` take the underlying `IsIso (catMap d φ.left)` (`overIso_underlying`),
+    reflect it to `IsIso φ.left` (`catMap_conservative`), then re-wrap to a slice iso
     (`overIso_of_underlying`).  The slice-level mate of `catMap_conservative` — the per-transition
     `hcons` ingredient. -/
 theorem sliceCatObj_conservative (d : List 𝒞) (hws : WellSupported (listProd (𝒞 := 𝒞) d))
     {V : Infl 𝒞} {X Y : Over (B := V)} (φ : OverHom X Y)
     (hiso : OverIso (B := (V ++ d : List 𝒞)) (sliceCatMap d φ)) : OverIso (B := V) φ :=
-  overIso_of_underlying φ (catMap_conservative (d := d) hws φ.f (overIso_underlying hiso))
+  overIso_of_underlying φ (catMap_conservative (d := d) hws φ.left (overIso_underlying hiso))
 
 /-- **GENERIC** product joint-monicity preservation (`hppres`) — lifts `sliceCatObj_prod_jointly_monic`
     through the base-transport of `ordChainSliceFunctor`, any index. -/
@@ -2379,7 +2376,7 @@ theorem ordChainHfaith {i j : ι} (hij : D.le i j)
       (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map p
         = (transportSliceFunctor e (sliceCatFunctor d (O.chain i))).map q → p = q := by
     intro d W e hwsd; cases e
-    exact fun h => OverHom.ext (catMap_faithful (d := d) hwsd p.f q.f (congrArg OverHom.f h))
+    exact fun h => CategoryTheory.Over.OverMorphism.ext (catMap_faithful (d := d) hwsd p.left q.left (congrArg CategoryTheory.CommaMorphism.left h))
   exact gen _ _ (prefixSuffix_eq (O.mono hij)) hws
 
 /-- **GENERIC** transition CONSERVATIVITY (`hcons`) — the inner transition reflects slice isos, lifting
@@ -2449,8 +2446,8 @@ noncomputable def ordChainStageHasImages [RegularCategory 𝒞] (i : ι) :
 
 /-- The inner transitions preserve monos as a `PreservesMono` (packaging `ordChainHmono`). -/
 theorem ordChainPreservesMono {i j : ι} (hij : D.le i j) :
-    @PreservesMono _ ((ordChainSliceSystem O).catA i) _ ((ordChainSliceSystem O).catA j)
-      ((ordChainSliceSystem O).F hij) ((ordChainSliceSystem O).functF hij) :=
+    PreservesMono (bundledFunctor (hF := (ordChainSliceSystem O).functF hij)
+      ((ordChainSliceSystem O).F hij)) :=
   fun {_ _ _} hφ => ordChainHmono O hij _ hφ
 
 open Freyd.Colim in

@@ -29,11 +29,11 @@
 import Fredy.S1_70
 import Fredy.S1_658_Complement
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -45,7 +45,7 @@ namespace Frobenius
 theorem allows_of_le {B : 𝒞} {I Z : Subobject 𝒞 B} {A : 𝒞} {g : A ⟶ B}
     (hIZ : I.le Z) (hg : Allows I g) : Allows Z g := by
   obtain ⟨k, hk⟩ := hIZ; obtain ⟨w, hw⟩ := hg
-  exact ⟨w ≫ k, by rw [Cat.assoc, hk, hw]⟩
+  exact ⟨w ≫ k, by rw [CategoryTheory.Category.assoc, hk, hw]⟩
 
 /-- **Direct-image bridge.**  `(f_* S).le T ↔ T` allows `S.arr ≫ f`.
     `f_* S` is the image of `S.arr ≫ f`, so this is just image minimality (`←`)
@@ -70,9 +70,9 @@ theorem le_inverseImage_iff [HasPullbacks 𝒞] {A B : 𝒞} (f : A ⟶ B)
     have hk' : k ≫ (HasPullbacks.has f T.arr).cone.π₁ = S.arr := hk
     refine ⟨k ≫ (HasPullbacks.has f T.arr).cone.π₂, ?_⟩
     calc (k ≫ (HasPullbacks.has f T.arr).cone.π₂) ≫ T.arr
-        = k ≫ ((HasPullbacks.has f T.arr).cone.π₂ ≫ T.arr) := Cat.assoc _ _ _
+        = k ≫ ((HasPullbacks.has f T.arr).cone.π₂ ≫ T.arr) := CategoryTheory.Category.assoc _ _ _
       _ = k ≫ ((HasPullbacks.has f T.arr).cone.π₁ ≫ f) := by rw [hw]
-      _ = (k ≫ (HasPullbacks.has f T.arr).cone.π₁) ≫ f := (Cat.assoc _ _ _).symm
+      _ = (k ≫ (HasPullbacks.has f T.arr).cone.π₁) ≫ f := (CategoryTheory.Category.assoc _ _ _).symm
       _ = S.arr ≫ f := by rw [hk']
   · rintro ⟨h, hh⟩
     -- cone `⟨S.dom, S.arr, h⟩` over `(f, T.arr)`; lift into the pullback.
@@ -95,9 +95,9 @@ theorem directImage_mono [HasImages 𝒞] {A B : 𝒞} (f : A ⟶ B)
   have hw' : w ≫ (DirectImage f S').arr = S'.arr ≫ f := hw
   refine ⟨k ≫ w, ?_⟩
   calc (k ≫ w) ≫ (DirectImage f S').arr
-      = k ≫ (w ≫ (DirectImage f S').arr) := Cat.assoc _ _ _
+      = k ≫ (w ≫ (DirectImage f S').arr) := CategoryTheory.Category.assoc _ _ _
     _ = k ≫ (S'.arr ≫ f) := by rw [hw']
-    _ = (k ≫ S'.arr) ≫ f := (Cat.assoc _ _ _).symm
+    _ = (k ≫ S'.arr) ≫ f := (CategoryTheory.Category.assoc _ _ _).symm
     _ = S.arr ≫ f := by rw [hk]
 
 /-! ## Meet laws — reused from S1_62 (now PreLogos-free)
@@ -123,23 +123,23 @@ theorem le_of_cover_allows [HasImages 𝒞] {B : 𝒞} {Y Z : Subobject 𝒞 B} 
     intro X u v huv
     apply (image (c ≫ Y.arr)).monic
     rw [← hkY]
-    calc u ≫ (kY ≫ Y.arr) = (u ≫ kY) ≫ Y.arr := (Cat.assoc _ _ _).symm
+    calc u ≫ (kY ≫ Y.arr) = (u ≫ kY) ≫ Y.arr := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (v ≫ kY) ≫ Y.arr := by rw [huv]
-      _ = v ≫ (kY ≫ Y.arr) := Cat.assoc _ _ _
+      _ = v ≫ (kY ≫ Y.arr) := CategoryTheory.Category.assoc _ _ _
   -- `e' ≫ kY = c`, so the cover `c` factors through the monic `kY`; hence `kY` is iso.
   have he'kY : e' ≫ kY = c := Y.monic _ _ (by
-    calc (e' ≫ kY) ≫ Y.arr = e' ≫ (kY ≫ Y.arr) := Cat.assoc _ _ _
+    calc (e' ≫ kY) ≫ Y.arr = e' ≫ (kY ≫ Y.arr) := CategoryTheory.Category.assoc _ _ _
       _ = e' ≫ (image (c ≫ Y.arr)).arr := by rw [hkY]
       _ = c ≫ Y.arr := he')
   obtain ⟨kYinv, _hkY1, hkY2⟩ := hc kY e' hkY_monic he'kY
   -- `Y ≤ image ≤ Z`, using `kYinv` for the first and `kZ` for the second step.
   exact ⟨kYinv ≫ kZ, by
-    calc (kYinv ≫ kZ) ≫ Z.arr = kYinv ≫ (kZ ≫ Z.arr) := Cat.assoc _ _ _
+    calc (kYinv ≫ kZ) ≫ Z.arr = kYinv ≫ (kZ ≫ Z.arr) := CategoryTheory.Category.assoc _ _ _
       _ = kYinv ≫ (image (c ≫ Y.arr)).arr := by rw [hkZ]
       _ = kYinv ≫ (kY ≫ Y.arr) := by rw [← hkY]
-      _ = (kYinv ≫ kY) ≫ Y.arr := (Cat.assoc _ _ _).symm
-      _ = Cat.id Y.dom ≫ Y.arr := by rw [hkY2]
-      _ = Y.arr := Cat.id_comp _⟩
+      _ = (kYinv ≫ kY) ≫ Y.arr := (CategoryTheory.Category.assoc _ _ _).symm
+      _ = 𝟙 Y.dom ≫ Y.arr := by rw [hkY2]
+      _ = Y.arr := CategoryTheory.Category.id_comp _⟩
 
 /-- Equation (I), easy half:  `f (A' ∩ f* B') ≤ (f A') ∩ B'`.
     Both components come for free: monotonicity of `f_*` for the `f A'` factor and
@@ -177,13 +177,13 @@ theorem frobenius_ge [RegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
   refine le_of_cover_allows hcov_qF ?_
   -- key composite: `(q1 ≫ S.arr) ≫ f = (qF ≫ p2) ≫ T.arr`.
   have hcomp : (q1 ≫ S.arr) ≫ f = (qF ≫ p2) ≫ T.arr := by
-    calc (q1 ≫ S.arr) ≫ f = q1 ≫ (S.arr ≫ f) := Cat.assoc _ _ _
+    calc (q1 ≫ S.arr) ≫ f = q1 ≫ (S.arr ≫ f) := CategoryTheory.Category.assoc _ _ _
       _ = q1 ≫ (e ≫ (DirectImage f S).arr) := by rw [he']
-      _ = (q1 ≫ e) ≫ (DirectImage f S).arr := (Cat.assoc _ _ _).symm
+      _ = (q1 ≫ e) ≫ (DirectImage f S).arr := (CategoryTheory.Category.assoc _ _ _).symm
       _ = (qF ≫ p1) ≫ (DirectImage f S).arr := by rw [hqF_p1]
-      _ = qF ≫ (p1 ≫ (DirectImage f S).arr) := Cat.assoc _ _ _
+      _ = qF ≫ (p1 ≫ (DirectImage f S).arr) := CategoryTheory.Category.assoc _ _ _
       _ = qF ≫ (p2 ≫ T.arr) := by rw [hp1w]
-      _ = (qF ≫ p2) ≫ T.arr := (Cat.assoc _ _ _).symm
+      _ = (qF ≫ p2) ≫ T.arr := (CategoryTheory.Category.assoc _ _ _).symm
   -- `q1 ≫ S.arr` factors through `f* T` (pullback UMP), hence through `S ∩ f* T`.
   let cwp : Cone f T.arr := ⟨pb2.cone.pt, q1 ≫ S.arr, qF ≫ p2, hcomp⟩
   let wp := (HasPullbacks.has f T.arr).lift cwp
@@ -192,22 +192,22 @@ theorem frobenius_ge [RegularCategory 𝒞] {A B : 𝒞} (f : A ⟶ B)
   let w := (HasPullbacks.has S.arr (InverseImage f T).arr).lift cw
   have hwW : w ≫ (Subobject.inter S (InverseImage f T)).arr = q1 ≫ S.arr := by
     show w ≫ ((HasPullbacks.has S.arr (InverseImage f T).arr).cone.π₁ ≫ S.arr) = q1 ≫ S.arr
-    rw [← Cat.assoc, (HasPullbacks.has S.arr (InverseImage f T).arr).lift_fst cw]
+    rw [← CategoryTheory.Category.assoc, (HasPullbacks.has S.arr (InverseImage f T).arr).lift_fst cw]
   -- factor `qF ≫ (f A' ∩ B').arr` through `f_* (S ∩ f* T)`.
   obtain ⟨eW, heW⟩ := image_allows ((Subobject.inter S (InverseImage f T)).arr ≫ f)
   have heW' : eW ≫ (DirectImage f (Subobject.inter S (InverseImage f T))).arr
       = (Subobject.inter S (InverseImage f T)).arr ≫ f := heW
   refine ⟨w ≫ eW, ?_⟩
   calc (w ≫ eW) ≫ (DirectImage f (Subobject.inter S (InverseImage f T))).arr
-      = w ≫ (eW ≫ (DirectImage f (Subobject.inter S (InverseImage f T))).arr) := Cat.assoc _ _ _
+      = w ≫ (eW ≫ (DirectImage f (Subobject.inter S (InverseImage f T))).arr) := CategoryTheory.Category.assoc _ _ _
     _ = w ≫ ((Subobject.inter S (InverseImage f T)).arr ≫ f) := by rw [heW']
-    _ = (w ≫ (Subobject.inter S (InverseImage f T)).arr) ≫ f := (Cat.assoc _ _ _).symm
+    _ = (w ≫ (Subobject.inter S (InverseImage f T)).arr) ≫ f := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (q1 ≫ S.arr) ≫ f := by rw [hwW]
-    _ = q1 ≫ (S.arr ≫ f) := Cat.assoc _ _ _
+    _ = q1 ≫ (S.arr ≫ f) := CategoryTheory.Category.assoc _ _ _
     _ = q1 ≫ (e ≫ (DirectImage f S).arr) := by rw [he']
-    _ = (q1 ≫ e) ≫ (DirectImage f S).arr := (Cat.assoc _ _ _).symm
+    _ = (q1 ≫ e) ≫ (DirectImage f S).arr := (CategoryTheory.Category.assoc _ _ _).symm
     _ = (qF ≫ p1) ≫ (DirectImage f S).arr := by rw [hqF_p1]
-    _ = qF ≫ (p1 ≫ (DirectImage f S).arr) := Cat.assoc _ _ _
+    _ = qF ≫ (p1 ≫ (DirectImage f S).arr) := CategoryTheory.Category.assoc _ _ _
 
 /-- **Equation (I) — the projection / Frobenius equation**, as an equality of
     subobjects (mutual `Subobject.le`):

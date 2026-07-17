@@ -29,11 +29,11 @@ import Fredy.S1_53
 import Fredy.S1_543_Capitalization
 
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞]
 
 namespace Freyd
 
@@ -53,15 +53,15 @@ def prodRight (B : 𝒞) : 𝒞 → 𝒞 := fun C => prod C B
 instance prodRightFunctor (B : 𝒞) : Functor (prodRight B) where
   map {C D} f := pair (fst ≫ f) snd
   map_id C := by
-    show pair (fst ≫ Cat.id C) snd = Cat.id (prod C B)
-    rw [Cat.comp_id]
-    exact (pair_uniq fst snd (Cat.id (prod C B)) (Cat.id_comp fst) (Cat.id_comp snd)).symm
+    show pair (fst ≫ 𝟙 C) snd = 𝟙 (prod C B)
+    rw [CategoryTheory.Category.comp_id]
+    exact (pair_uniq fst snd (𝟙 (prod C B)) (CategoryTheory.Category.id_comp fst) (CategoryTheory.Category.id_comp snd)).symm
   map_comp {C D E} f g := by
     show pair (fst ≫ f ≫ g) snd = pair (fst ≫ f) snd ≫ pair (fst ≫ g) snd
     symm
     apply pair_uniq
-    · rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc]
-    · rw [Cat.assoc, snd_pair, snd_pair]
+    · rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc]
+    · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair]
 
 /-- **§1.544**: when `B` is well-supported, `(-)×B` SEPARATES MORPHISMS — the
     embedding `A → A/B` is faithful in Freyd's sense ("separates objects and, if
@@ -154,24 +154,24 @@ theorem prodRight_map_subterm_iso {B : 𝒞} (U : Subobject 𝒞 (one (𝒞 := �
   -- Candidate inverse: `pair (snd ≫ b) snd : prod one B → prod U.dom B`
   -- Key: `fst = snd ≫ b` as maps `prod U.dom B → U.dom`, by monicity of U.arr
   have hkey : (fst : prod U.dom B ⟶ U.dom) = snd ≫ b :=
-    U.monic fst (snd ≫ b) (by rw [Cat.assoc, hb]; exact (term_uniq _ _).symm)
+    U.monic fst (snd ≫ b) (by rw [CategoryTheory.Category.assoc, hb]; exact (term_uniq _ _).symm)
   refine ⟨pair (snd ≫ b) snd, ?_, ?_⟩
   · -- f ≫ inv = id(prod U.dom B): `pair (fst ≫ U.arr) snd ≫ pair (snd ≫ b) snd = id`
-    show pair (fst ≫ U.arr) snd ≫ pair (snd ≫ b) snd = Cat.id (prod U.dom B)
-    have hid : Cat.id (prod U.dom B) = pair fst snd :=
-      pair_uniq fst snd (Cat.id _) (Cat.id_comp fst) (Cat.id_comp snd)
+    show pair (fst ≫ U.arr) snd ≫ pair (snd ≫ b) snd = 𝟙 (prod U.dom B)
+    have hid : 𝟙 (prod U.dom B) = pair fst snd :=
+      pair_uniq fst snd (𝟙 _) (CategoryTheory.Category.id_comp fst) (CategoryTheory.Category.id_comp snd)
     rw [hid, ← pair_uniq fst snd _ _ _]
-    · rw [Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, ← hkey]
-    · rw [Cat.assoc, snd_pair, snd_pair]
+    · rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, snd_pair, ← hkey]
+    · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair]
   · -- inv ≫ f = id(prod one B): `pair (snd ≫ b) snd ≫ pair (fst ≫ U.arr) snd = id`
-    show pair (snd ≫ b) snd ≫ pair (fst ≫ U.arr) snd = Cat.id (prod one B)
-    have hid : Cat.id (prod one B) = pair fst snd :=
-      pair_uniq fst snd (Cat.id _) (Cat.id_comp fst) (Cat.id_comp snd)
+    show pair (snd ≫ b) snd ≫ pair (fst ≫ U.arr) snd = 𝟙 (prod one B)
+    have hid : 𝟙 (prod one B) = pair fst snd :=
+      pair_uniq fst snd (𝟙 _) (CategoryTheory.Category.id_comp fst) (CategoryTheory.Category.id_comp snd)
     rw [hid, ← pair_uniq fst snd _ _ _]
     · -- fst: `(pair(snd≫b) snd ≫ pair(fst≫U.arr) snd) ≫ fst = (snd ≫ b) ≫ U.arr = snd ≫ term B = fst`
-      rw [Cat.assoc, fst_pair, ← Cat.assoc, fst_pair, Cat.assoc, hb]
+      rw [CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.assoc, hb]
       exact term_uniq _ _
-    · rw [Cat.assoc, snd_pair, snd_pair]
+    · rw [CategoryTheory.Category.assoc, snd_pair, snd_pair]
 
 /-- **§1.534**: `prodRight B` does not reflect isomorphisms when B is not well-supported.
     Concretely: `U.arr : U.dom → 1` is monic-not-iso but `(prodRight B).map U.arr` is iso. -/

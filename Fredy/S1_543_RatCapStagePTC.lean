@@ -31,7 +31,7 @@ import Fredy.S1_543_RatCapPreReg
 import Fredy.S1_53_BaseChangeDescent
 import Fredy.S1_543_RatCapHcanon
 
-open Freyd
+open CategoryTheory Freyd
 open Freyd.Colim
 open Freyd.LaxColim
 
@@ -40,7 +40,7 @@ namespace Freyd.LaxColim
 universe u w
 
 variable {ι : Type u} {D : Directed ι}
-variable {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
+variable {𝒞 : Type w} [CategoryTheory.Category.{w} 𝒞] [HasPullbacks 𝒞]
 
 /-\! ## Fibre and transition shape
 
@@ -112,9 +112,9 @@ theorem projStage_conservative [PreRegularCategory 𝒞] {i j : ι} (hij : D.le 
 
   Two over-maps `p q : x ⟶ y` with `g* p = g* q` agree.  The slice base-change pullback projection
   `π₁ˣ : x ×_{pr i} (pr j) ⟶ x.dom` is the `fst`-leg of the pullback of the cover `g = P.proj hij`
-  along `x.hom`, hence a cover (`coverProj_of_cover`).  The naturality square `(g* p).f ≫ π₁ʸ =
-  π₁ˣ ≫ p.f` (`lift_fst` of `baseChangeCone`) turns `g* p = g* q` into `π₁ˣ ≫ p.f = π₁ˣ ≫ q.f`;
-  the cover `π₁ˣ` is epic (`cover_epi`), so `p.f = q.f`, hence `p = q` (`OverHom.ext`). -/
+  along `x.hom`, hence a cover (`coverProj_of_cover`).  The naturality square `(g* p).left ≫ π₁ʸ =
+  π₁ˣ ≫ p.left` (`lift_fst` of `baseChangeCone`) turns `g* p = g* q` into `π₁ˣ ≫ p.left = π₁ˣ ≫ q.left`;
+  the cover `π₁ˣ` is epic (`cover_epi`), so `p.left = q.left`, hence `p = q` (`CategoryTheory.Over.OverMorphism.ext`). -/
 theorem projStage_faithful [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     (hpc : Cover (sproj P hij))
     {x y : (laxOfProjSystem' P).A i} (p q : x ⟶ y)
@@ -125,17 +125,17 @@ theorem projStage_faithful [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
   -- the X-pullback of `(x.hom, g)`: its `fst`-leg `π₁ˣ` is a cover (pullback of the cover `g`).
   let PX := HasPullbacks.has x.hom (sproj P hij)
   have hπ₁X_cover : Cover PX.cone.π₁ := coverProj_of_cover PX.cone_isPullback hpc
-  -- naturality squares `(g* p).f ≫ π₁ʸ = π₁ˣ ≫ p.f` (and same for `q`).
+  -- naturality squares `(g* p).left ≫ π₁ʸ = π₁ˣ ≫ p.left` (and same for `q`).
   let PY := HasPullbacks.has y.hom (sproj P hij)
-  have hp : (baseChangeMap (sproj P hij) p).f ≫ PY.cone.π₁ = PX.cone.π₁ ≫ p.f :=
+  have hp : (baseChangeMap (sproj P hij) p).left ≫ PY.cone.π₁ = PX.cone.π₁ ≫ p.left :=
     PY.lift_fst (baseChangeCone (sproj P hij) p)
-  have hq : (baseChangeMap (sproj P hij) q).f ≫ PY.cone.π₁ = PX.cone.π₁ ≫ q.f :=
+  have hq : (baseChangeMap (sproj P hij) q).left ≫ PY.cone.π₁ = PX.cone.π₁ ≫ q.left :=
     PY.lift_fst (baseChangeCone (sproj P hij) q)
-  -- equal `g*`-images ⇒ equal underlying ⇒ `π₁ˣ ≫ p.f = π₁ˣ ≫ q.f`.
-  have hfeq : (baseChangeMap (sproj P hij) p).f = (baseChangeMap (sproj P hij) q).f :=
-    congrArg OverHom.f heq
-  have hcancel : PX.cone.π₁ ≫ p.f = PX.cone.π₁ ≫ q.f := by rw [← hp, ← hq, hfeq]
-  exact OverHom.ext (cover_epi hπ₁X_cover hcancel)
+  -- equal `g*`-images ⇒ equal underlying ⇒ `π₁ˣ ≫ p.left = π₁ˣ ≫ q.left`.
+  have hfeq : (baseChangeMap (sproj P hij) p).left = (baseChangeMap (sproj P hij) q).left :=
+    congrArg CategoryTheory.CommaMorphism.left heq
+  have hcancel : PX.cone.π₁ ≫ p.left = PX.cone.π₁ ≫ q.left := by rw [← hp, ← hq, hfeq]
+  exact CategoryTheory.Over.OverMorphism.ext (cover_epi hπ₁X_cover hcancel)
 
 /-- **`g*` is UNCONDITIONALLY conservative when `g` is a cover** (no mono restriction).  For a cover
     transition the mono-restricted `projStage_conservative` upgrades to full conservativity: `g* φ`
@@ -160,72 +160,73 @@ theorem projStage_conservative_full [PreRegularCategory 𝒞] {i j : ι} (hij : 
     calc @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
         = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
             ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by
-          rw [Cat.assoc, hinv1, Cat.comp_id]
+          rw [CategoryTheory.Category.assoc, hinv1, CategoryTheory.Category.comp_id]
       _ = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b
             ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by rw [hcomp]
       _ = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b := by
-          rw [Cat.assoc, hinv1, Cat.comp_id]
+          rw [CategoryTheory.Category.assoc, hinv1, CategoryTheory.Category.comp_id]
   exact projStage_conservative P hij hpc φ hmonoφ ⟨inv, hinv1, hinv2⟩
 
 /-\! ### 5. Cover preservation — `g*` preserves covers (given `g` a cover)
 
-  `g* m` is a cover in `Over (pr j)` iff its underlying arrow `(g* m).f` is a base cover
-  (`cover_f_of_cover`/`cover_of_cover_f`).  `(g* m).f : x ×_{pr i}(pr j) ⟶ y ×_{pr i}(pr j)` sits in
-  the pullback square `π₁ˣ ≫ m.f = (g* m).f ≫ π₁ʸ`, which IS a pullback (pasting the two base-change
-  pullbacks).  `m.f` is a cover (`cover_f_of_cover`), so `PullbacksTransferCovers` makes the opposite
-  leg `(g* m).f` a cover, lifting back to a slice cover (`cover_of_cover_f`). -/
+  `g* m` is a cover in `Over (pr j)` iff its underlying arrow `(g* m).left` is a base cover
+  (`cover_f_of_cover`/`cover_of_cover_f`).  `(g* m).left : x ×_{pr i}(pr j) ⟶ y ×_{pr i}(pr j)` sits in
+  the pullback square `π₁ˣ ≫ m.left = (g* m).left ≫ π₁ʸ`, which IS a pullback (pasting the two base-change
+  pullbacks).  `m.left` is a cover (`cover_f_of_cover`), so `PullbacksTransferCovers` makes the opposite
+  leg `(g* m).left` a cover, lifting back to a slice cover (`cover_of_cover_f`). -/
 theorem projStage_preservesCover [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y) (hφ : Cover φ) :
     Cover (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ) := by
   rw [stage_functF_map P hij φ]
-  -- it suffices to show the underlying arrow `(g* φ).f` is a base cover.
+  -- it suffices to show the underlying arrow `(g* φ).left` is a base cover.
   apply cover_of_cover_f
-  -- `φ.f` is a base cover (slice cover ⇒ base cover).
-  have hφf : Cover φ.f := cover_f_of_cover φ hφ
-  -- the pullback square `(g* φ).f / π₁ˣ / π₁ʸ / φ.f` over the cospan `(φ.f, π₁ʸ)`.
+  -- `φ.left` is a base cover (slice cover ⇒ base cover).
+  have hφf : Cover φ.left := cover_f_of_cover φ hφ
+  -- the pullback square `(g* φ).left / π₁ˣ / π₁ʸ / φ.left` over the cospan `(φ.left, π₁ʸ)`.
   let PX := HasPullbacks.has x.hom (sproj P hij)
   let PY := HasPullbacks.has y.hom (sproj P hij)
-  -- projection equations: `(g* φ).f ≫ π₁ʸ = π₁ˣ ≫ φ.f` and `(g* φ).f ≫ π₂ʸ = π₂ˣ`.
-  have hfst : (baseChangeMap (sproj P hij) φ).f ≫ PY.cone.π₁ = PX.cone.π₁ ≫ φ.f :=
+  -- projection equations: `(g* φ).left ≫ π₁ʸ = π₁ˣ ≫ φ.left` and `(g* φ).left ≫ π₂ʸ = π₂ˣ`.
+  have hfst : (baseChangeMap (sproj P hij) φ).left ≫ PY.cone.π₁ = PX.cone.π₁ ≫ φ.left :=
     PY.lift_fst (baseChangeCone (sproj P hij) φ)
-  have hsnd : (baseChangeMap (sproj P hij) φ).f ≫ PY.cone.π₂ = PX.cone.π₂ :=
+  have hsnd : (baseChangeMap (sproj P hij) φ).left ≫ PY.cone.π₂ = PX.cone.π₂ :=
     PY.lift_snd (baseChangeCone (sproj P hij) φ)
-  -- the cone over `(φ.f, π₁ʸ)` with apex `x ×C`, legs `(π₁ˣ, (g* φ).f)`.
-  let cn : Cone φ.f PY.cone.π₁ :=
-    ⟨PX.cone.pt, PX.cone.π₁, (baseChangeMap (sproj P hij) φ).f, by rw [hfst]⟩
+  -- the cone over `(φ.left, π₁ʸ)` with apex `x ×C`, legs `(π₁ˣ, (g* φ).left)`.
+  let cn : Cone φ.left PY.cone.π₁ :=
+    ⟨PX.cone.pt, PX.cone.π₁, (baseChangeMap (sproj P hij) φ).left, by rw [hfst]⟩
   -- it IS a pullback (pasting the two base-change pullbacks).
   have hpb : cn.IsPullback := by
     intro d
-    -- `d : Cone φ.f π₁ʸ`, i.e. `d.π₁ : d.pt → x.dom`, `d.π₂ : d.pt → y×C`, `d.π₁ ≫ φ.f = d.π₂ ≫ π₁ʸ`.
+    -- `d : Cone φ.left π₁ʸ`, i.e. `d.π₁ : d.pt → x.dom`, `d.π₂ : d.pt → y×C`, `d.π₁ ≫ φ.left = d.π₂ ≫ π₁ʸ`.
     -- lift `(d.π₁, d.π₂ ≫ π₂ʸ)` into the X-pullback (cospan `(x.hom, g)`).
     have hwX : d.π₁ ≫ x.hom = (d.π₂ ≫ PY.cone.π₂) ≫ (sproj P hij) := by
-      rw [← φ.w, ← Cat.assoc, d.w, Cat.assoc, PY.cone.w, Cat.assoc]
+      rw [← CategoryTheory.Over.w φ, ← CategoryTheory.Category.assoc, d.w,
+        CategoryTheory.Category.assoc, PY.cone.w, CategoryTheory.Category.assoc]
     let u : d.pt ⟶ PX.cone.pt := PX.lift ⟨d.pt, d.π₁, d.π₂ ≫ PY.cone.π₂, hwX⟩
     have hu₁ : u ≫ PX.cone.π₁ = d.π₁ := PX.lift_fst _
     have hu₂' : u ≫ PX.cone.π₂ = d.π₂ ≫ PY.cone.π₂ := PX.lift_snd _
     refine ⟨u, ⟨hu₁, ?_⟩, ?_⟩
-    · -- `u ≫ (g* φ).f = d.π₂` by Y-pullback monicity (both lift the same Y-cone, via π₁ʸ, π₂ʸ).
+    · -- `u ≫ (g* φ).left = d.π₂` by Y-pullback monicity (both lift the same Y-cone, via π₁ʸ, π₂ʸ).
       let dY : Cone y.hom (sproj P hij) := ⟨d.pt, d.π₂ ≫ PY.cone.π₁, d.π₂ ≫ PY.cone.π₂,
-        by rw [Cat.assoc, Cat.assoc, PY.cone.w]⟩
-      have hUC : u ≫ (baseChangeMap (sproj P hij) φ).f = PY.lift dY :=
-        PY.lift_uniq dY _ (by rw [Cat.assoc, hfst, ← Cat.assoc, hu₁, d.w]) (by rw [Cat.assoc, hsnd, hu₂'])
+        by rw [CategoryTheory.Category.assoc, CategoryTheory.Category.assoc, PY.cone.w]⟩
+      have hUC : u ≫ (baseChangeMap (sproj P hij) φ).left = PY.lift dY :=
+        PY.lift_uniq dY _ (by rw [CategoryTheory.Category.assoc, hfst, ← CategoryTheory.Category.assoc, hu₁, d.w]) (by rw [CategoryTheory.Category.assoc, hsnd, hu₂'])
       have hdC : d.π₂ = PY.lift dY := PY.lift_uniq dY _ rfl rfl
-      show u ≫ (baseChangeMap (sproj P hij) φ).f = d.π₂
+      show u ≫ (baseChangeMap (sproj P hij) φ).left = d.π₂
       rw [hUC, hdC]
-    · -- the reverse: any `v` with `v ≫ π₁ˣ = d.π₁`, `v ≫ (g*φ).f = d.π₂` equals `u` (both lift the
+    · -- the reverse: any `v` with `v ≫ π₁ˣ = d.π₁`, `v ≫ (g*φ).left = d.π₂` equals `u` (both lift the
       -- same X-cone: agree on `π₁ˣ` (= `d.π₁`) and `π₂ˣ` (= `d.π₂ ≫ π₂ʸ`, via `hsnd`)).
       intro v hv₁ hv₂
       have hvπ₂ : v ≫ PX.cone.π₂ = d.π₂ ≫ PY.cone.π₂ := by
         have h := congrArg (· ≫ PY.cone.π₂) hv₂
         simp only at h
-        rw [Cat.assoc, hsnd] at h
+        rw [CategoryTheory.Category.assoc, hsnd] at h
         exact h
       have hv_eq : v = PX.lift ⟨d.pt, d.π₁, d.π₂ ≫ PY.cone.π₂, hwX⟩ :=
         PX.lift_uniq ⟨d.pt, d.π₁, d.π₂ ≫ PY.cone.π₂, hwX⟩ v hv₁ hvπ₂
       have hu_eq : u = PX.lift ⟨d.pt, d.π₁, d.π₂ ≫ PY.cone.π₂, hwX⟩ :=
         PX.lift_uniq ⟨d.pt, d.π₁, d.π₂ ≫ PY.cone.π₂, hwX⟩ u hu₁ hu₂'
       rw [hv_eq, hu_eq]
-  -- transfer the cover `φ.f` across the pullback to the opposite leg `cn.π₂ = (g* φ).f`.
+  -- transfer the cover `φ.left` across the pullback to the opposite leg `cn.π₂ = (g* φ).left`.
   show Cover cn.π₂
   exact PullbacksTransferCovers.pullbacks_transfer_covers cn hpb hφf
 
@@ -244,7 +245,7 @@ section ProjCover
 universe w'
 
 variable {ι : Type w'} {D : Directed ι}
-variable {𝒞 : Type w'} [Cat.{w'} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
+variable {𝒞 : Type w'} [CategoryTheory.Category.{w'} 𝒞] [PreRegularCategory 𝒞] [HasEqualizers 𝒞]
 
 /-- **§1.543 GAP 1, assembled.**  Given a directed product-projection system `P` whose projections
     are covers (`hpc`, the §1.547 cover-projection content), the rational-capitalization colimit

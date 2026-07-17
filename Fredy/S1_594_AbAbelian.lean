@@ -25,13 +25,13 @@
 
 import Fredy.S1_595_AbCategory
 
-open Freyd
+open CategoryTheory Freyd
 
 universe v u
 
 namespace Freyd
 
-variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
+variable {𝒞 : Type u} [CategoryTheory.Category.{v} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
 
 /-! ### The product group object
 
@@ -53,16 +53,16 @@ private def prodAddCar (A B : AbelianGroupObject 𝒞) :
 private theorem prodAdd_proj_fst {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ fst = pair (u ≫ fst) (w ≫ fst) ≫ A.add := by
-  rw [Cat.assoc, show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from
+  rw [CategoryTheory.Category.assoc, show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from
         fst_pair _ _,
-      ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
+      ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair]
 
 private theorem prodAdd_proj_snd {S : 𝒞} {A B : AbelianGroupObject 𝒞}
     (u w : S ⟶ prod A.carrier B.carrier) :
     (pair u w ≫ prodAddCar A B) ≫ snd = pair (u ≫ snd) (w ≫ snd) ≫ B.add := by
-  rw [Cat.assoc, show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from
+  rw [CategoryTheory.Category.assoc, show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from
         snd_pair _ _,
-      ← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair]
+      ← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair]
 
 /-- **Closed form of the product-group sum.**  For any two elements `u w : S → A.c×B.c`,
     `⟨u,w⟩ ≫ prodAddCar = ⟨ ⟨u≫π₁,w≫π₁⟩≫A.add , ⟨u≫π₂,w≫π₂⟩≫B.add ⟩`.  Proved by joint
@@ -90,34 +90,34 @@ noncomputable def prodGObj (A B : AbelianGroupObject 𝒞) : AbelianGroupObject 
   add_zero := by
     -- ⟨ term≫⟨Az,Bz⟩ , id ⟩ ≫ add = id, componentwise via GElt.zero_add of `fst`/`snd`.
     refine fst_snd_jointly_monic _ _ ?_ ?_
-    · rw [prodAdd_proj_fst, Cat.id_comp]
+    · rw [prodAdd_proj_fst, CategoryTheory.Category.id_comp]
       have e : (term (prod A.carrier B.carrier) ≫ pair A.zero B.zero) ≫ fst
-             = term (prod A.carrier B.carrier) ≫ A.zero := by rw [Cat.assoc, fst_pair]
+             = term (prod A.carrier B.carrier) ≫ A.zero := by rw [CategoryTheory.Category.assoc, fst_pair]
       rw [e]; exact GElt.zero_add A fst
-    · rw [prodAdd_proj_snd, Cat.id_comp]
+    · rw [prodAdd_proj_snd, CategoryTheory.Category.id_comp]
       have e : (term (prod A.carrier B.carrier) ≫ pair A.zero B.zero) ≫ snd
-             = term (prod A.carrier B.carrier) ≫ B.zero := by rw [Cat.assoc, snd_pair]
+             = term (prod A.carrier B.carrier) ≫ B.zero := by rw [CategoryTheory.Category.assoc, snd_pair]
       rw [e]; exact GElt.zero_add B snd
   add_neg := by
     -- ⟨ neg , id ⟩ ≫ add = term ≫ zero, componentwise via GElt.neg_add.
     refine fst_snd_jointly_monic _ _ ?_ ?_
-    · rw [prodAdd_proj_fst, Cat.id_comp, fst_pair, Cat.assoc, fst_pair, GElt.neg_add A fst]
-    · rw [prodAdd_proj_snd, Cat.id_comp, snd_pair, Cat.assoc, snd_pair, GElt.neg_add B snd]
+    · rw [prodAdd_proj_fst, CategoryTheory.Category.id_comp, fst_pair, CategoryTheory.Category.assoc, fst_pair, GElt.neg_add A fst]
+    · rw [prodAdd_proj_snd, CategoryTheory.Category.id_comp, snd_pair, CategoryTheory.Category.assoc, snd_pair, GElt.neg_add B snd]
   add_assoc := by
     -- ((x+y)+z) = (x+(y+z)) componentwise.  Project, normalise both sides with the
     -- product/pairing equations, then close by `GElt.add_assoc` of `A`/`B` on the
     -- triple of inner projections `(fst≫fst≫π), (fst≫snd≫π), (snd≫π)`.
     refine fst_snd_jointly_monic _ _ ?_ ?_
     · -- LHS-fst: distribute `fst ≫ (prodAddCar≫fst)`; RHS-fst: project the inner `y+z`.
-      rw [prodAdd_proj_fst, Cat.assoc,
+      rw [prodAdd_proj_fst, CategoryTheory.Category.assoc,
           show prodAddCar A B ≫ fst = pair (fst ≫ fst) (snd ≫ fst) ≫ A.add from fst_pair _ _,
-          ← Cat.assoc, ab_pair_precomp, prodAdd_proj_fst, prodAdd_proj_fst]
-      simp only [Cat.assoc]
+          ← CategoryTheory.Category.assoc, ab_pair_precomp, prodAdd_proj_fst, prodAdd_proj_fst]
+      simp only [CategoryTheory.Category.assoc]
       exact GElt.add_assoc A (fst ≫ fst ≫ fst) (fst ≫ snd ≫ fst) (snd ≫ fst)
-    · rw [prodAdd_proj_snd, Cat.assoc,
+    · rw [prodAdd_proj_snd, CategoryTheory.Category.assoc,
           show prodAddCar A B ≫ snd = pair (fst ≫ snd) (snd ≫ snd) ≫ B.add from snd_pair _ _,
-          ← Cat.assoc, ab_pair_precomp, prodAdd_proj_snd, prodAdd_proj_snd]
-      simp only [Cat.assoc]
+          ← CategoryTheory.Category.assoc, ab_pair_precomp, prodAdd_proj_snd, prodAdd_proj_snd]
+      simp only [CategoryTheory.Category.assoc]
       exact GElt.add_assoc B (fst ≫ fst ≫ snd) (fst ≫ snd ≫ snd) (snd ≫ snd)
   add_comm := by
     -- ⟨snd,fst⟩ ≫ add = add, componentwise via GElt.add_comm.
@@ -147,8 +147,8 @@ theorem GElt.idem_zero {T : 𝒞} (P : AbelianGroupObject 𝒞) {e : T ⟶ P.car
 /-- The zero group object: carrier `1`, all operations the unique maps to `1`. -/
 noncomputable def zeroGObj : AbelianGroupObject 𝒞 where
   carrier := one
-  zero := Cat.id one
-  neg := Cat.id one
+  zero := 𝟙 one
+  neg := 𝟙 one
   add := term _
   add_zero := term_uniq _ _
   add_neg := term_uniq _ _
@@ -183,17 +183,17 @@ theorem hom_fromZero_unique {A : AbelianGroupObject 𝒞} {x : (one : 𝒞) ⟶ 
   have key := congrArg (fun m => diag (one : 𝒞) ≫ m) hx
   simp only at key
   -- LHS: diag ≫ zeroGObj.add ≫ x.  `diag ≫ zeroGObj.add : 1→1` is `id 1`, so LHS = x.
-  rw [← Cat.assoc, term_uniq (diag (one : 𝒞) ≫ (zeroGObj : AbelianGroupObject 𝒞).add)
-        (Cat.id one), Cat.id_comp] at key
+  rw [← CategoryTheory.Category.assoc, term_uniq (diag (one : 𝒞) ≫ (zeroGObj : AbelianGroupObject 𝒞).add)
+        (𝟙 one), CategoryTheory.Category.id_comp] at key
   have hsplit : diag (one : 𝒞) ≫ pair (fst ≫ x) (snd ≫ x) ≫ A.add = pair x x ≫ A.add := by
-    rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc,
-      show diag (one : 𝒞) ≫ fst = Cat.id one from fst_pair _ _,
-      show diag (one : 𝒞) ≫ snd = Cat.id one from snd_pair _ _]
-    simp only [Cat.id_comp]
+    rw [← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc,
+      show diag (one : 𝒞) ≫ fst = 𝟙 one from fst_pair _ _,
+      show diag (one : 𝒞) ≫ snd = 𝟙 one from snd_pair _ _]
+    simp only [CategoryTheory.Category.id_comp]
   rw [hsplit] at key
   -- key : x = ⟨x, x⟩ ≫ A.add.  Idempotent ⟹ x = term 1 ≫ A.zero = id ≫ A.zero = A.zero.
   have hidem := GElt.idem_zero A key.symm
-  rwa [term_uniq (term (one : 𝒞)) (Cat.id one), Cat.id_comp] at hidem
+  rwa [term_uniq (term (one : 𝒞)) (𝟙 one), CategoryTheory.Category.id_comp] at hidem
 
 /-- `Ab(𝒞)` has a coterminator: the zero group object `zeroGObj` (so `0 ≅ 1`). -/
 noncomputable instance instHasCoterminatorAb : HasCoterminator (AbelianGroupObject 𝒞) where
@@ -238,10 +238,10 @@ theorem isHom_prodPair {X A B : AbelianGroupObject 𝒞}
   unfold IsHomAbelianGroupObject at *
   -- Goal: X.add ≫ ⟨f,g⟩ = ⟨π₁≫⟨f,g⟩, π₂≫⟨f,g⟩⟩ ≫ prodAddCar.  Joint monicity on fst/snd.
   refine fst_snd_jointly_monic _ _ ?_ ?_
-  · rw [Cat.assoc, fst_pair, hf, prodGObj_add, prodAdd_proj_fst]
-    simp only [Cat.assoc, fst_pair]
-  · rw [Cat.assoc, snd_pair, hg, prodGObj_add, prodAdd_proj_snd]
-    simp only [Cat.assoc, snd_pair]
+  · rw [CategoryTheory.Category.assoc, fst_pair, hf, prodGObj_add, prodAdd_proj_fst]
+    simp only [CategoryTheory.Category.assoc, fst_pair]
+  · rw [CategoryTheory.Category.assoc, snd_pair, hg, prodGObj_add, prodAdd_proj_snd]
+    simp only [CategoryTheory.Category.assoc, snd_pair]
 
 /-- §1.595: `Ab(𝒞)` has binary products — the product is the product group object,
     with the underlying-`𝒞` projections and pairing (all homomorphisms). -/
@@ -267,8 +267,8 @@ theorem hom_preserves_add {T : 𝒞} {P X : AbelianGroupObject 𝒞}
     {h : P.carrier ⟶ X.carrier} (hh : IsHomAbelianGroupObject P X h)
     (u w : T ⟶ P.carrier) :
     (pair u w ≫ P.add) ≫ h = pair (u ≫ h) (w ≫ h) ≫ X.add := by
-  rw [Cat.assoc, hh, ← Cat.assoc, ab_pair_precomp]
-  simp only [← Cat.assoc, fst_pair, snd_pair]
+  rw [CategoryTheory.Category.assoc, hh, ← CategoryTheory.Category.assoc, ab_pair_precomp]
+  simp only [← CategoryTheory.Category.assoc, fst_pair, snd_pair]
 
 /-- A homomorphism preserves zero: `(t ≫ P.zero) ≫ h = t ≫ X.zero` for any `t : T → 1`.
     (`P.zero≫h` is idempotent because `O ⊕ O = O` and `h` preserves `⊕`, so it is `O_X`.) -/
@@ -292,12 +292,12 @@ private def caseCar (f : A.carrier ⟶ X.carrier) (g : B.carrier ⟶ X.carrier) 
 
 /-- Coproduct injection `inl = ⟨id, 0⟩ : A → prodGObj A B` (a homomorphism). -/
 theorem isHom_inl (A B : AbelianGroupObject 𝒞) :
-    IsHomAbelianGroupObject A (prodGObj A B) (pair (Cat.id A.carrier) (HomAb.zeroCar A B)) :=
+    IsHomAbelianGroupObject A (prodGObj A B) (pair (𝟙 A.carrier) (HomAb.zeroCar A B)) :=
   isHom_prodPair (isHom_id A) (HomAb.isHom_zeroCar A B)
 
 /-- Coproduct injection `inr = ⟨0, id⟩ : B → prodGObj A B` (a homomorphism). -/
 theorem isHom_inr (A B : AbelianGroupObject 𝒞) :
-    IsHomAbelianGroupObject B (prodGObj A B) (pair (HomAb.zeroCar B A) (Cat.id B.carrier)) :=
+    IsHomAbelianGroupObject B (prodGObj A B) (pair (HomAb.zeroCar B A) (𝟙 B.carrier)) :=
   isHom_prodPair (HomAb.isHom_zeroCar B A) (isHom_id B)
 
 /-- The copairing `[f,g]` is a homomorphism: it is the hom-set sum of the two homs
@@ -315,21 +315,21 @@ theorem isHom_caseCar {f : A.carrier ⟶ X.carrier} {g : B.carrier ⟶ X.carrier
 /-- `inl ≫ [f,g] = f`, for a homomorphism `g` (`g` sends `0` to `0`).  `f` arbitrary. -/
 theorem caseCar_inl (f : A.carrier ⟶ X.carrier) {g : B.carrier ⟶ X.carrier}
     (hg : IsHomAbelianGroupObject B X g) :
-    pair (Cat.id A.carrier) (HomAb.zeroCar A B) ≫ caseCar f g = f := by
+    pair (𝟙 A.carrier) (HomAb.zeroCar A B) ≫ caseCar f g = f := by
   unfold caseCar HomAb.zeroCar
   -- ⟨id,0⟩ ≫ (⟨π₁≫f,π₂≫g⟩≫X.add) = ⟨f, (term≫B.zero)≫g⟩ ≫ X.add = ⟨f, term≫X.zero⟩ ≫ X.add = f.
-  rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
-      Cat.id_comp, Cat.assoc, ← Cat.assoc (term A.carrier) B.zero g,
+  rw [← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair,
+      CategoryTheory.Category.id_comp, CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (term A.carrier) B.zero g,
       hom_preserves_zero hg (term A.carrier)]
   exact GElt.add_zero X f
 
 /-- `inr ≫ [f,g] = g`, for a homomorphism `f`.  `g` arbitrary. -/
 theorem caseCar_inr {f : A.carrier ⟶ X.carrier} (g : B.carrier ⟶ X.carrier)
     (hf : IsHomAbelianGroupObject A X f) :
-    pair (HomAb.zeroCar B A) (Cat.id B.carrier) ≫ caseCar f g = g := by
+    pair (HomAb.zeroCar B A) (𝟙 B.carrier) ≫ caseCar f g = g := by
   unfold caseCar HomAb.zeroCar
-  rw [← Cat.assoc, ab_pair_precomp, ← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair,
-      Cat.id_comp, Cat.assoc, ← Cat.assoc (term B.carrier) A.zero f,
+  rw [← CategoryTheory.Category.assoc, ab_pair_precomp, ← CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc, fst_pair, snd_pair,
+      CategoryTheory.Category.id_comp, CategoryTheory.Category.assoc, ← CategoryTheory.Category.assoc (term B.carrier) A.zero f,
       hom_preserves_zero hf (term B.carrier)]
   exact GElt.zero_add X g
 
@@ -338,21 +338,21 @@ theorem caseCar_inr {f : A.carrier ⟶ X.carrier} (g : B.carrier ⟶ X.carrier)
     fact behind the product/coproduct coincidence: every element splits as its `inl`-part
     plus its `inr`-part. -/
 theorem splitId (A B : AbelianGroupObject 𝒞) :
-    pair (fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B))
-         (snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ (prodGObj A B).add
-      = Cat.id (prod A.carrier B.carrier) := by
+    pair (fst ≫ pair (𝟙 A.carrier) (HomAb.zeroCar A B))
+         (snd ≫ pair (HomAb.zeroCar B A) (𝟙 B.carrier)) ≫ (prodGObj A B).add
+      = 𝟙 (prod A.carrier B.carrier) := by
   unfold HomAb.zeroCar
   rw [prodGObj_add]
   refine fst_snd_jointly_monic _ _ ?_ ?_
-  · rw [prodAdd_proj_fst, Cat.id_comp]
+  · rw [prodAdd_proj_fst, CategoryTheory.Category.id_comp]
     -- first comp: (fst≫⟨id,..⟩)≫fst = fst;  second comp: (snd≫⟨term≫Az,id⟩)≫fst = snd≫term≫Az.
-    rw [Cat.assoc, fst_pair, Cat.comp_id, Cat.assoc, fst_pair, ← Cat.assoc,
+    rw [CategoryTheory.Category.assoc, fst_pair, CategoryTheory.Category.comp_id, CategoryTheory.Category.assoc, fst_pair, ← CategoryTheory.Category.assoc,
         term_uniq (snd ≫ term B.carrier) (term _)]
     exact GElt.add_zero A fst
-  · rw [prodAdd_proj_snd, Cat.id_comp]
+  · rw [prodAdd_proj_snd, CategoryTheory.Category.id_comp]
     -- first comp: (fst≫⟨id,term≫Bz⟩)≫snd = fst≫term≫Bz = term≫Bz;  second: snd.
-    rw [Cat.assoc, snd_pair, ← Cat.assoc, term_uniq (fst ≫ term A.carrier) (term _),
-        Cat.assoc snd, snd_pair, Cat.comp_id]
+    rw [CategoryTheory.Category.assoc, snd_pair, ← CategoryTheory.Category.assoc, term_uniq (fst ≫ term A.carrier) (term _),
+        CategoryTheory.Category.assoc snd, snd_pair, CategoryTheory.Category.comp_id]
     exact GElt.zero_add B snd
 
 /-- **Coproduct universal property (uniqueness).**  Any homomorphism `h : prodGObj A B → X`
@@ -361,19 +361,19 @@ theorem splitId (A B : AbelianGroupObject 𝒞) :
 theorem caseCar_uniq {f : A.carrier ⟶ X.carrier} {g : B.carrier ⟶ X.carrier}
     {h : prod A.carrier B.carrier ⟶ X.carrier}
     (hh : IsHomAbelianGroupObject (prodGObj A B) X h)
-    (h₁ : pair (Cat.id A.carrier) (HomAb.zeroCar A B) ≫ h = f)
-    (h₂ : pair (HomAb.zeroCar B A) (Cat.id B.carrier) ≫ h = g) :
+    (h₁ : pair (𝟙 A.carrier) (HomAb.zeroCar A B) ≫ h = f)
+    (h₂ : pair (HomAb.zeroCar B A) (𝟙 B.carrier) ≫ h = g) :
     h = caseCar f g := by
   unfold caseCar
-  calc h = Cat.id (prod A.carrier B.carrier) ≫ h := (Cat.id_comp h).symm
-    _ = (pair (fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B))
-              (snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ (prodGObj A B).add) ≫ h := by
+  calc h = 𝟙 (prod A.carrier B.carrier) ≫ h := (CategoryTheory.Category.id_comp h).symm
+    _ = (pair (fst ≫ pair (𝟙 A.carrier) (HomAb.zeroCar A B))
+              (snd ≫ pair (HomAb.zeroCar B A) (𝟙 B.carrier)) ≫ (prodGObj A B).add) ≫ h := by
           rw [← splitId A B]
-    _ = pair ((fst ≫ pair (Cat.id A.carrier) (HomAb.zeroCar A B)) ≫ h)
-             ((snd ≫ pair (HomAb.zeroCar B A) (Cat.id B.carrier)) ≫ h) ≫ X.add :=
+    _ = pair ((fst ≫ pair (𝟙 A.carrier) (HomAb.zeroCar A B)) ≫ h)
+             ((snd ≫ pair (HomAb.zeroCar B A) (𝟙 B.carrier)) ≫ h) ≫ X.add :=
           hom_preserves_add hh _ _
     _ = pair (fst ≫ f) (snd ≫ g) ≫ X.add := by
-          rw [Cat.assoc, h₁, Cat.assoc, h₂]
+          rw [CategoryTheory.Category.assoc, h₁, CategoryTheory.Category.assoc, h₂]
 
 end AbCoprod
 
@@ -388,8 +388,8 @@ open AbCoprod in
     This is half of the product/coproduct coincidence. -/
 noncomputable instance instHasBinaryCoproductsAb : HasBinaryCoproducts (AbelianGroupObject 𝒞) where
   coprod A B := prodGObj A B
-  inl := ⟨pair (Cat.id _) (HomAb.zeroCar _ _), isHom_inl _ _⟩
-  inr := ⟨pair (HomAb.zeroCar _ _) (Cat.id _), isHom_inr _ _⟩
+  inl := ⟨pair (𝟙 _) (HomAb.zeroCar _ _), isHom_inl _ _⟩
+  inr := ⟨pair (HomAb.zeroCar _ _) (𝟙 _), isHom_inr _ _⟩
   case f g := ⟨caseCar f.val g.val, isHom_caseCar f.property g.property⟩
   case_inl f g := Subtype.ext (caseCar_inl f.val g.property)
   case_inr f g := Subtype.ext (caseCar_inr g.val f.property)
@@ -409,45 +409,45 @@ noncomputable def abZeroHom (A B : AbelianGroupObject 𝒞) : A ⟶ B := HomAb.z
 /-- The canonical injections `pair ⟨id,0⟩` resp. `pair ⟨0,id⟩` of the product structure are
     exactly the coproduct injections `inl`, `inr`. -/
 theorem ab_pairIdZero_eq_inl (A B : AbelianGroupObject 𝒞) :
-    pair (Cat.id A) (abZeroHom A B) = (HasBinaryCoproducts.inl : A ⟶ HasBinaryCoproducts.coprod A B) :=
+    pair (𝟙 A) (abZeroHom A B) = (HasBinaryCoproducts.inl : A ⟶ HasBinaryCoproducts.coprod A B) :=
   rfl
 
 theorem ab_pairZeroId_eq_inr (A B : AbelianGroupObject 𝒞) :
-    pair (abZeroHom B A) (Cat.id B) = (HasBinaryCoproducts.inr : B ⟶ HasBinaryCoproducts.coprod A B) :=
+    pair (abZeroHom B A) (𝟙 B) = (HasBinaryCoproducts.inr : B ⟶ HasBinaryCoproducts.coprod A B) :=
   rfl
 
 /-- **§1.595 coincidence.**  The matrix map `case ⟨id,0⟩ ⟨0,id⟩ : A⊕B → A×B` equals the
     identity of the shared carrier `prodGObj A B` — it is the copairing `case inl inr`, which
     the coproduct UMP forces to be `id`. -/
 theorem ab_coincidence_eq_id (A B : AbelianGroupObject 𝒞) :
-    (HasBinaryCoproducts.case (pair (Cat.id A) (abZeroHom A B)) (pair (abZeroHom B A) (Cat.id B)) :
+    (HasBinaryCoproducts.case (pair (𝟙 A) (abZeroHom A B)) (pair (abZeroHom B A) (𝟙 B)) :
         HasBinaryCoproducts.coprod A B ⟶ prod A B)
-      = Cat.id (HasBinaryCoproducts.coprod A B) := by
+      = 𝟙 (HasBinaryCoproducts.coprod A B) := by
   rw [ab_pairIdZero_eq_inl, ab_pairZeroId_eq_inr]
   -- case inl inr = id, by the coproduct uniqueness applied to `id` (inl≫id=inl, inr≫id=inr).
   exact (HasBinaryCoproducts.case_uniq HasBinaryCoproducts.inl HasBinaryCoproducts.inr
-    (Cat.id _) (Cat.comp_id _) (Cat.comp_id _)).symm
+    (𝟙 _) (CategoryTheory.Category.comp_id _) (CategoryTheory.Category.comp_id _)).symm
 
 /-- The coincidence map is an isomorphism (it is the identity). -/
 theorem ab_coincidence_isIso (A B : AbelianGroupObject 𝒞) :
-    IsIso (HasBinaryCoproducts.case (pair (Cat.id A) (abZeroHom A B)) (pair (abZeroHom B A) (Cat.id B)) :
+    IsIso (HasBinaryCoproducts.case (pair (𝟙 A) (abZeroHom A B)) (pair (abZeroHom B A) (𝟙 B)) :
         HasBinaryCoproducts.coprod A B ⟶ prod A B) := by
   rw [ab_coincidence_eq_id]
-  exact ⟨Cat.id _, Cat.id_comp _, Cat.id_comp _⟩
+  exact ⟨𝟙 _, CategoryTheory.Category.id_comp _, CategoryTheory.Category.id_comp _⟩
 
 /-- Generic: a chosen inverse `Φ⁻¹` of an endomorphism that *is* the identity is itself the
     identity (so `Φ⁻¹ = id`).  We never rewrite `m` (that would be a dependent-motive error,
     since `hiso.choose` depends on `m`); instead `choose = choose ≫ id = choose ≫ m = id`,
     rewriting only the safe `id` factor and then applying `choose_spec`. -/
 private theorem choose_eq_id_of_eq_id {X : 𝒞} {m : X ⟶ X} (hiso : IsIso m)
-    (hm : m = Cat.id X) : hiso.choose = Cat.id X := by
+    (hm : m = 𝟙 X) : hiso.choose = 𝟙 X := by
   -- Over a PLAIN morphism `c` (no dependence on `m`): `m ≫ c = id ∧ m = id ⟹ c = id`.
-  have gen : ∀ c : X ⟶ X, m ≫ c = Cat.id X → c = Cat.id X := fun c hc => by
-    rw [hm, Cat.id_comp] at hc; exact hc
+  have gen : ∀ c : X ⟶ X, m ≫ c = 𝟙 X → c = 𝟙 X := fun c hc => by
+    rw [hm, CategoryTheory.Category.id_comp] at hc; exact hc
   exact gen hiso.choose hiso.choose_spec.1
 
 theorem ab_choose_eq_id (A B : AbelianGroupObject 𝒞) :
-    (ab_coincidence_isIso A B).choose = Cat.id (HasBinaryCoproducts.coprod A B) :=
+    (ab_coincidence_isIso A B).choose = 𝟙 (HasBinaryCoproducts.coprod A B) :=
   choose_eq_id_of_eq_id (ab_coincidence_isIso A B) (ab_coincidence_eq_id A B)
 
 /-- `HomAb.add x y` is the codiagonal route `diag ≫ case x y` (eq. 1.1 with `Φ⁻¹ = id`). -/
@@ -456,21 +456,21 @@ theorem ab_add_eq_diag_case {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
   apply Subtype.ext
   -- carrier: ⟨x,y⟩ ≫ B.add  =  diag.val ≫ caseCar x.val y.val.
   show pair x.val y.val ≫ B.add
-      = (pair (Cat.id A.carrier) (Cat.id A.carrier)) ≫ AbCoprod.caseCar x.val y.val
+      = (pair (𝟙 A.carrier) (𝟙 A.carrier)) ≫ AbCoprod.caseCar x.val y.val
   unfold AbCoprod.caseCar
-  rw [← Cat.assoc, ab_pair_precomp]
-  simp only [← Cat.assoc, fst_pair, snd_pair, Cat.id_comp]
+  rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
+  simp only [← CategoryTheory.Category.assoc, fst_pair, snd_pair, CategoryTheory.Category.id_comp]
 
 /-- `HomAb.add x y` is the diagonal route `pair x y ≫ ∇` (eq. 1.1' with `Φ⁻¹ = id`),
     where `∇ = case id id`. -/
 theorem ab_add_eq_pair_codiag {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
-    HomAb.add x y = pair x y ≫ HasBinaryCoproducts.case (Cat.id B) (Cat.id B) := by
+    HomAb.add x y = pair x y ≫ HasBinaryCoproducts.case (𝟙 B) (𝟙 B) := by
   apply Subtype.ext
   show pair x.val y.val ≫ B.add
-      = (pair x.val y.val) ≫ AbCoprod.caseCar (Cat.id B.carrier) (Cat.id B.carrier)
+      = (pair x.val y.val) ≫ AbCoprod.caseCar (𝟙 B.carrier) (𝟙 B.carrier)
   unfold AbCoprod.caseCar
-  rw [← Cat.assoc, ab_pair_precomp]
-  simp only [← Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
+  rw [← CategoryTheory.Category.assoc, ab_pair_precomp]
+  simp only [← CategoryTheory.Category.assoc, fst_pair, snd_pair, CategoryTheory.Category.comp_id]
 
 /-- **§1.595 KEYSTONE.**  `Ab(𝒞)` is a half-additive category: finite products and
     coproducts coincide (biproducts), and the induced hom-set addition is the pointwise
@@ -481,7 +481,7 @@ noncomputable instance instHalfAdditiveAb : HalfAdditiveCategory (AbelianGroupOb
   zeroHom := abZeroHom
   zeroHom_comp_left f := Subtype.ext (by
     show f.val ≫ (term _ ≫ _) = term _ ≫ _
-    rw [← Cat.assoc, term_uniq (f.val ≫ term _) (term _)])
+    rw [← CategoryTheory.Category.assoc, term_uniq (f.val ≫ term _) (term _)])
   zeroHom_comp_right g := Subtype.ext (by
     show (term _ ≫ _) ≫ g.val = term _ ≫ _
     rw [hom_preserves_zero g.property (term _)])
@@ -489,11 +489,11 @@ noncomputable instance instHalfAdditiveAb : HalfAdditiveCategory (AbelianGroupOb
   add := HomAb.add
   add_eq_addL := fun {A B} x y => by
     rw [ab_add_eq_diag_case, ab_choose_eq_id]
-    rw [Cat.id_comp (HasBinaryCoproducts.case x y)]
+    rw [CategoryTheory.Category.id_comp (HasBinaryCoproducts.case x y)]
   add_eq_addR := fun {A B} x y => by
     -- rw's closing rfl now fires (field-level pair reduces where the wrapper def didn't)
     rw [ab_add_eq_pair_codiag, ab_choose_eq_id,
-        Cat.id_comp (HasBinaryCoproducts.case (Cat.id B) (Cat.id B))]
+        CategoryTheory.Category.id_comp (HasBinaryCoproducts.case (𝟙 B) (𝟙 B))]
 
 /-- **§1.595.**  `Ab(𝒞)` is an ADDITIVE category: every hom `f` has an additive inverse.
     The witness is the pointwise negation `HomAb.neg f` (carrier `f.val ≫ B.neg`), and

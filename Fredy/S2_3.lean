@@ -11,6 +11,7 @@ import Fredy.S2_1
 import Fredy.S2_2
 import AOP.A4_1  -- modular_le_right (dual modular law)
 
+open CategoryTheory
 
 universe v u
 
