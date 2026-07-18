@@ -196,39 +196,39 @@ theorem cover_iff_image_entire {X Y : 𝒞} (f : X ⟶ Y) : Cover f ↔ Subobjec
 
 /-- Push a subobject of `B` forward along a mono-preserving functor `T`, landing as
     a subobject of `T B`. -/
-def Subobject.map {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
-    (hpm : PreservesMono T) {B : 𝒜} (S : Subobject 𝒜 B) : Subobject ℬ (T B) where
-  dom   := T S.dom
-  arr   := hT.map S.arr
+def Subobject.map {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : Functor 𝒜 ℬ)
+    (hpm : PreservesMono T) {B : 𝒜} (S : Subobject 𝒜 B) : Subobject ℬ (T.obj B) where
+  dom   := T.obj S.dom
+  arr   := T.map S.arr
   monic := hpm S.monic
 
 /-- `T` PRESERVES IMAGES: it carries every image factorization in `𝒜` to an image
     factorization in `ℬ`. -/
-def PreservesImages {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : 𝒜 → ℬ) [hT : Functor T]
+def PreservesImages {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] (T : Functor 𝒜 ℬ)
     (hpm : PreservesMono T) : Prop :=
-  ∀ {A B : 𝒜} (f : A ⟶ B) (I : Subobject 𝒜 B), IsImage f I → IsImage (hT.map f) (Subobject.map T hpm I)
+  ∀ {A B : 𝒜} (f : A ⟶ B) (I : Subobject 𝒜 B), IsImage f I → IsImage (T.map f) (Subobject.map T hpm I)
 
 /-- **§1.511**: if `𝒜` has images and `T : 𝒜 → ℬ` is faithful and preserves images,
     then `T` reflects images.  Given `f` and a subobject `J` that allows `f`, if the
     pushforward `T J` is the image of `T f`, then `J` is already the image of `f`. -/
 theorem faithful_preserves_images_reflects_images
     {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] [HasImages 𝒜]
-    (T : 𝒜 → ℬ) [hT : Functor T] (hfaithful : Faithful T) (hpm : PreservesMono T)
+    (T : Functor 𝒜 ℬ) (hfaithful : Faithful T) (hpm : PreservesMono T)
     (hpres : PreservesImages T hpm)
     {A B : 𝒜} (f : A ⟶ B) (J : Subobject 𝒜 B)
-    (hJallows : Allows J f) (hJimg : IsImage (hT.map f) (Subobject.map T hpm J)) :
+    (hJallows : Allows J f) (hJimg : IsImage (T.map f) (Subobject.map T hpm J)) :
     IsImage f J := by
   -- the genuine 𝒜-image of `f`, and its minimality
   have hI : IsImage f (image f) := HasImages.isImage f
   -- `J` allows `f`, so the 𝒜-image is below `J`: comparison `k : image → J`.
   obtain ⟨k, hk⟩ := hI.2 J hJallows
   -- `T` preserves the 𝒜-image, so `T(image f)` is an image of `T f` too.
-  have hTI : IsImage (hT.map f) (Subobject.map T hpm (image f)) := hpres f (image f) hI
+  have hTI : IsImage (T.map f) (Subobject.map T hpm (image f)) := hpres f (image f) hI
   -- `T k` is a comparison between two images of `T f`, hence an iso…
-  have hTk_fac : hT.map k ≫ (Subobject.map T hpm J).arr = (Subobject.map T hpm (image f)).arr := by
-    show hT.map k ≫ hT.map J.arr = hT.map (image f).arr
-    rw [← hT.map_comp, hk]
-  have hTk_iso : IsIso (hT.map k) := image_comparison_iso hTI hJimg (hT.map k) hTk_fac
+  have hTk_fac : T.map k ≫ (Subobject.map T hpm J).arr = (Subobject.map T hpm (image f)).arr := by
+    show T.map k ≫ T.map J.arr = T.map (image f).arr
+    rw [← T.map_comp, hk]
+  have hTk_iso : IsIso (T.map k) := image_comparison_iso hTI hJimg (T.map k) hTk_fac
   -- …and faithfulness reflects it: `k` is an iso, with inverse `kinv : J → image f`.
   obtain ⟨kinv, _hk1, hk2⟩ := hfaithful.2 k hTk_iso
   refine ⟨hJallows, ?_⟩
@@ -249,19 +249,19 @@ theorem faithful_preserves_images_reflects_images
     representation (faithful + reflects-iso, not full). -/
 theorem preservesImages_reflectsImages_of_reflectsIso
     {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ] [HasImages 𝒜]
-    (T : 𝒜 → ℬ) [hT : Functor T]
-    (hreflIso : ∀ {X Y : 𝒜} (f : X ⟶ Y), IsIso (hT.map f) → IsIso f)
+    (T : Functor 𝒜 ℬ)
+    (hreflIso : ∀ {X Y : 𝒜} (f : X ⟶ Y), IsIso (T.map f) → IsIso f)
     (hpm : PreservesMono T) (hpres : PreservesImages T hpm)
     {A B : 𝒜} (f : A ⟶ B) (J : Subobject 𝒜 B)
-    (hJallows : Allows J f) (hJimg : IsImage (hT.map f) (Subobject.map T hpm J)) :
+    (hJallows : Allows J f) (hJimg : IsImage (T.map f) (Subobject.map T hpm J)) :
     IsImage f J := by
   have hI : IsImage f (image f) := HasImages.isImage f
   obtain ⟨k, hk⟩ := hI.2 J hJallows
-  have hTI : IsImage (hT.map f) (Subobject.map T hpm (image f)) := hpres f (image f) hI
-  have hTk_fac : hT.map k ≫ (Subobject.map T hpm J).arr = (Subobject.map T hpm (image f)).arr := by
-    show hT.map k ≫ hT.map J.arr = hT.map (image f).arr
-    rw [← hT.map_comp, hk]
-  have hTk_iso : IsIso (hT.map k) := image_comparison_iso hTI hJimg (hT.map k) hTk_fac
+  have hTI : IsImage (T.map f) (Subobject.map T hpm (image f)) := hpres f (image f) hI
+  have hTk_fac : T.map k ≫ (Subobject.map T hpm J).arr = (Subobject.map T hpm (image f)).arr := by
+    show T.map k ≫ T.map J.arr = T.map (image f).arr
+    rw [← T.map_comp, hk]
+  have hTk_iso : IsIso (T.map k) := image_comparison_iso hTI hJimg (T.map k) hTk_fac
   obtain ⟨kinv, _hk1, hk2⟩ := hreflIso k hTk_iso
   refine ⟨hJallows, ?_⟩
   intro S hS
