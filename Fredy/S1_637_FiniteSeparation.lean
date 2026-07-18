@@ -127,10 +127,10 @@ structure ProperSub (𝒞 : Type u) [Cat.{u} 𝒞] where
     consumes (one principal co-ideal per `S`).  -/
 theorem finite_separation (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞]
     (S : List (ProperSub 𝒞)) :
-    ∃ (T : 𝒞 → (𝒞 → Type u)) (hT : Functor T),
+    ∃ T : Functor 𝒞 (𝒞 → Type u),
       SeparatesMaps T ∧
-      ∀ s ∈ S, Monic (hT.map s.mono) ∧ ¬ IsIso (hT.map s.mono) := by
-  refine ⟨homRep 𝒞, homRepFunctor 𝒞, homRep_separates 𝒞, ?_⟩
+      ∀ s ∈ S, Monic (T.map s.mono) ∧ ¬ IsIso (T.map s.mono) := by
+  refine ⟨homRepFunctor 𝒞, homRep_separates 𝒞, ?_⟩
   intro s _
   exact homRep_preserves_properMono 𝒞 s.proper
 
