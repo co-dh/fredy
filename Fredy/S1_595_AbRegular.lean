@@ -57,7 +57,8 @@ def U (A : AbelianGroupObject 𝒞) : 𝒞 := A.carrier
 
 /-- §1.595: the forgetful functor is a functor.  `map f = f.val`; both functor laws
     hold definitionally because `Ab(𝒞)`-id/comp ARE 𝒞-id/comp on carriers. -/
-instance instFunctorU : Functor (U (𝒞 := 𝒞)) where
+def instFunctorU : Functor (AbelianGroupObject 𝒞) 𝒞 where
+  obj := U (𝒞 := 𝒞)
   map {_ _} f := f.val
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -76,7 +77,7 @@ instance instFunctorU : Functor (U (𝒞 := 𝒞)) where
 
 /-- §1.595: `U` SEPARATES MAPS (is injective on each hom-set) — the cross-universe
     form of an embedding.  Two `Ab(𝒞)`-homs with equal carriers are equal (`Subtype.ext`). -/
-theorem U_separatesMaps : SeparatesMaps (U (𝒞 := 𝒞)) := by
+theorem U_separatesMaps : SeparatesMaps (instFunctorU (𝒞 := 𝒞)) := by
   intro A B f g h
   exact Subtype.ext h
 
@@ -99,7 +100,7 @@ theorem U_reflectsIso {A B : AbelianGroupObject 𝒞} (f : A ⟶ B)
 /-- §1.595: `U` REFLECTS monos.  If the carrier `f.val` is monic in `𝒞`, then `f` is
     monic in `Ab(𝒞)`: any two homs `p q : W → A` with `p ≫ f = q ≫ f` have equal carriers
     (`p.val ≫ f.val = q.val ≫ f.val`), so `p.val = q.val`, so `p = q`. -/
-theorem U_reflectsMono : ReflectsMono (U (𝒞 := 𝒞)) := by
+theorem U_reflectsMono : ReflectsMono (instFunctorU (𝒞 := 𝒞)) := by
   intro A B f hf W p q hpq
   -- `hpq : p ≫ f = q ≫ f` in Ab(𝒞); take carriers.
   have hval : p.val ≫ f.val = q.val ≫ f.val := congrArg Subtype.val hpq
