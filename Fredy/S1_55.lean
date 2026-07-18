@@ -71,19 +71,19 @@ variable {𝒞 : Type u} [Cat.{w} 𝒞]
 def familyFunctor {I : Type w} (F : I → (𝒞 → Type w)) : 𝒞 → (I → Type w) :=
   fun A i => F i A
 
-instance familyFunctorFunctor {I : Type w} (F : I → (𝒞 → Type w))
-    [hF : ∀ i, Functor (F i)] : Functor (familyFunctor F) where
-  map f := fun i => (hF i).map f
-  map_id A := by funext i; exact (hF i).map_id A
-  map_comp f g := by funext i; exact (hF i).map_comp f g
+def familyFunctorFunctor {I : Type w} (F : I → Functor 𝒞 (Type w)) :
+    Functor 𝒞 (I → Type w) where
+  obj := familyFunctor (fun i => (F i).obj)
+  map f := fun i => (F i).map f
+  map_id A := by funext i; exact (F i).map_id A
+  map_comp f g := by funext i; exact (F i).map_comp f g
 
 /-- §1.55 REDUCTION: if a family of functors `F i` COLLECTIVELY separates
     morphisms — agreeing on all `i` forces equality — then the product functor
     `familyFunctor F : 𝒞 → 𝒮^I` separates maps. -/
-theorem familyFunctor_separates {I : Type w} (F : I → (𝒞 → Type w))
-    [hF : ∀ i, Functor (F i)]
-    (hsep : ∀ {A B : 𝒞} {f g : A ⟶ B}, (∀ i, (hF i).map f = (hF i).map g) → f = g) :
-    SeparatesMaps (familyFunctor F) := by
+theorem familyFunctor_separates {I : Type w} (F : I → Functor 𝒞 (Type w))
+    (hsep : ∀ {A B : 𝒞} {f g : A ⟶ B}, (∀ i, (F i).map f = (F i).map g) → f = g) :
+    SeparatesMaps (familyFunctorFunctor F) := by
   intro A B f g h
   exact hsep (fun i => congrFun h i)
 
@@ -94,7 +94,8 @@ end
 section HomRep
 
 /-- The covariant hom-functor `Hom(i, -) : 𝒞 → 𝒮`, `f ↦ (h ↦ h ≫ f)` (§1.272). -/
-instance homFunctor {𝒞 : Type u} [Cat.{w} 𝒞] (i : 𝒞) : Functor (fun A : 𝒞 => (i ⟶ A)) where
+def homFunctor {𝒞 : Type u} [Cat.{w} 𝒞] (i : 𝒞) : Functor 𝒞 (Type w) where
+  obj := fun A : 𝒞 => (i ⟶ A)
   map f := fun h => h ≫ f
   map_id A := by funext h; exact Cat.comp_id h
   map_comp f g := by funext h; exact (Cat.assoc h f g).symm
@@ -103,19 +104,19 @@ instance homFunctor {𝒞 : Type u} [Cat.{w} 𝒞] (i : 𝒞) : Functor (fun A :
     the witness used by `henkin_lubkin`, here named so its exactness can be stated. -/
 def homRep (𝒞 : Type u) [Cat.{u} 𝒞] : 𝒞 → (𝒞 → Type u) := familyFunctor (fun i A => (i ⟶ A))
 
-instance homRepFunctor (𝒞 : Type u) [Cat.{u} 𝒞] : Functor (homRep 𝒞) :=
-  familyFunctorFunctor (fun i A => (i ⟶ A))
+def homRepFunctor (𝒞 : Type u) [Cat.{u} 𝒞] : Functor 𝒞 (𝒞 → Type u) :=
+  familyFunctorFunctor (fun i => homFunctor i)
 
 /-- The Henkin–Lubkin representation `homRep` SEPARATES MAPS (re-derives the
     faithfulness of `henkin_lubkin` for the explicit witness). -/
-theorem homRep_separates (𝒞 : Type u) [Cat.{u} 𝒞] : SeparatesMaps (homRep 𝒞) := by
+theorem homRep_separates (𝒞 : Type u) [Cat.{u} 𝒞] : SeparatesMaps (homRepFunctor 𝒞) := by
   intro A B f g h
   exact cayley_faithful f g (fun {X} hX => congrFun (congrFun h X) hX)
 
 /-- **Exactness, limit side (i):** `homRep` PRESERVES monos.  `Hom(i, f)` is
     injective for every `i` precisely because `f` is left-cancellable, so the
     induced family of functions is a mono in the power `𝒮^|𝒞|`. -/
-theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (homRep 𝒞) := by
+theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (homRepFunctor 𝒞) := by
   intro X Y f hf W p q h
   funext i a
   exact hf (p i a) (q i a) (congrFun (congrFun h i) a)
@@ -123,7 +124,7 @@ theorem homRep_preserves_mono (𝒞 : Type u) [Cat.{u} 𝒞] : PreservesMono (ho
 /-- **Exactness, limit side (ii):** `homRep` REFLECTS monos.  Probe `Monic (T f)`
     with the representable at `W`: `k ↦ k ≫ g` and `k ↦ k ≫ h` agree after `T f`
     when `g ≫ f = h ≫ f`, so they are equal; evaluating at `id_W` gives `g = h`. -/
-theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homRep 𝒞) := by
+theorem homRep_reflects_mono (𝒞 : Type u) [Cat.{u} 𝒞] : ReflectsMono (homRepFunctor 𝒞) := by
   intro X Y f hf W g h hgh
   let p : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ g
   let q : (fun i => (i ⟶ W)) ⟶ homRep 𝒞 X := fun i k => k ≫ h
@@ -180,7 +181,8 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] [HasTerminal 𝒞]
     representation; the faithful representation below uses the hom-functors.) -/
 def Pts (A : 𝒞) : Type v := one ⟶ A
 
-instance ptsFunctor : Functor (Pts (𝒞 := 𝒞)) where
+def ptsFunctor : Functor 𝒞 (Type v) where
+  obj := Pts (𝒞 := 𝒞)
   map f := fun x => x ≫ f
   map_id A := by funext x; exact Cat.comp_id x
   map_comp f g := by funext x; exact (Cat.assoc x f g).symm
@@ -195,13 +197,11 @@ end Points
     `cayley_faithful` (taking `i = A`, `h = id_A`).  Constructive and choice-free,
     valid for ANY small category — the regularity hypothesis is not used here. -/
 theorem exists_separating_family (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
-    ∃ (F : 𝒞 → (𝒞 → Type u)) (hF : ∀ i, Functor (F i)),
-      ∀ {A B : 𝒞} {f g : A ⟶ B}, (∀ i, (hF i).map f = (hF i).map g) → f = g := by
-  refine ⟨fun i A => (i ⟶ A), fun i => ⟨fun {_ _} f h => h ≫ f, ?_, ?_⟩, ?_⟩
-  · intro A; funext h; exact Cat.comp_id h
-  · intro A B C f g; funext h; exact (Cat.assoc h f g).symm
-  · intro A B f g hsep
-    exact cayley_faithful f g (fun {X} hX => congrFun (hsep X) hX)
+    ∃ (F : 𝒞 → Functor 𝒞 (Type u)),
+      ∀ {A B : 𝒞} {f g : A ⟶ B}, (∀ i, (F i).map f = (F i).map g) → f = g := by
+  refine ⟨fun i => homFunctor i, ?_⟩
+  intro A B f g hsep
+  exact cayley_faithful f g (fun {X} hX => congrFun (hsep X) hX)
 
 /-- **§1.55 Henkin-Lubkin.**  Every small pre-regular category `𝒞` is faithfully
     represented in the power `𝒮^|𝒞|`: there is a functor `T : 𝒞 → 𝒮^𝒞` that
@@ -209,10 +209,8 @@ theorem exists_separating_family (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCateg
     the proof is Sorry-free and choice-free (depends only on `Quot.sound`, via
     `funext`).  See the file header for the faithful-vs-exact scope note. -/
 theorem henkin_lubkin (𝒞 : Type u) [Cat.{u} 𝒞] [PreRegularCategory 𝒞] :
-    ∃ (T : 𝒞 → (𝒞 → Type u)) (_ : Functor T), SeparatesMaps T := by
-  obtain ⟨F, hF, hsep⟩ := exists_separating_family 𝒞
-  letI : ∀ i, Functor (F i) := hF
-  exact ⟨familyFunctor F, inferInstance, familyFunctor_separates F hsep⟩
+    ∃ T : Functor 𝒞 (𝒞 → Type u), SeparatesMaps T :=
+  ⟨homRepFunctor 𝒞, homRep_separates 𝒞⟩
 
 /-! ## §1.551 Corollary: Horn sentence preservation  — DEFERRED (not stated here)
 
