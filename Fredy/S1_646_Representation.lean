@@ -95,7 +95,8 @@ noncomputable def TrepMap {A B : 𝒞} (φ : A ⟶ B) : Trep 𝒞 A → Trep �
   Ultraproduct.map (fun S => TSmap S φ) (U 𝒞)
 
 /-- **Functoriality** of `T`, from `Ultraproduct.map_id`/`map_comp`. -/
-noncomputable instance trepFunctor : Functor (Trep 𝒞) where
+noncomputable def trepFunctor : Functor 𝒞 (Type u) where
+  obj := Trep 𝒞
   map := TrepMap
   map_id A := by
     show TrepMap (Cat.id A) = Cat.id (Trep 𝒞 A)
@@ -135,7 +136,7 @@ theorem idSec_apply_self (A : 𝒞) {S : List 𝒞} (hA : A ∈ S) :
 
 /-- **Faithfulness.**  `T` separates maps: `T f = T g ⟹ f = g`.  The disagreement of `f, g`
     survives in the `U`-large coideal `{S | A ∈ S}` via the `i = A` component of `idSec`. -/
-theorem trep_separatesMaps : SeparatesMaps (Trep 𝒞) := by
+theorem trep_separatesMaps : SeparatesMaps (trepFunctor (𝒞 := 𝒞)) := by
   intro A B f g hfg
   -- Apply the (equal) maps to the class of the identity section.
   have happ : TrepMap f (Ultraproduct.mk (U 𝒞) (idSec A))
@@ -255,11 +256,11 @@ theorem trep_preserves_properMono {A' A : 𝒞} {m : A' ⟶ A} (hm : ProperMono 
     `PreservesProperness` conclusion) in its cross-universe form, since `T : 𝒞 → Type u`
     lands one universe up from `𝒞`. -/
 theorem representation646 (𝒞 : Type u) [Cat.{u} 𝒞] :
-    ∃ (T : 𝒞 → Type u) (hT : Functor T),
+    ∃ T : Functor 𝒞 (Type u),
       SeparatesMaps T ∧
       ∀ {A' A : 𝒞} {m : A' ⟶ A}, ProperMono m →
-        Monic (hT.map m) ∧ ¬ IsIso (hT.map m) :=
-  ⟨Trep 𝒞, trepFunctor, trep_separatesMaps, fun hm => trep_preserves_properMono hm⟩
+        Monic (T.map m) ∧ ¬ IsIso (T.map m) :=
+  ⟨trepFunctor, trep_separatesMaps, fun hm => trep_preserves_properMono hm⟩
 
 end Rep646
 end Freyd

@@ -844,7 +844,7 @@ def HoldsIn (H : HornSentence) (𝒟 : Type u) [Cat.{v} 𝒟] : Prop := H 𝒟
     structure; capturing that uniformly requires the syntactic induction (MISSING,
     see tracker).  We make the dependence on a *named hypothesis* explicit so the
     reflection theorem has genuine content and needs no Sorry. -/
-def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : 𝒜 → ℬ) : Prop :=
+def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : Functor 𝒜 ℬ) : Prop :=
   HoldsIn H ℬ → HoldsIn H 𝒜
 
 /-- **§1.563**: If A and B are Cartesian with images and F : A → B is a faithful
@@ -858,7 +858,7 @@ def ReflectedBy (H : HornSentence) {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} �
     would supply. -/
 theorem horn_sentence_reflected_by_faithful {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [CartesianCategory 𝒜] [HasImages 𝒜] [CartesianCategory ℬ] [HasImages ℬ]
-    (F : 𝒜 → ℬ) [Functor F] (_hfaithful : Faithful F)
+    (F : Functor 𝒜 ℬ) (_hfaithful : Faithful F)
     (_h_pres_term : PreservesTerminal F) (_h_pres_prod : PreservesBinaryProducts F)
     (_h_pres_eq : PreservesEqualizers F)
     (_h_pres_mono : PreservesMono F) (_h_pres_images : PreservesImages F _h_pres_mono)
