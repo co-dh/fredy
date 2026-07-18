@@ -1107,7 +1107,8 @@ def nablaMap {X Y : Type u} (f : X → Y) : nablaAsm (K := K) X ⟶ nablaAsm Y :
   ⟨f, ModFun.ident, K.id_mem, fun n _ _ => ⟨n, rfl, trivial⟩⟩
 
 /-- ∇ is a functor from S = `Type u` (with `setCat`) to the category of assemblies. -/
-instance nablaFunctor : Functor (nablaAsm (K := K)) where
+def nablaFunctor : Functor (Type u) (Assembly.{u} K) where
+  obj := nablaAsm (K := K)
   map := nablaMap
   map_id _ := AsmHom.ext rfl
   map_comp _ _ := AsmHom.ext rfl

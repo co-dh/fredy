@@ -419,7 +419,8 @@ theorem piForallMap_comp {X X' X'' : Over A} (m : X ⟶ X') (n : X' ⟶ X'') :
       Cat.assoc]
 
 /-- **`Π_f` is a functor `Over A → Over B`.** -/
-instance piForallFunctor : Functor (piForallObj f) where
+def piForallFunctor : Functor (Over A) (Over B) where
+  obj := piForallObj f
   map m := piForallMap f m
   map_id X := piForallMap_id f X
   map_comp m n := piForallMap_comp f m n
@@ -502,7 +503,7 @@ theorem prodToBc_baseChangeMap {Y' Y : Over B} (a : Y' ⟶ Y) :
 /-- **`φ_nat_left`**: `piPhi (f* a ≫ g) = a ≫ piPhi g`, for `a : Y' ⟶ Y`. -/
 theorem piPhi_nat_left {Y' Y : Over B} {X : Over A}
     (a : Y' ⟶ Y) (g : OverHom (baseChangeObj f Y) X) :
-    piPhi f (Functor.map (F := baseChangeObj f) a ≫ g) = a ≫ piPhi f g := by
+    piPhi f ((baseChangeFunctor f).map a ≫ g) = a ≫ piPhi f g := by
   apply piEqMap_mono
   apply transp_inj
   -- LHS: transp(piPhi(f*a ≫ g) ≫ eqMap) = piPhiK (f*a ≫ g),  .f = prodToBc Y' ≫ (f*a).f ≫ g.f
@@ -523,7 +524,7 @@ theorem piPhi_nat_left {Y' Y : Over B} {X : Over A}
     ADJOINT to the dependent-product functor `Π_f = piForallObj f : Over A → Over B`.
     The hom-bijection `OverHom (f* Y) X ≅ OverHom Y (Π_f X)` is `piPsi`/`piPhi`, carved
     out of the slice-topos exponential adjunction by the equalizer `Π_f X`. -/
-def sliceForallAdj : Adjunction (baseChangeObj f) (piForallObj f) where
+def sliceForallAdj : Adjunction (baseChangeFunctor f) (piForallFunctor f) where
   φ g := piPhi f g
   ψ c := piPsi f c
   φψ c := piPhi_piPsi f c
@@ -546,9 +547,9 @@ end PiForall
     is epic.  Proof: `F e ≫ a = F e ≫ b` transposes (via `φ_nat_left`) to
     `e ≫ φ a = e ≫ φ b`; cancel the epi `e` to get `φ a = φ b`, then `φ` injective. -/
 theorem leftAdjoint_preserves_epi {𝒟 : Type u} [Cat.{v} 𝒟]
-    {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [Functor F] [Functor G] (adj : F ⊣ G)
+    {F : Functor 𝒞 𝒟} {G : Functor 𝒟 𝒞} (adj : F ⊣ G)
     {X Y : 𝒞} {e : X ⟶ Y} (he : ∀ {Z : 𝒞} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b)
-    {W : 𝒟} (a b : F Y ⟶ W) (hab : Functor.map e ≫ a = Functor.map e ≫ b) : a = b := by
+    {W : 𝒟} (a b : F.obj Y ⟶ W) (hab : F.map e ≫ a = F.map e ≫ b) : a = b := by
   apply φ_inj adj
   apply he (adj.φ a) (adj.φ b)
   rw [← adj.φ_nat_left, ← adj.φ_nat_left, hab]
@@ -562,7 +563,7 @@ variable {A B : 𝒞} (f : A ⟶ B) [Topos 𝒞]
 theorem baseChange_preserves_epi {X Y : Over B} {e : X ⟶ Y}
     (he : ∀ {Z : Over B} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b)
     {W : Over A} (a b : baseChangeObj f Y ⟶ W)
-    (hab : Functor.map (F := baseChangeObj f) e ≫ a = Functor.map (F := baseChangeObj f) e ≫ b) :
+    (hab : (baseChangeFunctor f).map e ≫ a = (baseChangeFunctor f).map e ≫ b) :
     a = b :=
   leftAdjoint_preserves_epi (sliceForallAdj f) he a b hab
 
@@ -571,14 +572,14 @@ theorem baseChange_preserves_epi {X Y : Over B} {e : X ⟶ Y}
     and `f*` preserves epis (`baseChange_preserves_epi`).  This is the slice form of
     pullback-stability of covers. -/
 theorem baseChange_preserves_cover {X Y : Over B} {e : X ⟶ Y} (he : Cover e) :
-    Cover (Functor.map (F := baseChangeObj f) e) := by
+    Cover ((baseChangeFunctor f).map e) := by
   -- Over B and Over A are toposes; use cover ⟺ epic on both sides.
   have heEpi : ∀ {Z : Over B} (a b : Y ⟶ Z), e ≫ a = e ≫ b → a = b :=
     fun {Z} a b h => (cover_iff_epi (𝒞 := Over B) e).mp he a b h
   have hFeEpi : ∀ {Z : Over A} (a b : baseChangeObj f Y ⟶ Z),
-      Functor.map (F := baseChangeObj f) e ≫ a = Functor.map (F := baseChangeObj f) e ≫ b → a = b :=
+      (baseChangeFunctor f).map e ≫ a = (baseChangeFunctor f).map e ≫ b → a = b :=
     fun {Z} a b h => baseChange_preserves_epi f heEpi a b h
-  rw [cover_iff_epi (𝒞 := Over A) (Functor.map (F := baseChangeObj f) e)]; exact hFeEpi
+  rw [cover_iff_epi (𝒞 := Over A) ((baseChangeFunctor f).map e)]; exact hFeEpi
 
 end PullbackPreservesEpi
 
@@ -677,16 +678,16 @@ private theorem _chosenPi2_cover {A B C : 𝒞} (f : A ⟶ B) (g : C ⟶ B) (hf 
     Cover (HasPullbacks.has f g).cone.π₂ := by
   -- mf is a slice cover; g* preserves it; its underlying base map is a cover.
   have hmf : Cover (𝒞 := Over B) (_mfTerm f) := cover_of_cover_f (_mfTerm f) hf
-  have hbc : Cover (Functor.map (F := baseChangeObj g) (_mfTerm f)) :=
+  have hbc : Cover ((baseChangeFunctor g).map (_mfTerm f)) :=
     baseChange_preserves_cover g hmf
-  have hbcf : Cover (Functor.map (F := baseChangeObj g) (_mfTerm f)).f :=
-    cover_f_of_cover (Functor.map (F := baseChangeObj g) (_mfTerm f)) hbc
+  have hbcf : Cover ((baseChangeFunctor g).map (_mfTerm f)).f :=
+    cover_f_of_cover ((baseChangeFunctor g).map (_mfTerm f)) hbc
   -- The over-hom law: `(g* mf).f ≫ (g*⟨B,id⟩).hom = (g* f̂).hom`.
   -- `(g* f̂).hom = (HasPullbacks.has f g).cone.π₂`  (since `(fHat f).hom = f`).
   -- `(g*⟨B,id⟩).hom` is an iso (`_bcIdB_hom_iso`), so `π₂ = cover ≫ iso` is a cover.
-  have hw : (Functor.map (F := baseChangeObj g) (_mfTerm f)).f ≫ (baseChangeObj g (_idB B)).hom
+  have hw : ((baseChangeFunctor g).map (_mfTerm f)).f ≫ (baseChangeObj g (_idB B)).hom
       = (baseChangeObj g (fHat f)).hom :=
-    (Functor.map (F := baseChangeObj g) (_mfTerm f)).w
+    ((baseChangeFunctor g).map (_mfTerm f)).w
   have hπ₂ : (baseChangeObj g (fHat f)).hom = (HasPullbacks.has f g).cone.π₂ := rfl
   rw [← hπ₂, ← hw]
   -- unfold `Cover` by hand to dodge the `Cover`-def `{C}`-binder clash with section `C`.
