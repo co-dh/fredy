@@ -321,7 +321,8 @@ def baseChangeMap {X Y : Over D} (m : OverHom X Y) :
   ⟨(_bcPB g Y).lift (baseChangeCone g m), (_bcPB g Y).lift_snd (baseChangeCone g m)⟩
 
 /-- Base-change is a `Functor A/D → A/C`. -/
-instance baseChangeFunctor : Functor (baseChangeObj g) where
+def baseChangeFunctor : Functor (Over D) (Over C) where
+  obj := baseChangeObj g
   map m := baseChangeMap g m
   map_id X := by
     -- `lift_uniq` for the identity `X`-cone: `Cat.id` is the lift.
@@ -397,7 +398,8 @@ def reindexMap (m : C ⟶ D) {X Y : Over C} (h : OverHom X Y) :
 
 /-- **Strict reindexing is a `Functor A/C → A/D`** — and STRICTLY so: `map_id`/`map_comp` are
     `OverHom.ext rfl` because the underlying arrow is untouched. -/
-instance reindexFunctor (m : C ⟶ D) : Functor (reindexObj m) where
+def reindexFunctor (m : C ⟶ D) : Functor (Over C) (Over D) where
+  obj := reindexObj m
   map h := reindexMap m h
   map_id _ := OverHom.ext rfl
   map_comp _ _ := OverHom.ext rfl
