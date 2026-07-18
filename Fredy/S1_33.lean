@@ -22,11 +22,11 @@ namespace Freyd
 /-! ## §1.33 Faithful functors -/
 
 /-- F is FAITHFUL if it is an embedding and reflects isomorphisms. -/
-def Faithful (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
-  Embedding F ∧ (∀ {A B : 𝒞} (f : A ⟶ B), IsIso (hF.map f) → IsIso f)
+def Faithful (F : Functor 𝒞 𝒟) : Prop :=
+  Embedding F ∧ (∀ {A B : 𝒞} (f : A ⟶ B), IsIso (F.map f) → IsIso f)
 
 /-- Full embeddings are faithful. -/
-theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
+theorem full_embedding_faithful (F : Functor 𝒞 𝒟)
     (hEmb : Embedding F) (hFull : Full F) : Faithful F := by
   refine ⟨hEmb, ?_⟩
   intro A B f hiso
@@ -35,16 +35,16 @@ theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
   refine ⟨g, ?_, ?_⟩
   · apply hEmb
     calc
-      hF.map (f ≫ g) = hF.map f ≫ hF.map g := hF.map_comp f g
-      _ = hF.map f ≫ ginv := by rw [hg]
-      _ = Cat.id (F A) := h1
-      _ = hF.map (Cat.id A) := by rw [hF.map_id]
+      F.map (f ≫ g) = F.map f ≫ F.map g := F.map_comp f g
+      _ = F.map f ≫ ginv := by rw [hg]
+      _ = Cat.id (F.obj A) := h1
+      _ = F.map (Cat.id A) := by rw [F.map_id]
   · apply hEmb
     calc
-      hF.map (g ≫ f) = hF.map g ≫ hF.map f := hF.map_comp g f
-      _ = ginv ≫ hF.map f := by rw [hg]
-      _ = Cat.id (F B) := h2
-      _ = hF.map (Cat.id B) := by rw [hF.map_id]
+      F.map (g ≫ f) = F.map g ≫ F.map f := F.map_comp g f
+      _ = ginv ≫ F.map f := by rw [hg]
+      _ = Cat.id (F.obj B) := h2
+      _ = F.map (Cat.id B) := by rw [F.map_id]
 
 /-! ## §1.331 Reflects left-invertibility ⇒ reflects isomorphisms -/
 
@@ -56,29 +56,29 @@ theorem full_embedding_faithful (F : 𝒞 → 𝒟) [hF : Functor F]
     So Fg is left-invertible; reflecting, g has left inverse z (z ≫ g = id).
     Then z = z ≫ id_B = z ≫ g ≫ f = (z ≫ g) ≫ f = id_A ≫ f = f,
     so f ≫ g = id_A.  Combined with g ≫ f = id_B, f is an isomorphism. -/
-theorem reflects_leftInv_reflects_iso (F : 𝒞 → 𝒟) [hF : Functor F]
-    (reflLI : ∀ {A B : 𝒞} (f : A ⟶ B), HasLeftInv (hF.map f) → HasLeftInv f)
-    {A B : 𝒞} (f : A ⟶ B) (hiso : IsIso (hF.map f)) : IsIso f := by
+theorem reflects_leftInv_reflects_iso (F : Functor 𝒞 𝒟)
+    (reflLI : ∀ {A B : 𝒞} (f : A ⟶ B), HasLeftInv (F.map f) → HasLeftInv f)
+    {A B : 𝒞} (f : A ⟶ B) (hiso : IsIso (F.map f)) : IsIso f := by
   obtain ⟨finv, hfinv1, hfinv2⟩ := hiso
-  -- hfinv1 : hF.map f ≫ finv = Cat.id (F A)
-  -- hfinv2 : finv ≫ hF.map f = Cat.id (F B)
+  -- hfinv1 : F.map f ≫ finv = Cat.id (F.obj A)
+  -- hfinv2 : finv ≫ F.map f = Cat.id (F.obj B)
   -- Step 1: Ff has left inverse finv; reflect to get g : B ⟶ A with g ≫ f = id_B
   obtain ⟨g, hgf⟩ := reflLI f ⟨finv, hfinv2⟩
   -- Step 2: Fg ≫ Ff = F(g ≫ f) = F(id_B) = id_{FB}
-  have hFgFf : hF.map g ≫ hF.map f = Cat.id (F B) := by
-    rw [← hF.map_comp, hgf, hF.map_id]
+  have hFgFf : F.map g ≫ F.map f = Cat.id (F.obj B) := by
+    rw [← F.map_comp, hgf, F.map_id]
   -- Step 3: Fg = finv  (right-cancel Ff: both Fg and finv satisfy ? ≫ Ff = id)
-  have hFg_eq_finv : hF.map g = finv := by
-    have cancel : ∀ (u v : F B ⟶ F A), u ≫ hF.map f = v ≫ hF.map f → u = v := fun u v huv => by
+  have hFg_eq_finv : F.map g = finv := by
+    have cancel : ∀ (u v : F.obj B ⟶ F.obj A), u ≫ F.map f = v ≫ F.map f → u = v := fun u v huv => by
       have := congrArg (· ≫ finv) huv
       simp only [Cat.assoc, hfinv1, Cat.comp_id] at this
       exact this
     exact cancel _ _ (by rw [hFgFf, hfinv2])
   -- Step 4: Ff ≫ Fg = Ff ≫ finv = id_{FA}
-  have hFfFg : hF.map f ≫ hF.map g = Cat.id (F A) := by
+  have hFfFg : F.map f ≫ F.map g = Cat.id (F.obj A) := by
     rw [hFg_eq_finv, hfinv1]
   -- Step 5: Fg has left inverse Ff; reflect to get z : A ⟶ B with z ≫ g = id_A
-  obtain ⟨z, hzg⟩ := reflLI g ⟨hF.map f, hFfFg⟩
+  obtain ⟨z, hzg⟩ := reflLI g ⟨F.map f, hFfFg⟩
   -- Step 6: z = f  via  z = z ≫ (g ≫ f) = (z ≫ g) ≫ f = id_A ≫ f = f
   --   (using g ≫ f = id_B, so z ≫ Cat.id B = z ≫ g ≫ f)
   have hz_eq_f : z = f := by
@@ -233,13 +233,13 @@ theorem combined_reflects_leftInv {𝒞 : Type u} [Cat.{v} 𝒞] {A B : 𝒞} (x
 /-! ## §1.333 Functors between posets -/
 
 /-- A PREORDER structure (reflexive, transitive relation). -/
-structure ProsetCat (α : Type u) : Type u where
+class ProsetCat (α : Type u) : Type u where
   le : α → α → Prop
   refl : ∀ a, le a a
   trans : ∀ {a b c}, le a b → le b c → le a c
 
 /-- Turn a `ProsetCat` into a `Cat` instance.  Hom-sets are proof-irrelevant (thin). -/
-instance prosetToCat {α : Type u} (P : ProsetCat α) : Cat.{0} α where
+instance prosetToCat {α : Type u} [P : ProsetCat α] : Cat.{0} α where
   Hom a b := PLift (P.le a b)
   id a := ⟨P.refl a⟩
   comp h k := ⟨P.trans h.down k.down⟩
@@ -248,25 +248,23 @@ instance prosetToCat {α : Type u} (P : ProsetCat α) : Cat.{0} α where
   assoc _ _ _ := rfl
 
 /-- In a preorder-category any two parallel hom-set elements are equal (thin category). -/
-theorem proset_hom_subsingleton {α : Type u} (P : ProsetCat α) {a b : α}
-    (f g : @Cat.Hom α (prosetToCat P) a b) : f = g := by
+theorem proset_hom_subsingleton {α : Type u} [ProsetCat α] {a b : α}
+    (f g : a ⟶ b) : f = g := by
   obtain ⟨_⟩ := f; obtain ⟨_⟩ := g; rfl
 
 /-- A functor between preorder-categories is always an embedding (§1.333).
     Proof: morphisms are proof-irrelevant, so any two parallel morphisms are equal. -/
 theorem proset_functor_embedding {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F] :
-    @Embedding α (prosetToCat P) β (prosetToCat Q) F hF := by
+    [ProsetCat α] [ProsetCat β] (F : Functor α β) :
+    Embedding F := by
   intro A B f g _
-  exact proset_hom_subsingleton P f g
+  exact proset_hom_subsingleton f g
 
 /-- §1.333: a functor between preorders is monotone (order-preserving). -/
 theorem proset_functor_monotone {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    {a b : α} (hab : P.le a b) : Q.le (F a) (F b) :=
-  (hF.map (⟨hab⟩ : @Cat.Hom α (prosetToCat P) a b)).down
+    [P : ProsetCat α] [Q : ProsetCat β] (F : Functor α β)
+    {a b : α} (hab : P.le a b) : Q.le (F.obj a) (F.obj b) :=
+  (F.map (⟨hab⟩ : (a ⟶ b))).down
 
 /-- §1.333: a functor between preorders is full iff the ordering on the domain is induced
     by the ordering on the range: P.le a b ↔ Q.le (F a) (F b).
@@ -278,51 +276,50 @@ theorem proset_functor_monotone {α β : Type u}
     the induced-ordering hypothesis gives P.le a b, hence a P-morphism f : a → b with F(f) = h
     (by proof irrelevance in Q). -/
 theorem proset_functor_full_iff_induced {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F] :
-    @Full α (prosetToCat P) β (prosetToCat Q) F hF ↔
-    (∀ a b : α, P.le a b ↔ Q.le (F a) (F b)) := by
+    [P : ProsetCat α] [Q : ProsetCat β] (F : Functor α β) :
+    Full F ↔
+    (∀ a b : α, P.le a b ↔ Q.le (F.obj a) (F.obj b)) := by
   constructor
   · intro hFull a b
     constructor
     · intro hab
-      exact (hF.map (⟨hab⟩ : @Cat.Hom α (prosetToCat P) a b)).down
+      exact (F.map (⟨hab⟩ : (a ⟶ b))).down
     · intro hFab
-      obtain ⟨f, _⟩ := hFull (⟨hFab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
+      obtain ⟨f, _⟩ := hFull (⟨hFab⟩ : (F.obj a ⟶ F.obj b))
       exact f.down
   · intro hInd A B h
-    exact ⟨⟨(hInd A B).mpr h.down⟩, proset_hom_subsingleton Q _ _⟩
+    exact ⟨⟨(hInd A B).mpr h.down⟩, proset_hom_subsingleton _ _⟩
 
 /-- §1.333: if F is full and faithful between posets, then F is injective on objects.
     Uses fullness to lift Q-morphisms in both directions to P-morphisms, then antisymP. -/
 theorem proset_full_faithful_inj {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
+    [P : ProsetCat α] [Q : ProsetCat β]
     (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF)
-    (_ : @Faithful α (prosetToCat P) β (prosetToCat Q) F hF) :
-    ∀ a b : α, F a = F b → a = b := fun a b hFab => by
-  have h_ab : Q.le (F a) (F b) := hFab ▸ Q.refl (F a)
-  have h_ba : Q.le (F b) (F a) := hFab ▸ Q.refl (F b)
-  obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
-  obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
+    (F : Functor α β)
+    (hFull : Full F)
+    (_ : Faithful F) :
+    ∀ a b : α, F.obj a = F.obj b → a = b := fun a b hFab => by
+  have h_ab : Q.le (F.obj a) (F.obj b) := hFab ▸ Q.refl (F.obj a)
+  have h_ba : Q.le (F.obj b) (F.obj a) := hFab ▸ Q.refl (F.obj b)
+  obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : (F.obj a ⟶ F.obj b))
+  obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : (F.obj b ⟶ F.obj a))
   exact antisymP f.down g.down
 
 /-- §1.333: an injective-on-objects functor between posets is faithful (§1.333 backward).
     Proof: embedding is free (thin cat); reflects-iso uses antisymQ + injectivity to show
     A = B and then any f : A → A is its own inverse. -/
 theorem proset_inj_faithful {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
+    [P : ProsetCat α] [Q : ProsetCat β]
     (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    (hInj : ∀ a b : α, F a = F b → a = b) :
-    @Faithful α (prosetToCat P) β (prosetToCat Q) F hF :=
-  ⟨proset_functor_embedding P Q F, fun {A B} f hiso => by
+    (F : Functor α β)
+    (hInj : ∀ a b : α, F.obj a = F.obj b → a = b) :
+    Faithful F :=
+  ⟨proset_functor_embedding F, fun {A B} f hiso => by
     obtain ⟨g, _, _⟩ := hiso
-    have hFAFB : F A = F B := antisymQ (hF.map f).down g.down
+    have hFAFB : F.obj A = F.obj B := antisymQ (F.map f).down g.down
     have hAB : A = B := hInj A B hFAFB
     subst hAB
-    exact ⟨f, proset_hom_subsingleton P _ _, proset_hom_subsingleton P _ _⟩⟩
+    exact ⟨f, proset_hom_subsingleton _ _, proset_hom_subsingleton _ _⟩⟩
 
 /-- §1.333: for a FULL functor between posets, faithful iff injective on objects.
 
@@ -343,18 +340,18 @@ theorem proset_inj_faithful {α β : Type u}
       For reflects-iso: from IsIso (hF.map f), Q-antisymmetry gives Fa = Fb,
       injectivity gives a = b, and then IsIso f is trivial. -/
 theorem proset_faithful_iff_injective {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
+    [P : ProsetCat α] [Q : ProsetCat β]
     (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
     (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F]
-    (hFull : @Full α (prosetToCat P) β (prosetToCat Q) F hF) :
-    @Faithful α (prosetToCat P) β (prosetToCat Q) F hF ↔
-    (∀ a b : α, F a = F b → a = b) := by
+    (F : Functor α β)
+    (hFull : Full F) :
+    Faithful F ↔
+    (∀ a b : α, F.obj a = F.obj b → a = b) := by
   constructor
   · intro hFaith
-    exact proset_full_faithful_inj P Q antisymP F hFull hFaith
+    exact proset_full_faithful_inj antisymP F hFull hFaith
   · intro hInj
-    exact proset_inj_faithful P Q antisymQ F hInj
+    exact proset_inj_faithful antisymQ F hInj
 
 
 /-- §1.333: equivalence functor between posets iff order-isomorphism.
@@ -362,14 +359,14 @@ theorem proset_faithful_iff_injective {α β : Type u}
     An order-isomorphism is a surjective monotone functor whose inverse is also monotone,
     equivalently a bijection F with P.le a b ↔ Q.le (F a) (F b). -/
 theorem proset_equiv_iff_ord_iso {α β : Type u}
-    (P : ProsetCat α) (Q : ProsetCat β)
+    [P : ProsetCat α] [Q : ProsetCat β]
     (antisymP : ∀ {a b : α}, P.le a b → P.le b a → a = b)
     (antisymQ : ∀ {a b : β}, Q.le a b → Q.le b a → a = b)
-    (F : α → β) [hF : @Functor α (prosetToCat P) β (prosetToCat Q) F] :
-    @EquivalenceFunctor α (prosetToCat P) β (prosetToCat Q) F hF ↔
-    ((∀ a b : α, F a = F b → a = b) ∧
-     (∀ b : β, ∃ a : α, F a = b) ∧
-     (∀ a b : α, P.le a b ↔ Q.le (F a) (F b))) := by
+    (F : Functor α β) :
+    EquivalenceFunctor F ↔
+    ((∀ a b : α, F.obj a = F.obj b → a = b) ∧
+     (∀ b : β, ∃ a : α, F.obj a = b) ∧
+     (∀ a b : α, P.le a b ↔ Q.le (F.obj a) (F.obj b))) := by
   constructor
   · intro ⟨hEmb, hFull, hRep⟩
     refine ⟨?_, ?_, ?_⟩
@@ -377,10 +374,10 @@ theorem proset_equiv_iff_ord_iso {α β : Type u}
       -- then antisymP.
       intro a b hFab
       -- Fa = Fb, so id_{Fa} : Fa ⟶ Fb in Q-cat.
-      have h_ab : Q.le (F a) (F b) := hFab ▸ Q.refl (F a)
-      have h_ba : Q.le (F b) (F a) := hFab ▸ Q.refl (F b)
-      obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
-      obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : @Cat.Hom β (prosetToCat Q) (F b) (F a))
+      have h_ab : Q.le (F.obj a) (F.obj b) := hFab ▸ Q.refl (F.obj a)
+      have h_ba : Q.le (F.obj b) (F.obj a) := hFab ▸ Q.refl (F.obj b)
+      obtain ⟨f, _⟩ := hFull (⟨h_ab⟩ : (F.obj a ⟶ F.obj b))
+      obtain ⟨g, _⟩ := hFull (⟨h_ba⟩ : (F.obj b ⟶ F.obj a))
       exact antisymP f.down g.down
     · -- Surjective: from HasRepresentativeImage
       intro B
@@ -391,21 +388,21 @@ theorem proset_equiv_iff_ord_iso {α β : Type u}
     · -- Order iff
       intro a b; constructor
       · intro hab
-        exact (hF.map (⟨hab⟩ : @Cat.Hom α (prosetToCat P) a b)).down
+        exact (F.map (⟨hab⟩ : (a ⟶ b))).down
       · intro hFaFb
-        obtain ⟨f, _⟩ := hFull (⟨hFaFb⟩ : @Cat.Hom β (prosetToCat Q) (F a) (F b))
+        obtain ⟨f, _⟩ := hFull (⟨hFaFb⟩ : (F.obj a ⟶ F.obj b))
         exact f.down
   · intro ⟨hInj, hSurj, hOrd⟩
-    refine ⟨proset_functor_embedding P Q F, ?_, ?_⟩
+    refine ⟨proset_functor_embedding F, ?_, ?_⟩
     · -- Full
       intro A B h
-      exact ⟨⟨(hOrd A B).mpr h.down⟩, proset_hom_subsingleton Q _ _⟩
+      exact ⟨⟨(hOrd A B).mpr h.down⟩, proset_hom_subsingleton _ _⟩
     · -- HasRepresentativeImage
       intro B
       obtain ⟨A, hFA⟩ := hSurj B
-      exact ⟨A, ⟨hFA ▸ Q.refl (F A)⟩,
-        ⟨⟨hFA ▸ Q.refl (F A)⟩,
-         proset_hom_subsingleton Q _ _,
-         proset_hom_subsingleton Q _ _⟩⟩
+      exact ⟨A, ⟨hFA ▸ Q.refl (F.obj A)⟩,
+        ⟨⟨hFA ▸ Q.refl (F.obj A)⟩,
+         proset_hom_subsingleton _ _,
+         proset_hom_subsingleton _ _⟩⟩
 
 end Freyd
