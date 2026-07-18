@@ -32,9 +32,9 @@ namespace Freyd
 /-- A natural transformation α : F → G between parallel functors F, G : 𝒞 → 𝒟 (§1.27).
     For each X : 𝒞 a component α_X : F X → G X; for every f : X → Y,
     F(f) ≫ α_Y = α_X ≫ G(f) (naturality). -/
-structure NaturalTransformation (F G : 𝒞 → 𝒟) [Functor F] [Functor G] where
-  app : (X : 𝒞) → (F X ⟶ G X)
-  naturality : ∀ {X Y : 𝒞} (f : X ⟶ Y), (Functor.map f) ≫ app Y = app X ≫ (Functor.map f)
+structure NaturalTransformation (F G : Functor 𝒞 𝒟) where
+  app : (X : 𝒞) → (F.obj X ⟶ G.obj X)
+  naturality : ∀ {X Y : 𝒞} (f : X ⟶ Y), F.map f ≫ app Y = app X ≫ G.map f
 
 infix:25 " ⟹ " => NaturalTransformation
 
@@ -42,7 +42,7 @@ infix:25 " ⟹ " => NaturalTransformation
 
 /-- A natural equivalence (§1.274): a natural transformation whose every component is
     an isomorphism.  In the functor category this is precisely an isomorphism. -/
-def NaturalIso (F G : 𝒞 → 𝒟) [Functor F] [Functor G] (α : F ⟹ G) : Prop :=
+def NaturalIso (F G : Functor 𝒞 𝒟) (α : F ⟹ G) : Prop :=
   ∀ X : 𝒞, IsIso (NaturalTransformation.app α X)
 
 /-! ## §1.272  Cayley representation -/
@@ -74,25 +74,16 @@ end Cayley
 
 /-! ## §1.27  Functor category 𝒟^𝒜 -/
 
-/-- A bundled functor: an object map together with its `Functor` instance.
-    These are the OBJECTS of the functor category 𝒟^𝒜 (§1.27). -/
-structure FunctorObj (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] where
-  obj       : 𝒜 → 𝒟
-  isFunctor : Functor obj
-
-/-- Make `Functor F.obj` available by instance search when `F : FunctorObj 𝒜 𝒟`. -/
-instance {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟] (F : FunctorObj 𝒜 𝒟) :
-    Functor F.obj := F.isFunctor
-
-/-- The hom-type of the functor category: natural transformations from F to G. -/
+/-- The hom-type of the functor category: natural transformations from F to G.
+    Objects of the functor category 𝒟^𝒜 (§1.27) are the bundled functors `Functor 𝒜 𝒟`. -/
 abbrev FunctorHom {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
-    (F G : FunctorObj 𝒜 𝒟) : Type (max v u) :=
-  NaturalTransformation F.obj G.obj
+    (F G : Functor 𝒜 𝒟) : Type (max v u) :=
+  NaturalTransformation F G
 
 /-- Extensionality for `NaturalTransformation`: two NTs with the same components
-    are equal.  Requires explicit functor instances to avoid typeclass ambiguity. -/
+    are equal. -/
 theorem NaturalTransformation.ext' {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
-    {F G : 𝒜 → 𝒟} [Functor F] [Functor G]
+    {F G : Functor 𝒜 𝒟}
     {α β : NaturalTransformation F G}
     (h : ∀ X, α.app X = β.app X) : α = β := by
   cases α; cases β; congr 1; funext X; exact h X
@@ -100,7 +91,7 @@ theorem NaturalTransformation.ext' {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 
 /-- Identity natural transformation on F: component at each X is id_{F X}.
     Naturality: F(f) ≫ id = id ≫ F(f) by comp_id / id_comp. -/
 def natTrans_id {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
-    (F : FunctorObj 𝒜 𝒟) : FunctorHom F F where
+    (F : Functor 𝒜 𝒟) : FunctorHom F F where
   app X := Cat.id (F.obj X)
   naturality f := by simp [Cat.comp_id, Cat.id_comp]
 
@@ -108,7 +99,7 @@ def natTrans_id {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
     Component: (α;β)_X = α_X ≫ β_X.  Naturality square commutes by
     α-naturality and β-naturality and associativity. -/
 def natTrans_comp {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
-    {F G H : FunctorObj 𝒜 𝒟}
+    {F G H : Functor 𝒜 𝒟}
     (α : FunctorHom F G) (β : FunctorHom G H) : FunctorHom F H where
   app X := α.app X ≫ β.app X
   naturality {X Y} f := by
@@ -117,11 +108,11 @@ def natTrans_comp {𝒜 𝒟 : Type u} [Cat.{v} 𝒜] [Cat.{v} 𝒟]
     -- F(f) ≫ α_Y ≫ β_Y = α_X ≫ G(f) ≫ β_Y = α_X ≫ β_X ≫ H(f)
     rw [← Cat.assoc, hα, Cat.assoc, hβ, ← Cat.assoc]
 
-/-- The FUNCTOR CATEGORY 𝒟^𝒜 (§1.27): objects are bundled functors 𝒜 → 𝒟,
+/-- The FUNCTOR CATEGORY 𝒟^𝒜 (§1.27): objects are bundled functors `Functor 𝒜 𝒟`,
     morphisms are natural transformations, identity and composition as above.
     The three category laws hold pointwise by the laws of 𝒟. -/
 instance functorCat (𝒜 𝒟 : Type u) [Cat.{v} 𝒜] [Cat.{v} 𝒟] :
-    Cat.{max v u} (FunctorObj 𝒜 𝒟) where
+    Cat.{max v u} (Functor 𝒜 𝒟) where
   Hom   := FunctorHom
   id    := natTrans_id
   comp  := natTrans_comp

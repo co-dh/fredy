@@ -155,9 +155,10 @@ class ContraFunctor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F :
                map (f ≫ g) = map g ≫ map f
 
 /-- §1.182  A contravariant functor `F : C → D` is the same as a covariant
-    functor `Cᵒᵖ → D`.  We give the covariant instance explicitly. -/
+    functor `Cᵒᵖ → D`.  We give the covariant functor explicitly. -/
 def contraToCovar {C : Type u₁} [cat_C : Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : ContraFunctor F] : @Functor (OppCat C) (oppCatInst C) D _ F where
+    (F : C → D) [hF : ContraFunctor F] : Functor (OppCat C) D where
+  obj X := F X
   map {X Y} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y) := hF.map f
   map_id   X  := hF.map_id X
   map_comp {X Y Z} (f : @Cat.Hom (OppCat C) (oppCatInst C) X Y)
@@ -179,36 +180,22 @@ def toOpContra (C : Type u) [cat : Cat.{v} C] :
     `G ∘ F = Id_C` and `F ∘ G = Id_D` on objects.
     (The book's §1.1(10): a one-to-one onto functor; equivalently, a functor with
     a functor inverse.) -/
-structure CatIso {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C → D)
-    [hF : Functor F] where
-  inv         : D → C
-  inv_functor : Functor inv
-  left_id     : ∀ X : C, inv (F X) = X
-  right_id    : ∀ Y : D, F (inv Y) = Y
+structure CatIso {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : Functor C D) where
+  inv      : Functor D C
+  left_id  : ∀ X : C, inv.obj (F.obj X) = X
+  right_id : ∀ Y : D, F.obj (inv.obj Y) = Y
 
 /-- §1.1(10)  The identity functor is a self-isomorphism. -/
-def catIsoId (C : Type u₁) [Cat.{v} C] :
-    @CatIso C _ C _ (fun X : C => X) inferInstance :=
-  ⟨fun X => X, inferInstance, fun _ => rfl, fun _ => rfl⟩
-
-/-- Build a `Functor` for a composition `G ∘ F` without same-universe restriction. -/
-def functorComp {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    {E : Type _} [Cat.{v} E] {F : C → D} (hF : Functor F) {G : D → E} (hG : Functor G) :
-    Functor (G ∘ F) where
-  map      f := hG.map (hF.map f)
-  map_id   X := by simp only [Function.comp]; rw [hF.map_id, hG.map_id]
-  map_comp f g := by simp only [Function.comp]; rw [hF.map_comp, hG.map_comp]
+def catIsoId (C : Type u₁) [Cat.{v} C] : CatIso (idFunctor : Functor C C) :=
+  ⟨idFunctor, fun _ => rfl, fun _ => rfl⟩
 
 /-- §1.1(10)  Isomorphisms of categories compose. -/
 def catIsoComp {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
     {E : Type _} [Cat.{v} E]
-    {F : C → D} [hF : Functor F] {G : D → E} [hG : Functor G]
-    (hFi : CatIso F) (hGi : CatIso G) :
-    @CatIso C _ E _ (G ∘ F) (functorComp hF hG) :=
-  @CatIso.mk C _ E _ (G ∘ F) (functorComp hF hG)
-    (hFi.inv ∘ hGi.inv)
-    (functorComp hGi.inv_functor hFi.inv_functor)
-    (fun X => by simp only [Function.comp]; rw [hGi.left_id (F X), hFi.left_id X])
-    (fun Y => by simp only [Function.comp]; rw [hFi.right_id (hGi.inv Y), hGi.right_id Y])
+    (F : Functor C D) (G : Functor D E)
+    (hFi : CatIso F) (hGi : CatIso G) : CatIso (compFunctor F G) where
+  inv      := compFunctor hGi.inv hFi.inv
+  left_id  := fun X => by simp only [compFunctor_obj]; rw [hGi.left_id (F.obj X), hFi.left_id X]
+  right_id := fun Y => by simp only [compFunctor_obj]; rw [hFi.right_id (hGi.inv.obj Y), hGi.right_id Y]
 
 end Freyd
