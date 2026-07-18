@@ -57,8 +57,8 @@ section Domination
 variable {D' : Type u₁} [Cat.{v} D'] {D : Type u₂} [Cat.{v} D]
 
 /-- **§1.744 ONTO ON OBJECTS.**  The functor `F` hits every object of `D`. -/
-def OntoObjects (F : D' → D) [Functor F] : Prop :=
-  ∀ B : D, ∃ A : D', F A = B
+def OntoObjects (F : Functor D' D) : Prop :=
+  ∀ B : D, ∃ A : D', F.obj A = B
 
 /-- **§1.744 LEFT-FULL.**  For each `A : D'` and each `g : F A ⟶ B` in `D`, there is a
     morphism `f : A ⟶ A'` in `D'` lying over `g` — i.e. with `F A' = B` and, modulo that
@@ -67,14 +67,14 @@ def OntoObjects (F : D' → D) [Functor F] : Prop :=
 
     The codomain identification `hA' : F A' = B` is needed to even type the equation
     `F f = g`; we transport `g` back along it with `hA' ▸ g`. -/
-def LeftFull (F : D' → D) [hF : Functor F] : Prop :=
-  ∀ (A : D') {B : D} (g : F A ⟶ B), ∃ (A' : D') (hA' : F A' = B) (f : A ⟶ A'),
-    hF.map f = hA' ▸ g
+def LeftFull (F : Functor D' D) : Prop :=
+  ∀ (A : D') {B : D} (g : F.obj A ⟶ B), ∃ (A' : D') (hA' : F.obj A' = B) (f : A ⟶ A'),
+    F.map f = hA' ▸ g
 
 /-- **§1.744 `D'` DOMINATES `D`.**  There is a functor `F : D' → D` that is onto on
     objects and left-full.  (The book notes such `F` need not be full.) -/
 def Dominates (D' : Type u₁) [Cat.{v} D'] (D : Type u₂) [Cat.{v} D] : Prop :=
-  ∃ (F : D' → D) (_ : Functor F), OntoObjects F ∧ LeftFull F
+  ∃ (F : Functor D' D), OntoObjects F ∧ LeftFull F
 
 end Domination
 
@@ -87,7 +87,7 @@ end Domination
 /-- **Domination is reflexive.**  Every category dominates itself, via the identity
     functor: it is onto on objects (take `A := B`) and left-full (take `f := g`). -/
 theorem dominates_refl (D : Type u₂) [Cat.{v} D] : Dominates D D := by
-  refine ⟨(fun X => X), inferInstance, ?_, ?_⟩
+  refine ⟨idFunctor, ?_, ?_⟩
   · intro B; exact ⟨B, rfl⟩
   · intro A B g; exact ⟨B, rfl, g, rfl⟩
 
@@ -98,37 +98,29 @@ theorem dominates_refl (D : Type u₂) [Cat.{v} D] : Dominates D D := by
 theorem dominates_trans {E : Type u₃} [Cat.{v} E] {D' : Type u₁} [Cat.{v} D']
     {D : Type u₂} [Cat.{v} D] (h₁ : Dominates E D') (h₂ : Dominates D' D) :
     Dominates E D := by
-  obtain ⟨F, hF, hFonto, hFfull⟩ := h₁
-  obtain ⟨G, hG, hGonto, hGfull⟩ := h₂
-  -- the repo's `compFunctor` instance is single-universe; build the cross-universe
-  -- composite `Functor` by hand.
-  let hGF : Functor (G ∘ F) :=
-    { map := fun {_ _} f => hG.map (hF.map f)
-      map_id := fun X => by
-        show hG.map (hF.map (Cat.id X)) = Cat.id (G (F X))
-        rw [hF.map_id, hG.map_id]
-      map_comp := fun f g => by
-        show hG.map (hF.map (f ≫ g)) = _
-        rw [hF.map_comp, hG.map_comp] }
-  refine ⟨G ∘ F, hGF, ?_, ?_⟩
+  obtain ⟨F, hFonto, hFfull⟩ := h₁
+  obtain ⟨G, hGonto, hGfull⟩ := h₂
+  -- `compFunctor` is now fully universe-polymorphic, so the cross-universe composite
+  -- `E → D'` then `D' → D` (diagram order) is available directly.
+  refine ⟨compFunctor F G, ?_, ?_⟩
   · -- onto on objects: pull `B` back through `G`, then through `F`
     intro B
     obtain ⟨A', hA'⟩ := hGonto B
     obtain ⟨A, hA⟩ := hFonto A'
-    exact ⟨A, by simp only [Function.comp_apply, hA, hA']⟩
-  · -- left-full: lift `g : (G∘F) A ⟶ B` first along `G`, then the resulting `D'`-map along `F`
+    exact ⟨A, by simp only [compFunctor_obj, hA, hA']⟩
+  · -- left-full: lift `g : (compFunctor F G) A ⟶ B` first along `G`, then along `F`
     intro A B g
     -- `g : G (F A) ⟶ B`; lift along `G` to a map out of `F A` in `D'`.
-    obtain ⟨A'₀, hA'₀, f₀, hf₀⟩ := hGfull (F A) g
+    obtain ⟨A'₀, hA'₀, f₀, hf₀⟩ := hGfull (F.obj A) g
     -- lift `f₀ : F A ⟶ A'₀` along `F` to a map out of `A` in `E`.
     obtain ⟨A₁, hA₁, f₁, hf₁⟩ := hFfull A f₀
     refine ⟨A₁, ?_, f₁, ?_⟩
-    · -- `(G∘F) A₁ = B`
-      simp only [Function.comp_apply, hA₁, hA'₀]
-    · -- `(G∘F).map f₁ = (proof) ▸ g`
-      show hG.map (hF.map f₁) = _
+    · -- `(compFunctor F G) A₁ = B`
+      simp only [compFunctor_obj, hA₁, hA'₀]
+    · -- `(compFunctor F G).map f₁ = (proof) ▸ g`
+      show G.map (F.map f₁) = _
       rw [hf₁]
-      -- now `hG.map (hA₁ ▸ f₀)`; push the cast out and use `hf₀`
+      -- now `G.map (hA₁ ▸ f₀)`; push the cast out and use `hf₀`
       subst hA₁
       simp only [hf₀]
 

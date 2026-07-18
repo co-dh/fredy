@@ -42,9 +42,8 @@ instance (B : 𝒞) (I : Inflation B) : Cat.{v} I.objSet where
   assoc _ _ _ := Cat.assoc _ _ _
 
 /-- The inflation forgetful functor F : [T] → B, which is a full embedding. -/
-def Inflation.forget (B : 𝒞) (I : Inflation B) : I.objSet → 𝒞 := I.T
-
-instance (B : 𝒞) (I : Inflation B) : Functor (I.forget B) where
+def Inflation.forgetFunctor (B : 𝒞) (I : Inflation B) : Functor I.objSet 𝒞 where
+  obj := I.T
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -78,8 +77,9 @@ theorem eqToHom_symm_comp_eqToHom {X Y : 𝒞} (e : X = Y) :
 /-- The cross-section functor `𝒞 → [T]`, sending `b ↦ S b`.  On a map `h : X ⟶ Y`
     it returns `h` transported along `S.sec : I.T (S X) = X` at each endpoint, since
     `Hom` in `[T]` between `S X` and `S Y` is `I.T (S X) ⟶ I.T (S Y)`. -/
-instance csFunctor (B : 𝒞) (I : Inflation B) (S : InflationCrossSection B I) :
-    Functor (fun b : 𝒞 => S.S b) where
+def csFunctor (B : 𝒞) (I : Inflation B) (S : InflationCrossSection B I) :
+    Functor 𝒞 I.objSet where
+  obj b := S.S b
   map {X Y} h := (eqToHom (S.sec X) ≫ h ≫ eqToHom (S.sec Y).symm :
     I.T (S.S X) ⟶ I.T (S.S Y))
   map_id X := by
@@ -96,7 +96,7 @@ instance csFunctor (B : 𝒞) (I : Inflation B) (S : InflationCrossSection B I) 
 /-- If T has a left-inverse (a cross-section S), then the forgetful functor `[T] → B`
     and the cross-section functor `b ↦ S b` constitute a strong equivalence (§1.362). -/
 theorem inflation_strong_equiv (B : 𝒞) (I : Inflation B) (S : InflationCrossSection B I) :
-    StrongEquivalence (I.forget B) (fun b : 𝒞 => S.S b) where
+    StrongEquivalence (I.forgetFunctor B) (csFunctor B I S) where
   -- unit : NatIso ((csFunctor) ∘ forget) id  on  [T].
   -- component at `a : I.objSet` lives in [T], i.e. is a map I.T (S (I.T a)) ⟶ I.T a in 𝒞.
   unit := ⟨{
@@ -153,10 +153,10 @@ structure EquivalenceKernel (𝒞 : Type u) [Cat.{v} 𝒞] where
     needs `T` to be a full embedding (the book's equivalence functor): fullness
     lifts the inverse identity to a map `g : Y → X`, and the embedding (faithful)
     transports `T(fg) = 1 = T(1)` back to `fg = 1`. -/
-def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (full : Full F) :
+def equivalenceKernel (F : Functor 𝒞 𝒟) (emb : Embedding F) (full : Full F) :
     EquivalenceKernel 𝒞 where
-  mem {X Y} f := ∃ _ : F X = F Y, HEq (hF.map f) (Cat.id (F X))
-  mem_id X := ⟨rfl, heq_of_eq (hF.map_id X)⟩
+  mem {X Y} f := ∃ _ : F.obj X = F.obj Y, HEq (F.map f) (Cat.id (F.obj X))
+  mem_id X := ⟨rfl, heq_of_eq (F.map_id X)⟩
   isGroupoid {X Y} f h := by
     obtain ⟨e, hf⟩ := h
     -- `cases` on an object-equality only fires when one side is a free variable,
@@ -165,22 +165,22 @@ def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (
         HEq mf (Cat.id P) → HEq mg (Cat.id P) → mf ≫ mg = Cat.id P := by
       intro P Q mf mg e' hmf hmg; cases e'
       rw [eq_of_heq hmf, eq_of_heq hmg]; exact Cat.id_comp _
-    have idHEq : HEq (Cat.id (F X)) (Cat.id (F Y)) := by
-      have h' : ∀ {Q : 𝒟}, F X = Q → HEq (Cat.id (F X)) (Cat.id Q) := by
+    have idHEq : HEq (Cat.id (F.obj X)) (Cat.id (F.obj Y)) := by
+      have h' : ∀ {Q : 𝒟}, F.obj X = Q → HEq (Cat.id (F.obj X)) (Cat.id Q) := by
         intro Q e'; cases e'; exact HEq.rfl
       exact h' e
     -- Lift the inverse identity `F Y → F X` to a kernel map `g : Y → X`.
-    obtain ⟨g, hg⟩ := full (cast (congrArg (· ⟶ F X) e) (Cat.id (F X)))
-    have hgid : HEq (hF.map g) (Cat.id (F X)) := by rw [hg]; exact cast_heq _ _
+    obtain ⟨g, hg⟩ := full (cast (congrArg (· ⟶ F.obj X) e) (Cat.id (F.obj X)))
+    have hgid : HEq (F.map g) (Cat.id (F.obj X)) := by rw [hg]; exact cast_heq _ _
     refine ⟨g, ⟨e.symm, hgid.trans idHEq⟩, ?_, ?_⟩
     · -- f ≫ g = 1_X, via faithfulness from `T(f)T(g) = 1 = T(1_X)`.
       apply emb (f ≫ g) (Cat.id X)
-      rw [hF.map_comp, hF.map_id]
-      exact key (hF.map f) (hF.map g) e hf hgid
+      rw [F.map_comp, F.map_id]
+      exact key (F.map f) (F.map g) e hf hgid
     · -- g ≫ f = 1_Y, symmetrically at the endpoint `F Y`.
       apply emb (g ≫ f) (Cat.id Y)
-      rw [hF.map_comp, hF.map_id]
-      exact key (hF.map g) (hF.map f) e.symm (hgid.trans idHEq) (hf.trans idHEq)
+      rw [F.map_comp, F.map_id]
+      exact key (F.map g) (F.map f) e.symm (hgid.trans idHEq) (hf.trans idHEq)
   isPreorder {X Y} f g hf hg := by
     obtain ⟨_, hf'⟩ := hf
     obtain ⟨_, hg'⟩ := hg
@@ -190,13 +190,13 @@ def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (
     obtain ⟨e', hg'⟩ := hg
     refine ⟨e.trans e', ?_⟩
     -- `T(fg) = T f · T g`; both factors heq `1`, and `1·1 = 1` at the glued endpoint.
-    rw [hF.map_comp]
+    rw [F.map_comp]
     -- Reduce to a statement over a fresh endpoint so `cases` on object equalities fires.
     have key : ∀ {P Q S : 𝒟} (mf : P ⟶ Q) (mg : Q ⟶ S), P = Q → Q = S →
         HEq mf (Cat.id P) → HEq mg (Cat.id Q) → HEq (mf ≫ mg) (Cat.id P) := by
       intro P Q S mf mg e₁ e₂ hmf hmg; cases e₁; cases e₂
       rw [eq_of_heq hmf, eq_of_heq hmg, Cat.id_comp]
-    exact key (hF.map f) (hF.map g) e e' hf' hg'
+    exact key (F.map f) (F.map g) e e' hf' hg'
 
 /-! ## §1.363 Equivalent categories
 
@@ -207,15 +207,15 @@ def equivalenceKernel (F : 𝒞 → 𝒟) [hF : Functor F] (emb : Embedding F) (
 
 /-- A functor is an ISOMORPHISM of categories if it is a full embedding and a
     bijection on objects (§1.363). -/
-def IsCatIso (F : 𝒞 → 𝒟) [Functor F] : Prop :=
-  Embedding F ∧ Full F ∧ Function.Injective F ∧ Function.Surjective F
+def IsCatIso (F : Functor 𝒞 𝒟) : Prop :=
+  Embedding F ∧ Full F ∧ Function.Injective F.obj ∧ Function.Surjective F.obj
 
 /-- Two categories are EQUIVALENT (§1.363) if they have isomorphic inflations:
     there are inflations `I₁` of `𝒞` and `I₂` of `𝒟` whose inflated categories
     `[T₁]` and `[T₂]` are isomorphic via some functor `Φ`. -/
 def AreEquivalent (𝒞 : Type u) [Cat.{v} 𝒞] (𝒟 : Type u) [Cat.{v} 𝒟] : Prop :=
   ∃ (B₁ : 𝒞) (I₁ : Inflation B₁) (B₂ : 𝒟) (I₂ : Inflation B₂)
-    (Φ : I₁.objSet → I₂.objSet) (_ : Functor Φ), IsCatIso Φ
+    (Φ : Functor I₁.objSet I₂.objSet), IsCatIso Φ
 
 /-! ## §1.364 Skeletal category and skeleton
 
@@ -247,12 +247,12 @@ def AreEquivalent (𝒞 : Type u) [Cat.{v} 𝒞] (𝒟 : Type u) [Cat.{v} 𝒟] 
     solely to make `T'` onto.  Recording its *existence* (`Nonempty`) therefore keeps
     `[T']`'s object type in `Type u` while staying faithful — `T'` is still onto exactly
     where `F` has a representative image.  `src` is likewise inessential and dropped. -/
-def FactObj (F : 𝒞 → 𝒟) [Functor F] : Type u :=
-  { B : 𝒟 // ∃ (A : 𝒞) (θ : F A ⟶ B), IsIso θ }
+def FactObj (F : Functor 𝒞 𝒟) : Type u :=
+  { B : 𝒟 // ∃ (A : 𝒞) (θ : F.obj A ⟶ B), IsIso θ }
 
 /-- The inflation `[T']` of `𝒟` induced by an equivalence functor `F` (its `T'` is
     `Subtype.val`).  `T'` is onto exactly because `F` has a representative image. -/
-def factInflation (F : 𝒞 → 𝒟) [Functor F] (repF : HasRepresentativeImage F) (B : 𝒟) :
+def factInflation (F : Functor 𝒞 𝒟) (repF : HasRepresentativeImage F) (B : 𝒟) :
     Inflation B where
   objSet := FactObj F
   T := Subtype.val
@@ -260,27 +260,28 @@ def factInflation (F : 𝒞 → 𝒟) [Functor F] (repF : HasRepresentativeImage
 
 /-- The factorizing functor `Φ : 𝒞 → [T']`, `X ↦ (F X, ⟨X, 1, iso⟩)`.  Its action on a
     map is `F`'s, since `Hom (Φ X) (Φ Y) = F X ⟶ F Y` in `[T']`. -/
-def factPhi (F : 𝒞 → 𝒟) [Functor F] (repF : HasRepresentativeImage F) (B : 𝒟) :
+def factPhi (F : Functor 𝒞 𝒟) (repF : HasRepresentativeImage F) (B : 𝒟) :
     𝒞 → (factInflation F repF B).objSet :=
-  fun X => ⟨F X, ⟨X, Cat.id (F X), ⟨Cat.id (F X), Cat.id_comp _, Cat.id_comp _⟩⟩⟩
+  fun X => ⟨F.obj X, ⟨X, Cat.id (F.obj X), ⟨Cat.id (F.obj X), Cat.id_comp _, Cat.id_comp _⟩⟩⟩
 
-instance factPhiFunctor (F : 𝒞 → 𝒟) [hF : Functor F] (repF : HasRepresentativeImage F)
-    (B : 𝒟) : Functor (factPhi F repF B) where
-  map g := hF.map g
-  map_id X := hF.map_id X
-  map_comp f g := hF.map_comp f g
+def factPhiFunctor (F : Functor 𝒞 𝒟) (repF : HasRepresentativeImage F)
+    (B : 𝒟) : Functor 𝒞 (factInflation F repF B).objSet where
+  obj := factPhi F repF B
+  map g := F.map g
+  map_id X := F.map_id X
+  map_comp f g := F.map_comp f g
 
 /-- §1.361: any equivalence functor `F : 𝒞 → 𝒟` factors through an inflation of `𝒟`.
     There is an inflation `I` of `𝒟` with forgetful `T' : [T'] → 𝒟`, and a *full
     embedding* `Φ : 𝒞 → [T']` (the book's cross-section followed by the iso `[T] ≅ [T']`),
     such that `T' (Φ X) = F X` — i.e. `F = Φ ; T'`. -/
 theorem equivalenceFunctor_factorization
-    (F : 𝒞 → 𝒟) [hF : Functor F] (hEq : EquivalenceFunctor F) (B : 𝒟) :
-    ∃ (I : Inflation B) (Φ : 𝒞 → I.objSet) (_ : Functor Φ),
-      Embedding Φ ∧ Full Φ ∧ ∀ X : 𝒞, I.T (Φ X) = F X := by
+    (F : Functor 𝒞 𝒟) (hEq : EquivalenceFunctor F) (B : 𝒟) :
+    ∃ (I : Inflation B) (Φ : Functor 𝒞 I.objSet),
+      Embedding Φ ∧ Full Φ ∧ ∀ X : 𝒞, I.T (Φ.obj X) = F.obj X := by
   obtain ⟨embF, fullF, repF⟩ := hEq
-  refine ⟨factInflation F repF B, factPhi F repF B, factPhiFunctor F repF B, ?_, ?_, ?_⟩
-  · -- Embedding: `Φ g = Φ g'` is `hF.map g = hF.map g'`, so `g = g'` by `F` embedding.
+  refine ⟨factInflation F repF B, factPhiFunctor F repF B, ?_, ?_, ?_⟩
+  · -- Embedding: `Φ g = Φ g'` is `F.map g = F.map g'`, so `g = g'` by `F` embedding.
     intro X Y g g' h; exact embF g g' h
   · -- Full: any `h : F X ⟶ F Y` lifts through `F` (full), and `Φ` of the lift is `h`.
     intro X Y h; obtain ⟨g, hg⟩ := fullF h; exact ⟨g, hg⟩
@@ -376,7 +377,8 @@ theorem Qmap_comp {X Y Z : 𝒞} (f : X ⟶ Y) (g : Y ⟶ Z) :
     show kappa K Y ≫ kappaInv K Y = Cat.id Y
       from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.1, Cat.id_comp]
 
-noncomputable instance functorQ : Functor (Q K) where
+noncomputable def functorQ : Functor 𝒞 (Obj K) where
+  obj := Q K
   map := Qmap K
   map_id := Qmap_id K
   map_comp := Qmap_comp K
@@ -386,7 +388,7 @@ theorem Q_surjective : Function.Surjective (Q K) := by
 
 /-- `Q` is faithful: `Qmap f = Qmap g` forces `f = g`, because conjugation by
     the iso `κ` is injective. -/
-theorem Q_embedding : Embedding (Q K) := by
+theorem Q_embedding : Embedding (functorQ K) := by
   intro X Y f g h
   -- h : Qmap f = Qmap g, i.e. (κX)⁻¹ ≫ f ≫ κY = (κX)⁻¹ ≫ g ≫ κY.
   have h' : kappaInv K X ≫ f ≫ kappa K Y = kappaInv K X ≫ g ≫ kappa K Y := h
@@ -406,7 +408,7 @@ theorem Q_embedding : Embedding (Q K) := by
   rw [simp1 f, simp1 g] at e1; exact e1
 
 /-- `Q` is full: every hom `rep⟦X⟧ ⟶ rep⟦Y⟧` is `Qmap` of some `f : X ⟶ Y`. -/
-theorem Q_full : Full (Q K) := by
+theorem Q_full : Full (functorQ K) := by
   intro X Y (h : rep K (Quotient.mk (setoid K) X) ⟶ rep K (Quotient.mk (setoid K) Y))
   -- take f := κX ≫ h ≫ (κY)⁻¹; then Qmap f = (κX)⁻¹ ≫ (κX ≫ h ≫ (κY)⁻¹) ≫ κY = h.
   refine ⟨kappa K X ≫ h ≫ kappaInv K Y, ?_⟩
@@ -418,7 +420,7 @@ theorem Q_full : Full (Q K) := by
     show kappaInv K Y ≫ kappa K Y = Cat.id (rep K (Quotient.mk (setoid K) Y))
       from (Classical.choose_spec (K.isGroupoid _ (Classical.choose_spec (rel_rep K Y)))).2.2, Cat.comp_id]
 
-theorem Q_repImage : HasRepresentativeImage (Q K) := by
+theorem Q_repImage : HasRepresentativeImage (functorQ K) := by
   intro d
   -- d = ⟦rep d⟧ = Q (rep d); the identity is an iso witness.
   refine ⟨rep K d, ?_⟩
@@ -455,11 +457,11 @@ end QuotientByKernel
     equivalence functor `Q : 𝒞 → 𝒟`.  "Kernel = K" means a map `f` lies in `K`
     iff `Q` collapses it to an identity (equal endpoints, `Q f` heq `1`). -/
 theorem quotientByKernel_exists (K : EquivalenceKernel 𝒞) :
-    ∃ (𝒟 : Type u) (_ : Cat.{v} 𝒟) (Q : 𝒞 → 𝒟) (hQ : Functor Q),
-      EquivalenceFunctor Q ∧ Function.Surjective Q ∧
+    ∃ (𝒟 : Type u) (_ : Cat.{v} 𝒟) (Q : Functor 𝒞 𝒟),
+      EquivalenceFunctor Q ∧ Function.Surjective Q.obj ∧
       (∀ {X Y : 𝒞} (f : X ⟶ Y),
-        K.mem f ↔ ∃ _ : Q X = Q Y, HEq (hQ.map f) (Cat.id (Q X))) := by
-  refine ⟨QuotientByKernel.Obj K, QuotientByKernel.catObj K, QuotientByKernel.Q K,
+        K.mem f ↔ ∃ _ : Q.obj X = Q.obj Y, HEq (Q.map f) (Cat.id (Q.obj X))) := by
+  refine ⟨QuotientByKernel.Obj K, QuotientByKernel.catObj K,
     QuotientByKernel.functorQ K,
     ⟨QuotientByKernel.Q_embedding K, QuotientByKernel.Q_full K, QuotientByKernel.Q_repImage K⟩,
     QuotientByKernel.Q_surjective K, ?_⟩
@@ -517,32 +519,33 @@ theorem quotientByKernel_exists (K : EquivalenceKernel 𝒞) :
     chosen representative), and its uniqueness follows from Q being a full embedding. -/
 theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
     {𝒟 : Type u} [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F]
+    (F : Functor 𝒞 𝒟)
     (hFK : ∀ {X Y : 𝒞} (f : X ⟶ Y), K.mem f →
-        ∃ _ : F X = F Y, HEq (hF.map f) (Cat.id (F X))) :
-    ∃ (G : QuotientByKernel.Obj K → 𝒟),
-      (∃ (_ : Functor G), ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X) ∧
-      (∀ G' : QuotientByKernel.Obj K → 𝒟,
-        (∃ (_ : Functor G'), ∀ X : 𝒞, G' (QuotientByKernel.Q K X) = F X) → G' = G) := by
+        ∃ _ : F.obj X = F.obj Y, HEq (F.map f) (Cat.id (F.obj X))) :
+    ∃ (G : Functor (QuotientByKernel.Obj K) 𝒟),
+      (∀ X : 𝒞, G.obj (QuotientByKernel.Q K X) = F.obj X) ∧
+      (∀ G' : Functor (QuotientByKernel.Obj K) 𝒟,
+        (∀ X : 𝒞, G'.obj (QuotientByKernel.Q K X) = F.obj X) → G'.obj = G.obj) := by
   -- The induced functor sends each class d to F of its chosen representative.
-  refine ⟨fun d => F (QuotientByKernel.rep K d), ?_, ?_⟩
-  · -- Existence: G is a functor and G ∘ Q = F on objects.
-    -- G.map (h : rep d ⟶ rep e) := hF.map h; axioms inherited from F.
-    refine ⟨⟨fun h => hF.map h, fun d => hF.map_id _, fun f g => hF.map_comp f g⟩, fun X => ?_⟩
+  -- G.map (h : rep d ⟶ rep e) := F.map h; axioms inherited from F.
+  refine ⟨⟨fun d => F.obj (QuotientByKernel.rep K d), fun h => F.map h,
+    fun d => F.map_id _, fun f g => F.map_comp f g⟩, ?_, ?_⟩
+  · -- Existence: G ∘ Q = F on objects.
     -- G (Q K X) = F (rep K (Q K X)); need F (rep K (Q K X)) = F X.
     -- hFK on the K-iso κ X : X ⟶ rep K (Q K X) gives F X = F (rep K (Q K X)).
+    intro X
     obtain ⟨e, _⟩ := hFK (QuotientByKernel.kappa K X)
       (Classical.choose_spec (QuotientByKernel.rel_rep K X))
     exact e.symm
-  · -- Uniqueness: any G' with G' (Q K X) = F X equals G.
-    intro G' ⟨_, hG'⟩
+  · -- Uniqueness (of the object map): any G' with G'.obj (Q K X) = F.obj X agrees with G on objects.
+    intro G' hG'
     funext d
-    -- d = Q K (rep K d) by rep_spec, so G' d = G' (Q K (rep K d)) = F (rep K d) = G d.
+    -- d = Q K (rep K d) by rep_spec, so G'.obj d = G'.obj (Q K (rep K d)) = F.obj (rep K d) = G.obj d.
     have hd : QuotientByKernel.Q K (QuotientByKernel.rep K d) = d :=
       QuotientByKernel.rep_spec K d
-    calc G' d
-        = G' (QuotientByKernel.Q K (QuotientByKernel.rep K d)) := by rw [hd]
-      _ = F (QuotientByKernel.rep K d) := hG' _
+    calc G'.obj d
+        = G'.obj (QuotientByKernel.Q K (QuotientByKernel.rep K d)) := by rw [hd]
+      _ = F.obj (QuotientByKernel.rep K d) := hG' _
 
 /-! ## §1.367 Factorization of equivalence functors via equivalence kernel
 
@@ -570,30 +573,30 @@ theorem quotient_universal_property (K : EquivalenceKernel 𝒞)
     need not satisfy (they are only surjective up to isomorphism).  The correct conclusion
     is `EquivalenceFunctor G`, matching the book. -/
 theorem equivalenceFunctor_factors_via_kernel
-    (F : 𝒞 → 𝒟) [hF : Functor F] (hEq : EquivalenceFunctor F) :
+    (F : Functor 𝒞 𝒟) (hEq : EquivalenceFunctor F) :
     let K := equivalenceKernel F hEq.1 hEq.2.1
     let Q := @QuotientByKernel.Q 𝒞 _ K
-    ∃ (G : QuotientByKernel.Obj K → 𝒟) (_ : Functor G),
-      (∀ X : 𝒞, G (Q X) = F X) ∧ EquivalenceFunctor G := by
+    ∃ (G : Functor (QuotientByKernel.Obj K) 𝒟),
+      (∀ X : 𝒞, G.obj (Q X) = F.obj X) ∧ EquivalenceFunctor G := by
   obtain ⟨embF, fullF, repF⟩ := hEq
   let K := equivalenceKernel F embF fullF
   -- Build G explicitly: G d = F (rep K d), G.map h = F.map h.
   -- This is the unique functor given by the universal property (§1.366), constructed directly.
-  let G : QuotientByKernel.Obj K → 𝒟 := fun d => F (QuotientByKernel.rep K d)
-  let hGFun : Functor G :=
-    ⟨fun h => hF.map h, fun d => hF.map_id _, fun f g => hF.map_comp f g⟩
+  let G : Functor (QuotientByKernel.Obj K) 𝒟 :=
+    ⟨fun d => F.obj (QuotientByKernel.rep K d), fun h => F.map h,
+      fun d => F.map_id _, fun f g => F.map_comp f g⟩
   -- Commutativity: G (Q K X) = F X, via F (rep K (Q K X)) = F X.
   -- equivalenceKernel maps X to rep(⟦X⟧) which is κ-related to X; F sends κ X to id,
   -- so F (rep K (Q K X)) = F X by injectivity + the K-iso witnessing their equality.
-  have hGQ : ∀ X : 𝒞, G (QuotientByKernel.Q K X) = F X := by
+  have hGQ : ∀ X : 𝒞, G.obj (QuotientByKernel.Q K X) = F.obj X := by
     intro X
     -- G (Q K X) = F (rep K (Q K X)).  The κ-iso κ X : X ⟶ rep(⟦X⟧) is a K-map.
-    -- K.mem (kappa K X) means ∃ e : F X = F (rep K (Q K X)), HEq (hF.map (kappa K X)) (Cat.id (F X)).
+    -- K.mem (kappa K X) means ∃ e : F X = F (rep K (Q K X)), HEq (F.map (kappa K X)) (Cat.id (F X)).
     obtain ⟨e, _⟩ := Classical.choose_spec (QuotientByKernel.rel_rep K X)
     exact e.symm
-  refine ⟨G, hGFun, hGQ, ?_, ?_, ?_⟩
+  refine ⟨G, hGQ, ?_, ?_, ?_⟩
   -- Step 3: G is an embedding.
-  -- let hGFun makes G.map definitionally equal to hF.map, so embF applies directly.
+  -- G.map is definitionally F.map, so embF applies directly.
   · intro D E h h' hGhh'
     exact embF h h' hGhh'
   -- Step 4: G is full: any k : F(rep D) ⟶ F(rep E) lifts via fullF.
@@ -619,20 +622,20 @@ theorem equivalenceFunctor_factors_via_kernel
 theorem equivalenceKernel_iff_kernel_of_functor
     (mem : {X Y : 𝒞} → (X ⟶ Y) → Prop) :
     (∃ K : EquivalenceKernel 𝒞, ∀ {X Y : 𝒞} (f : X ⟶ Y), K.mem f ↔ mem f) ↔
-    (∃ (𝒟 : Type u) (_ : Cat.{v} 𝒟) (Q : 𝒞 → 𝒟) (hQ : Functor Q),
-      EquivalenceFunctor Q ∧ Function.Surjective Q ∧
+    (∃ (𝒟 : Type u) (_ : Cat.{v} 𝒟) (Q : Functor 𝒞 𝒟),
+      EquivalenceFunctor Q ∧ Function.Surjective Q.obj ∧
       ∀ {X Y : 𝒞} (f : X ⟶ Y),
-        mem f ↔ ∃ _ : Q X = Q Y, HEq (hQ.map f) (Cat.id (Q X))) := by
+        mem f ↔ ∃ _ : Q.obj X = Q.obj Y, HEq (Q.map f) (Cat.id (Q.obj X))) := by
   constructor
   · -- forward: every equivalence kernel is the kernel of its quotient functor (§1.366).
     rintro ⟨K, hK⟩
-    obtain ⟨𝒟, instD, Q, hQ, heq, honto, hker⟩ := quotientByKernel_exists K
-    refine ⟨𝒟, instD, Q, hQ, heq, honto, ?_⟩
+    obtain ⟨𝒟, instD, Q, heq, honto, hker⟩ := quotientByKernel_exists K
+    refine ⟨𝒟, instD, Q, heq, honto, ?_⟩
     intro X Y f
     exact (hK f).symm.trans (hker f)
   · -- backward: the kernel of an onto equivalence functor is an equivalence kernel
     --   (its members are exactly the maps `Q` collapses), via `equivalenceKernel`.
-    rintro ⟨𝒟, instD, Q, hQ, ⟨emb, full, _⟩, _honto, hker⟩
+    rintro ⟨𝒟, instD, Q, ⟨emb, full, _⟩, _honto, hker⟩
     refine ⟨equivalenceKernel Q emb full, ?_⟩
     intro X Y f
     -- `equivalenceKernel`'s membership IS the `Q`-collapse condition, definitionally.
