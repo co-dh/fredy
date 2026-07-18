@@ -161,7 +161,8 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
 /-- The covariant hom-functor `Hom(i, -) : 𝒞 → Type v`, `f ↦ (h ↦ h ≫ f)` (§1.272). -/
 def homFunctor (i : 𝒞) : 𝒞 → Type v := fun A => (i ⟶ A)
 
-instance homFunctorFunctor (i : 𝒞) : Functor (homFunctor (𝒞 := 𝒞) i) where
+def homFunctorFunctor (i : 𝒞) : Functor 𝒞 (Type v) where
+  obj := homFunctor (𝒞 := 𝒞) i
   map f := fun h => h ≫ f
   map_id A := by funext h; exact Cat.comp_id h
   map_comp f g := by funext h; exact (Cat.assoc h f g).symm
