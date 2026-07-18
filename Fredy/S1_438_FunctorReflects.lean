@@ -35,7 +35,7 @@ namespace Freyd
 section FaithfulReflects
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
-variable {F : 𝒞 → 𝒟} [hF : Functor F]
+variable {F : Functor 𝒞 𝒟}
 
 /-- **§1.438**: A faithful functor (`Embedding`) reflects monics.
 
@@ -45,13 +45,13 @@ variable {F : 𝒞 → 𝒟} [hF : Functor F]
   PROOF: given `g ≫ m = h ≫ m`, functoriality gives `F(g) ≫ F(m) = F(h) ≫ F(m)`,
   the monic `F(m)` cancels to `F(g) = F(h)`, and `Embedding` gives `g = h`. -/
 theorem faithful_reflectsMono (hemb : Embedding F) {X Y : 𝒞} {m : X ⟶ Y}
-    (hm : Monic (hF.map m)) : Monic m := by
+    (hm : Monic (F.map m)) : Monic m := by
   intro W g h hgh
   apply hemb
   apply hm
-  calc hF.map g ≫ hF.map m = hF.map (g ≫ m) := (hF.map_comp g m).symm
-    _ = hF.map (h ≫ m)     := by rw [hgh]
-    _ = hF.map h ≫ hF.map m := hF.map_comp h m
+  calc F.map g ≫ F.map m = F.map (g ≫ m) := (F.map_comp g m).symm
+    _ = F.map (h ≫ m)     := by rw [hgh]
+    _ = F.map h ≫ F.map m := F.map_comp h m
 
 /-- `faithful_reflectsMono` rephrased as `ReflectsMono F`. -/
 theorem embedding_reflectsMono (hemb : Embedding F) : ReflectsMono F :=
