@@ -441,8 +441,8 @@ variable {A : Type u₁} {B : Type u₂}
     (maps go to maps, §2.51).  Built by explicit `@Functor.mk` — the `where` syntax would
     re-synthesize `Cat (MapObj _)` as the allegory `toCat` (the standard `MapObj` diamond). -/
 def mapRepFunctor :
-    @Functor (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B)) T.obj :=
-  @Functor.mk (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B)) T.obj
+    @Functor (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B)) :=
+  @Functor.mk (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B)) T.obj
     (fun {_X _Y} f => ⟨T.map f.val, T.preserves_map f.property⟩)
     (fun X => Subtype.ext (T.map_id X))
     (fun {_X _Y _Z} f g => Subtype.ext (T.map_comp f.val g.val))
@@ -450,7 +450,7 @@ def mapRepFunctor :
 /-- **§2.154**: `T'` preserves MONICS (`m≫m° = 1` is equational). -/
 theorem mapRep_pres_mono :
     @PreservesMono (MapObj A) (mapCat (𝒜 := A)) (MapObj B) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) := by
+      (mapRepFunctor T) := by
   intro X Y f hf
   have h := (mapMonic_iff (A := A) f.val f.property).mp hf
   show @Monic (MapObj B) (mapCat (𝒜 := B)) _ _ ⟨T.map f.val, T.preserves_map f.property⟩
@@ -460,7 +460,7 @@ theorem mapRep_pres_mono :
 /-- **§2.154**: `T'` preserves COVERS (`f°≫f = 1` is equational). -/
 theorem mapRep_pres_covers :
     @PreservesCovers (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) := by
+      (mapRepFunctor T) := by
   intro X Y f hf
   have h := (mapCover_iff (A := A) f).mp hf
   show @Cover (MapObj B) (mapCat (𝒜 := B)) _ _ ⟨T.map f.val, T.preserves_map f.property⟩
@@ -473,7 +473,7 @@ theorem mapRep_pres_covers :
     allegories preserve tabulations (§2.51). -/
 theorem mapRep_pres_pullback :
     @PreservesPullbacks (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) := by
+      (mapRepFunctor T) := by
   intro a b c f g cone hpb
   apply mapTabulates_isPullback
   have ht := T.preserves_tabulates (mapIsPullback_tabulates cone hpb)
@@ -484,7 +484,7 @@ theorem mapRep_pres_pullback :
     `dom f°`, an equational description). -/
 theorem mapRep_pres_image :
     @PreservesImages (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) (mapRep_pres_mono T) := by
+      (mapRepFunctor T) (mapRep_pres_mono T) := by
   intro a b f I hI
   apply mapIsImage_of_corOf
   show (T.map (@Subobject.arr (MapObj A) (mapCat (𝒜 := A)) b I).val)°
@@ -524,7 +524,7 @@ theorem mapProd_tabulates {A : Type u₁} [TabularUnitaryAllegory.{u₁, v} A] (
     comparison to the chosen product of `Map ℬ` is then an isomorphism. -/
 theorem mapRep_pres_prod (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)))) :
     @PreservesBinaryProducts (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) mapHasBinaryProducts mapHasBinaryProducts := by
+      (mapRepFunctor T) mapHasBinaryProducts mapHasBinaryProducts := by
   intro a b
   -- upstairs product legs and the unit maps.
   let ta := @HasTerminal.trm (MapObj A) (mapCat (𝒜 := A)) mapHasTerminal a
@@ -591,9 +591,9 @@ theorem mapRep_pres_prod (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := 
     allegories restricts to a REGULAR functor `Map 𝒜 → Map ℬ`. -/
 theorem mapRep_regular (hu : IsUnit (T.obj (UnitaryAllegory.unit_obj (𝒜 := A)))) :
     @RelFunctor.RegularFunctor (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-      T.obj (mapRepFunctor T) mapRegularCategory mapRegularCategory :=
+      (mapRepFunctor T) mapRegularCategory mapRegularCategory :=
   @RelFunctor.RegularFunctor.mk (MapObj A) (MapObj B) (mapCat (𝒜 := A)) (mapCat (𝒜 := B))
-    T.obj (mapRepFunctor T) mapRegularCategory mapRegularCategory
+    (mapRepFunctor T) mapRegularCategory mapRegularCategory
     (mapRep_pres_prod T hu) (mapRep_pres_pullback T) (mapRep_pres_covers T)
     (mapRep_pres_mono T) (mapRep_pres_image T)
 
@@ -631,33 +631,31 @@ theorem relIsUnit_of_terminal {D : Type u} [Cat.{u} D] [RegularCategory D]
 /-- `Rel(1_C) = 1_{Rel C}` on relation classes: the image of a span under the identity
     functor is the span itself (its pair is already monic). -/
 theorem relMap_of_id {C : Type u} [Cat.{u} C] [RegularCategory C]
-    [hI : @Functor C _ C _ (fun X => X)] (hm : ∀ {X Y : C} (f : X ⟶ Y), hI.map f = f)
-    (hid : @RelFunctor.RegularFunctor C C _ _ (fun X => X) hI _ _)
+    (hid : @RelFunctor.RegularFunctor C C _ _ (idFunctor (𝒞 := C)) _ _)
     {a b : C} (x : BinRelQuot (𝒞 := C) a b) : hid.relMap x = x := by
   refine Quotient.inductionOn x (fun R => ?_)
   show relClass (RelFunctor.relImageObj hid R) = relClass R
-  have hpair : pair (hI.map R.colA) (hI.map R.colB) = pair R.colA R.colB := by
-    rw [hm, hm]
+  have hpair : pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB) =
+      pair R.colA R.colB := rfl
   obtain ⟨e, _hcov, heA, heB⟩ := RelFunctor.relImageObj_cover hid R
-  rw [hm] at heA; rw [hm] at heB
   refine Quotient.sound ⟨?_, ?_⟩
   · -- image span ⊂ R : image minimality against the (monic) span of `R` itself.
     have hmono : Monic (pair R.colA R.colB) :=
       monic_pair_of_monicPair R.colA R.colB R.isMonicPair
     have hallow : Allows (Subobject.mk R.src (pair R.colA R.colB) hmono)
-        (pair (hI.map R.colA) (hI.map R.colB)) := by
-      rw [hpair]; exact ⟨Cat.id R.src, Cat.id_comp _⟩
+        (pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB)) := by
+      exact ⟨Cat.id R.src, Cat.id_comp _⟩
     obtain ⟨k, hk⟩ := image_min _ _ hallow
     refine relClass_mono ⟨⟨k, ?_, ?_⟩⟩
-    · show k ≫ R.colA = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ fst
+    · show k ≫ R.colA = (image (pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB))).arr ≫ fst
       calc k ≫ R.colA = k ≫ (pair R.colA R.colB ≫ fst) := by rw [fst_pair]
         _ = (k ≫ pair R.colA R.colB) ≫ fst := (Cat.assoc _ _ _).symm
-        _ = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ fst :=
+        _ = (image (pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB))).arr ≫ fst :=
               congrArg (· ≫ fst) hk
-    · show k ≫ R.colB = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ snd
+    · show k ≫ R.colB = (image (pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB))).arr ≫ snd
       calc k ≫ R.colB = k ≫ (pair R.colA R.colB ≫ snd) := by rw [snd_pair]
         _ = (k ≫ pair R.colA R.colB) ≫ snd := (Cat.assoc _ _ _).symm
-        _ = (image (pair (hI.map R.colA) (hI.map R.colB))).arr ≫ snd :=
+        _ = (image (pair ((idFunctor (𝒞 := C)).map R.colA) ((idFunctor (𝒞 := C)).map R.colB))).arr ≫ snd :=
               congrArg (· ≫ snd) hk
   · -- R ⊂ image span : the image-lift cover carries the legs.
     exact relClass_mono ⟨⟨e, heA, heB⟩⟩
@@ -667,11 +665,9 @@ theorem relMap_of_id {C : Type u} [Cat.{u} C] [RegularCategory C]
     `G` to a cover and precomposition with a cover does not change images. -/
 theorem relMap_of_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
     [RegularCategory C] [RegularCategory D] [RegularCategory E]
-    {F : C → D} {G : D → E} [hF : Functor F] [hG : Functor G]
-    [hGF : @Functor C _ E _ (fun X => G (F X))]
-    (hm : ∀ {X Y : C} (f : X ⟶ Y), hGF.map f = hG.map (hF.map f))
+    (F : Functor C D) (G : Functor D E)
     (hrF : RelFunctor.RegularFunctor F) (hrG : RelFunctor.RegularFunctor G)
-    (hrGF : @RelFunctor.RegularFunctor C E _ _ (fun X => G (F X)) hGF _ _)
+    (hrGF : @RelFunctor.RegularFunctor C E _ _ (compFunctor F G) _ _)
     {a b : C} (x : BinRelQuot (𝒞 := C) a b) :
     hrGF.relMap x = hrG.relMap (hrF.relMap x) := by
   refine Quotient.inductionOn x (fun R => ?_)
@@ -679,24 +675,25 @@ theorem relMap_of_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
       = relClass (RelFunctor.relImageObj hrG (RelFunctor.relImageObj hrF R))
   -- the F-image cover e and the factorization of the G∘F-span through it.
   obtain ⟨e, hcov, heA, heB⟩ := RelFunctor.relImageObj_cover hrF R
-  have hfac : pair (hGF.map R.colA) (hGF.map R.colB)
-      = hG.map e ≫ pair (hG.map (RelFunctor.relImageObj hrF R).colA)
-          (hG.map (RelFunctor.relImageObj hrF R).colB) := by
-    rw [hm, hm]
+  have hfac : pair ((compFunctor F G).map R.colA) ((compFunctor F G).map R.colB)
+      = G.map e ≫ pair (G.map (RelFunctor.relImageObj hrF R).colA)
+          (G.map (RelFunctor.relImageObj hrF R).colB) := by
     refine (pair_uniq _ _ _ ?_ ?_).symm
-    · rw [Cat.assoc, fst_pair, ← hG.map_comp, heA]
-    · rw [Cat.assoc, snd_pair, ← hG.map_comp, heB]
-  have hGe : Cover (hG.map e) := hrG.pres_covers e hcov
-  have himg := image_cover_comp (hG.map e)
-    (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
-      (hG.map (RelFunctor.relImageObj hrF R).colB)) hGe
-  have h1 : (image (pair (hGF.map R.colA) (hGF.map R.colB))).le
-      (image (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
-        (hG.map (RelFunctor.relImageObj hrF R).colB))) := by
+    · rw [Cat.assoc, fst_pair, ← G.map_comp, heA]
+      rfl
+    · rw [Cat.assoc, snd_pair, ← G.map_comp, heB]
+      rfl
+  have hGe : Cover (G.map e) := hrG.pres_covers e hcov
+  have himg := image_cover_comp (G.map e)
+    (pair (G.map (RelFunctor.relImageObj hrF R).colA)
+      (G.map (RelFunctor.relImageObj hrF R).colB)) hGe
+  have h1 : (image (pair ((compFunctor F G).map R.colA) ((compFunctor F G).map R.colB))).le
+      (image (pair (G.map (RelFunctor.relImageObj hrF R).colA)
+        (G.map (RelFunctor.relImageObj hrF R).colB))) := by
     rw [hfac]; exact himg.1
-  have h2 : (image (pair (hG.map (RelFunctor.relImageObj hrF R).colA)
-        (hG.map (RelFunctor.relImageObj hrF R).colB))).le
-      (image (pair (hGF.map R.colA) (hGF.map R.colB))) := by
+  have h2 : (image (pair (G.map (RelFunctor.relImageObj hrF R).colA)
+        (G.map (RelFunctor.relImageObj hrF R).colB))).le
+      (image (pair ((compFunctor F G).map R.colA) ((compFunctor F G).map R.colB))) := by
     rw [hfac]; exact himg.2
   refine Quotient.sound ⟨?_, ?_⟩
   · obtain ⟨k, hk⟩ := h1
@@ -758,11 +755,11 @@ theorem isTerm_iso {D : Type u₁} [Cat.{v} D] {X Y : D} (hX : @IsTerm D _ X)
 
 /-- Functors carry isomorphisms to isomorphisms. -/
 theorem functor_isIso {C : Type u₁} {D : Type u₂} [Cat.{v} C] [Cat.{v} D]
-    {F : C → D} [hF : Functor F] {X Y : C} {e : X ⟶ Y} (he : IsIso e) :
-    IsIso (hF.map e) := by
+    {F : Functor C D} {X Y : C} {e : X ⟶ Y} (he : IsIso e) :
+    IsIso (F.map e) := by
   obtain ⟨e', h1, h2⟩ := he
-  exact ⟨hF.map e', by rw [← hF.map_comp, h1, hF.map_id],
-    by rw [← hF.map_comp, h2, hF.map_id]⟩
+  exact ⟨F.map e', by rw [← F.map_comp, h1, F.map_id],
+    by rw [← F.map_comp, h2, F.map_id]⟩
 
 /-- The chosen terminator satisfies `IsTerm`. -/
 theorem isTerm_one {D : Type u₁} [Cat.{v} D] [HasTerminal D] :
@@ -793,15 +790,16 @@ structure RegRep (C D : SmallRegCat.{u}) : Type u where
   map_id : ∀ X : C.carrier, map (Cat.id X) = Cat.id (obj X)
   map_comp : ∀ {X Y Z : C.carrier} (f : X ⟶ Y) (g : Y ⟶ Z),
     map (f ≫ g) = map f ≫ map g
-  regular : @RelFunctor.RegularFunctor C.carrier D.carrier C.cat D.cat obj
-    (@Functor.mk C.carrier C.cat D.carrier D.cat obj @map map_id @map_comp) C.reg D.reg
+  regular : @RelFunctor.RegularFunctor C.carrier D.carrier C.cat D.cat
+    ({ obj := obj, map := @map, map_id := map_id, map_comp := @map_comp } :
+      @Functor C.carrier D.carrier C.cat D.cat) C.reg D.reg
   term : @IsTerm D.carrier D.cat (obj (Freyd.one (𝒞 := C.carrier)))
 
 /-- The bundled functor of a `RegRep`. -/
 def RegRep.functor {C D : SmallRegCat.{u}} (F : RegRep C D) :
-    @Functor C.carrier C.cat D.carrier D.cat F.obj :=
-  @Functor.mk C.carrier C.cat D.carrier D.cat F.obj (@RegRep.map _ _ F)
-    F.map_id (@RegRep.map_comp _ _ F)
+    @Functor C.carrier D.carrier C.cat D.cat :=
+  { obj := F.obj, map := @RegRep.map _ _ F, map_id := F.map_id,
+    map_comp := @RegRep.map_comp _ _ F }
 
 /-- Extensionality for `RegRep` (the two `Prop` fields are proof-irrelevant). -/
 theorem RegRep.ext {C D : SmallRegCat.{u}} {F G : RegRep C D} (hobj : F.obj = G.obj)
@@ -854,12 +852,12 @@ instance : Cat.{u} SmallRegCat.{u} where
       map_id := fun X => by rw [F.map_id, G.map_id]
       map_comp := fun f g => by rw [F.map_comp, G.map_comp]
       regular := @regularFunctor_comp C.carrier D.carrier E.carrier C.cat D.cat E.cat
-        C.reg D.reg E.reg F.obj G.obj F.functor G.functor F.regular G.regular
+        C.reg D.reg E.reg F.functor G.functor F.regular G.regular
       term := by
         obtain ⟨e, he⟩ := isTerm_iso (isTerm_one (D := D.carrier)) F.term
         exact isTerm_transfer G.term
-          (@Functor.map _ D.cat _ E.cat G.obj G.functor _ _ e)
-          (@functor_isIso _ _ D.cat E.cat G.obj G.functor _ _ e he) }
+          (G.functor.map e)
+          (@functor_isIso _ _ D.cat E.cat G.functor _ _ e he) }
   id_comp _ := rfl
   comp_id _ := rfl
   assoc _ _ _ := rfl
@@ -894,7 +892,7 @@ instance relTUA (𝒞 : Type u) [Cat.{u} 𝒞] [RegularCategory 𝒞] :
 noncomputable def RelF.onMap {C D : SmallRegCat.{u}} (F : RegRep C D) :
     UnitaryRep (RelF C) (RelF D) where
   toFun := @RelFunctor.RegularFunctor.relAllegoryHom C.carrier D.carrier C.cat D.cat
-    F.obj F.functor C.reg D.reg F.regular
+    F.functor C.reg D.reg F.regular
   unit := relIsUnit_of_terminal F.term
 
 /-- **§2.154**: the functor `Map : SmallTabAlleg → SmallRegCat` on objects (`Map 𝒜` is a
@@ -920,7 +918,7 @@ theorem RelF.onMap_id (C : SmallRegCat.{u}) :
   apply allegFunctor_ext
   · rfl
   · intro a b x
-    exact heq_of_eq (relMap_of_id (fun _ => rfl) _ x)
+    exact heq_of_eq (relMap_of_id _ x)
 
 /-- `RelF` is functorial: composition. -/
 theorem RelF.onMap_comp {C D E : SmallRegCat.{u}} (F : RegRep C D) (G : RegRep D E) :
@@ -932,19 +930,20 @@ theorem RelF.onMap_comp {C D E : SmallRegCat.{u}} (F : RegRep C D) (G : RegRep D
   · rfl
   · intro a b x
     exact heq_of_eq (@relMap_of_comp C.carrier D.carrier E.carrier C.cat D.cat E.cat
-      C.reg D.reg E.reg F.obj G.obj F.functor G.functor
-      (RegRep.functor (@Cat.comp SmallRegCat.{u} _ C D E F G)) (fun _ => rfl)
+      C.reg D.reg E.reg F.functor G.functor
       F.regular G.regular
       (RegRep.regular (@Cat.comp SmallRegCat.{u} _ C D E F G)) a.carrier b.carrier x)
 
 /-- **§2.154**: `Rel` as a functor `SmallRegCat → SmallTabAlleg`. -/
-noncomputable instance relFFunctor : Functor RelF.{u} where
+noncomputable def relFFunctor : Functor SmallRegCat SmallTabAlleg where
+  obj := RelF
   map := RelF.onMap
   map_id := RelF.onMap_id
   map_comp := RelF.onMap_comp
 
 /-- `MapF` is functorial — definitionally (subtype eta on the hom parts). -/
-noncomputable instance mapFFunctor : Functor MapF.{u} where
+noncomputable def mapFFunctor : Functor SmallTabAlleg SmallRegCat where
+  obj := MapF
   map := MapF.onMap
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -1095,9 +1094,8 @@ theorem eInv_embedRel {a b : C.carrier} (f : a ⟶ b) :
 
 /-- The graph embedding `C → Map(Rel C)` as a (pinned) functor. -/
 noncomputable def eFunctor (C : SmallRegCat.{u}) :
-    @Functor C.carrier C.cat (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier))
-      (fun a => (⟨a⟩ : RelObj C.carrier)) :=
-  @Functor.mk C.carrier C.cat (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier))
+    @Functor C.carrier (MapObj (RelObj C.carrier)) C.cat (mapCat (𝒜 := RelObj C.carrier)) :=
+  @Functor.mk C.carrier (MapObj (RelObj C.carrier)) C.cat (mapCat (𝒜 := RelObj C.carrier))
     (fun a => (⟨a⟩ : RelObj C.carrier))
     (fun {_a _b} f => Freyd.embedRel f)
     (fun a => Freyd.embedRel_id a)
@@ -1106,7 +1104,7 @@ noncomputable def eFunctor (C : SmallRegCat.{u}) :
 /-- `embedRel` preserves monos (full + faithful + bijective on objects). -/
 theorem e_pres_mono (C : SmallRegCat.{u}) :
     @PreservesMono C.carrier C.cat (MapObj (RelObj C.carrier))
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C) := by
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C) := by
   intro X Y f hf W u v huv
   obtain ⟨u', hu'⟩ := (Freyd.embedRel_cat_iso (𝒞 := C.carrier)).2 u
   obtain ⟨v', hv'⟩ := (Freyd.embedRel_cat_iso (𝒞 := C.carrier)).2 v
@@ -1119,7 +1117,7 @@ theorem e_pres_mono (C : SmallRegCat.{u}) :
 /-- `embedRel` preserves covers. -/
 theorem e_pres_covers (C : SmallRegCat.{u}) :
     @PreservesCovers C.carrier (MapObj (RelObj C.carrier)) C.cat
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C) := by
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C) := by
   intro X Y f hf Q m g hm hgm
   obtain ⟨m', hm'⟩ := (Freyd.embedRel_cat_iso (𝒞 := C.carrier)).2 m
   obtain ⟨g', hg'⟩ := (Freyd.embedRel_cat_iso (𝒞 := C.carrier)).2 g
@@ -1132,12 +1130,14 @@ theorem e_pres_covers (C : SmallRegCat.{u}) :
   rw [hm']
   exact ⟨Freyd.embedRel i,
     by rw [← Freyd.embedRel_comp, hi1, Freyd.embedRel_id],
-    by rw [← Freyd.embedRel_comp, hi2, Freyd.embedRel_id]⟩
+    by
+      rw [← Freyd.embedRel_comp, hi2, Freyd.embedRel_id]
+      rfl⟩
 
 /-- `embedRel` preserves pullbacks. -/
 theorem e_pres_pullback (C : SmallRegCat.{u}) :
     @PreservesPullbacks C.carrier (MapObj (RelObj C.carrier)) C.cat
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C) := by
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C) := by
   intro A B Z f g cone hpb d
   obtain ⟨p₁', hp₁⟩ := (Freyd.embedRel_cat_iso (𝒞 := C.carrier)).2
     (@Cone.π₁ _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ _ _ d)
@@ -1170,7 +1170,7 @@ theorem e_pres_pullback (C : SmallRegCat.{u}) :
 /-- `embedRel` preserves images. -/
 theorem e_pres_image (C : SmallRegCat.{u}) :
     @PreservesImages C.carrier (MapObj (RelObj C.carrier)) C.cat
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C)
       (e_pres_mono C) := by
   intro A B f I hI
   constructor
@@ -1201,7 +1201,7 @@ theorem e_pres_image (C : SmallRegCat.{u}) :
     `Map(Rel C)`). -/
 theorem e_pres_prod (C : SmallRegCat.{u}) :
     @PreservesBinaryProducts C.carrier (MapObj (RelObj C.carrier)) C.cat
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C)
       (RegularCategory.toHasBinaryProducts (𝒞 := C.carrier))
       Freyd.Alg.mapHasBinaryProducts := by
   intro A B
@@ -1238,7 +1238,7 @@ noncomputable def unitRep (C : SmallRegCat.{u}) : RegRep C (MapF (RelF C)) where
   map_comp := fun f g => Freyd.embedRel_comp f g
   regular :=
     @RelFunctor.RegularFunctor.mk C.carrier (MapObj (RelObj C.carrier)) C.cat
-      (mapCat (𝒜 := RelObj C.carrier)) (fun a => (⟨a⟩ : RelObj C.carrier)) (eFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) (eFunctor C)
       C.reg Freyd.Alg.mapRegularCategory
       (e_pres_prod C) (e_pres_pullback C) (e_pres_covers C) (e_pres_mono C) (e_pres_image C)
   term := fun Y =>
@@ -1248,9 +1248,8 @@ noncomputable def unitRep (C : SmallRegCat.{u}) : RegRep C (MapF (RelF C)) where
 
 /-- The `Map(Rel C) → C` inverse of the graph embedding, as a (pinned) functor. -/
 noncomputable def eInvFunctor (C : SmallRegCat.{u}) :
-    @Functor (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) C.carrier C.cat
-      (fun X => X.carrier) :=
-  @Functor.mk (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier)) C.carrier C.cat
+    @Functor (MapObj (RelObj C.carrier)) C.carrier (mapCat (𝒜 := RelObj C.carrier)) C.cat :=
+  @Functor.mk (MapObj (RelObj C.carrier)) C.carrier (mapCat (𝒜 := RelObj C.carrier)) C.cat
     (fun X => X.carrier)
     (fun {_X _Y} m => eInv m)
     -- the `have h` restates choose_spec with the `mapCat` instance pinned, so `rw` unifies
@@ -1269,14 +1268,14 @@ noncomputable def eInvFunctor (C : SmallRegCat.{u}) :
 /-- `eInv` preserves monos. -/
 theorem eInv_pres_mono (C : SmallRegCat.{u}) :
     @PreservesMono (MapObj (RelObj C.carrier)) (mapCat (𝒜 := RelObj C.carrier))
-      C.carrier C.cat (fun X => X.carrier) (eInvFunctor C) := by
+      C.carrier C.cat (eInvFunctor C) := by
   intro X Y m hm W u v huv
   have h1 : @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel u) m
       = @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel v) m := by
     have h := congrArg Freyd.embedRel huv
     rw [Freyd.embedRel_comp, Freyd.embedRel_comp,
-      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
-        (fun X => X.carrier) (eInvFunctor C) _ _ m) = m
+      show Freyd.embedRel (@Functor.map _ _ (mapCat (𝒜 := RelObj C.carrier)) C.cat
+        (eInvFunctor C) _ _ m) = m
         from (Classical.choose_spec (eFull m)).symm] at h
     exact h
   exact Freyd.embedRel_faithful (hm _ _ h1)
@@ -1284,7 +1283,7 @@ theorem eInv_pres_mono (C : SmallRegCat.{u}) :
 /-- `eInv` preserves covers. -/
 theorem eInv_pres_covers (C : SmallRegCat.{u}) :
     @PreservesCovers (MapObj (RelObj C.carrier)) C.carrier
-      (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C) := by
+      (mapCat (𝒜 := RelObj C.carrier)) C.cat (eInvFunctor C) := by
   intro X Y m hcov D n g hn hgn
   have hfac : @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _
       (Freyd.embedRel g) (Freyd.embedRel n) = m := by
@@ -1307,7 +1306,7 @@ theorem eInv_pres_covers (C : SmallRegCat.{u}) :
 /-- `eInv` preserves pullbacks. -/
 theorem eInv_pres_pullback (C : SmallRegCat.{u}) :
     @PreservesPullbacks (MapObj (RelObj C.carrier)) C.carrier
-      (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C) := by
+      (mapCat (𝒜 := RelObj C.carrier)) C.cat (eInvFunctor C) := by
   intro A B Z f g cone hpb d
   let cπ₁ := @Cone.π₁ _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ f g cone
   let cπ₂ := @Cone.π₂ _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ f g cone
@@ -1316,11 +1315,11 @@ theorem eInv_pres_pullback (C : SmallRegCat.{u}) :
       = @Cat.comp _ (mapCat (𝒜 := RelObj C.carrier)) _ _ _ (Freyd.embedRel d.π₂) g := by
     have h := congrArg Freyd.embedRel d.w
     rw [Freyd.embedRel_comp, Freyd.embedRel_comp,
-      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
-        (fun X => X.carrier) (eInvFunctor C) _ _ f) = f
+      show Freyd.embedRel (@Functor.map _ _ (mapCat (𝒜 := RelObj C.carrier)) C.cat
+        (eInvFunctor C) _ _ f) = f
         from (Classical.choose_spec (eFull f)).symm,
-      show Freyd.embedRel (@Functor.map _ (mapCat (𝒜 := RelObj C.carrier)) _ C.cat
-        (fun X => X.carrier) (eInvFunctor C) _ _ g) = g
+      show Freyd.embedRel (@Functor.map _ _ (mapCat (𝒜 := RelObj C.carrier)) C.cat
+        (eInvFunctor C) _ _ g) = g
         from (Classical.choose_spec (eFull g)).symm] at h
     exact h
   obtain ⟨w, ⟨hw1, hw2⟩, wuniq⟩ := hpb
@@ -1361,7 +1360,7 @@ theorem eInv_pres_pullback (C : SmallRegCat.{u}) :
 /-- `eInv` preserves images. -/
 theorem eInv_pres_image (C : SmallRegCat.{u}) :
     @PreservesImages (MapObj (RelObj C.carrier)) C.carrier
-      (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) C.cat (eInvFunctor C)
       (eInv_pres_mono C) := by
   intro A B f I hI
   let iarr := @Subobject.arr _ (mapCat (𝒜 := RelObj C.carrier)) B I
@@ -1396,7 +1395,7 @@ theorem eInv_pres_image (C : SmallRegCat.{u}) :
 /-- `eInv` preserves binary products. -/
 theorem eInv_pres_prod (C : SmallRegCat.{u}) :
     @PreservesBinaryProducts (MapObj (RelObj C.carrier)) C.carrier
-      (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) C.cat (eInvFunctor C)
       Freyd.Alg.mapHasBinaryProducts
       (RegularCategory.toHasBinaryProducts (𝒞 := C.carrier)) := by
   intro A B
@@ -1472,7 +1471,7 @@ noncomputable def unitInvRep (C : SmallRegCat.{u}) : RegRep (MapF (RelF C)) C wh
         rw [h, Freyd.embedRel_comp, h, h])
   regular :=
     @RelFunctor.RegularFunctor.mk (MapObj (RelObj C.carrier)) C.carrier
-      (mapCat (𝒜 := RelObj C.carrier)) C.cat (fun X => X.carrier) (eInvFunctor C)
+      (mapCat (𝒜 := RelObj C.carrier)) C.cat (eInvFunctor C)
       Freyd.Alg.mapRegularCategory C.reg
       (eInv_pres_prod C) (eInv_pres_pullback C) (eInv_pres_covers C)
       (eInv_pres_mono C) (eInv_pres_image C)
@@ -1513,13 +1512,13 @@ end UnitIso
 
 /-- `Rel(F)` sends graphs to graphs: `Rel(F)[graph f] = [graph (F f)]` (§2.154). -/
 theorem relMap_graph {C D : SmallRegCat.{u}} (F : RegRep C D) {a b : C.carrier} (f : a ⟶ b) :
-    @RelFunctor.RegularFunctor.relMap C.carrier D.carrier C.cat D.cat F.obj F.functor
+    @RelFunctor.RegularFunctor.relMap C.carrier D.carrier C.cat D.cat F.functor
         C.reg D.reg F.regular a b (relClass (Freyd.graph f))
       = relClass (Freyd.graph (F.map f)) := by
-  let I := @RelFunctor.relImageObj C.carrier D.carrier C.cat D.cat F.obj
+  let I := @RelFunctor.relImageObj C.carrier D.carrier C.cat D.cat
     F.functor C.reg D.reg F.regular a b (Freyd.graph f)
   obtain ⟨e, hcov, heA, heB⟩ := @RelFunctor.relImageObj_cover C.carrier D.carrier C.cat D.cat
-    F.obj F.functor C.reg D.reg F.regular a b (Freyd.graph f)
+    F.functor C.reg D.reg F.regular a b (Freyd.graph f)
   have heA0 : e ≫ I.colA = F.map (Cat.id a) := heA
   have heB0 : e ≫ I.colB = F.map f := heB
   show relClass I = relClass (Freyd.graph (F.map f))
@@ -1594,16 +1593,16 @@ theorem relOf_relImage {𝒜 ℬ : SmallTabAlleg.{u}} (T : UnitaryRep 𝒜 ℬ)
     {a b : MapObj 𝒜.carrier}
     (P : @BinRel (MapObj 𝒜.carrier) (mapCat (𝒜 := 𝒜.carrier)) a b) :
     Freyd.Alg.relOf (@RelFunctor.relImageObj (MapObj 𝒜.carrier) (MapObj ℬ.carrier)
-        (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+        (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier))
         (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
         (mapRep_regular T.toFun T.unit) a b P)
       = T.toFun.map (Freyd.Alg.relOf P) := by
   let I := @RelFunctor.relImageObj (MapObj 𝒜.carrier) (MapObj ℬ.carrier)
-    (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+    (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier))
     (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
     (mapRep_regular T.toFun T.unit) a b P
   obtain ⟨e, hcov, heA, heB⟩ := @RelFunctor.relImageObj_cover (MapObj 𝒜.carrier)
-    (MapObj ℬ.carrier) (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier)) T.toFun.obj
+    (MapObj ℬ.carrier) (mapCat (𝒜 := 𝒜.carrier)) (mapCat (𝒜 := ℬ.carrier))
     (mapRepFunctor T.toFun) Freyd.Alg.mapRegularCategory Freyd.Alg.mapRegularCategory
     (mapRep_regular T.toFun T.unit) a b P
   let iA := @BinRel.colA (MapObj ℬ.carrier) (mapCat (𝒜 := ℬ.carrier)) _ _ I
@@ -1641,7 +1640,7 @@ theorem counit_natural {𝒜 ℬ : SmallTabAlleg.{u}} (T : UnitaryRep 𝒜 ℬ) 
 /-- **§2.154, unit half**: `Map ∘ Rel` is naturally isomorphic to the identity of the
     category of small regular categories. -/
 noncomputable def unitNatIso :
-    NatIso (MapF.{u} ∘ RelF.{u}) (fun C : SmallRegCat.{u} => C) where
+    NatIso (compFunctor relFFunctor mapFFunctor) idFunctor where
   nat :=
     { app := fun C => unitInvRep C
       naturality := fun {_C _D} F => unitInvRep_natural F }
@@ -1650,7 +1649,7 @@ noncomputable def unitNatIso :
 /-- **§2.154, counit half**: `Rel ∘ Map` is naturally isomorphic to the identity of the
     category of small unitary tabular allegories. -/
 noncomputable def counitNatIso :
-    NatIso (RelF.{u} ∘ MapF.{u}) (fun 𝒜 : SmallTabAlleg.{u} => 𝒜) where
+    NatIso (compFunctor mapFFunctor relFFunctor) idFunctor where
   nat :=
     { app := fun 𝒜 => counit 𝒜
       naturality := fun {_𝒜 _ℬ} T => counit_natural T }
@@ -1667,7 +1666,7 @@ noncomputable def counitNatIso :
     whose object part is the identity up to the `RelObj` wrapper — Freyd's "isomorphic"
     modulo the change of carrier TYPE that Lean cannot quotient away. -/
 noncomputable def smallRegCat_equiv_smallTabAlleg :
-    StrongEquivalence RelF.{u} MapF.{u} where
+    StrongEquivalence relFFunctor mapFFunctor where
   unit := ⟨unitNatIso⟩
   counit := ⟨counitNatIso⟩
 
