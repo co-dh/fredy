@@ -119,7 +119,8 @@ theorem inflHom_eq (s t : Infl 𝒞) : (s ⟶ t) = (listProd (𝒞 := 𝒞) s �
     (a morphism of `A′` already IS a `𝒞`-arrow between the products). -/
 def inflForgetObj (s : Infl 𝒞) : 𝒞 := listProd s
 
-instance inflForget : Functor (inflForgetObj : Infl 𝒞 → 𝒞) where
+def inflForget : Functor (Infl 𝒞) 𝒞 where
+  obj := inflForgetObj
   map {s t} f := f
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -141,7 +142,8 @@ theorem listProd_singleton (A : 𝒞) :
     `[A] ⟶ [A']` is `f × 1` (`A×1 ⟶ A'×1`), i.e. `pair (fst ≫ f) snd`.  (This is the §1.544
     "product with `1`" embedding `prodRight 1` of `S1_54`; inlined here so that `Inflation` sits
     UPSTREAM of `Capitalization` — `S1_54` imports `Capitalization`, which would cycle.) -/
-instance inflFunctor : Functor (infl : 𝒞 → Infl 𝒞) where
+def inflFunctor : Functor 𝒞 (Infl 𝒞) where
+  obj := infl
   map {A A'} f := pair (fst ≫ f) snd
   map_id A := by
     show pair (fst ≫ Cat.id A) snd = Cat.id (prod A HasTerminal.one)
@@ -355,8 +357,9 @@ def appendOverHom (B : 𝒞) {s t : Infl 𝒞} (f : s ⟶ t) :
     `A → A/B` on the inflation *strictly* (not up to iso): the product of `A′` is concatenation,
     so `appendObj`/`appendOverHom` are definitional list operations and the functor laws are the
     strict `appendMap_id`/`appendMap_comp`. -/
-instance appendFunctor (B : 𝒞) :
-    @Functor (Infl 𝒞) inflationCat (Over (B := infl B)) (overCat (infl B)) (appendObj B) where
+def appendFunctor (B : 𝒞) :
+    @Functor (Infl 𝒞) (Over (B := infl B)) inflationCat (overCat (infl B)) where
+  obj := appendObj B
   map {s t} f := appendOverHom B f
   map_id s := OverHom.ext (by
     show appendMap B (Cat.id (listProd s)) = Cat.id (listProd (s ++ [B]))
@@ -1068,9 +1071,10 @@ def sliceAppendMap (B : 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)} (g : OverHom
 
 /-- **The single-factor slice base-change is a STRICT functor `A′/V → A′/(V++[B])`.**  Object map
     `sliceAppendObj B`, morphism map `sliceAppendMap B`; laws from `appendMap_id`/`appendMap_comp`. -/
-instance sliceAppendFunctor (B : 𝒞) (V : Infl 𝒞) :
-    @Functor (Over (B := V)) (overCat V) (Over (B := (V ++ [B] : List 𝒞)))
-      (overCat (V ++ [B] : List 𝒞)) (sliceAppendObj B) where
+def sliceAppendFunctor (B : 𝒞) (V : Infl 𝒞) :
+    @Functor (Over (B := V)) (Over (B := (V ++ [B] : List 𝒞))) (overCat V)
+      (overCat (V ++ [B] : List 𝒞)) where
+  obj := sliceAppendObj B
   map {X Y} g := sliceAppendMap B g
   map_id X := OverHom.ext (by
     show appendMap B (Cat.id (listProd X.dom)) = Cat.id (listProd (X.dom ++ [B]))
@@ -1104,9 +1108,10 @@ def sliceCatMap (d : List 𝒞) {V : Infl 𝒞} {X Y : Over (B := V)} (g : OverH
 
 /-- **The whole-suffix slice base-change is a STRICT functor `A′/V → A′/(V++d)`.**  The §1.547 inner
     directed transition realized by concatenation; laws from `catMap_id`/`catMap_comp`.  Sorry-free. -/
-instance sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
-    @Functor (Over (B := V)) (overCat V) (Over (B := (V ++ d : List 𝒞)))
-      (overCat (V ++ d : List 𝒞)) (sliceCatObj d) where
+def sliceCatFunctor (d : List 𝒞) (V : Infl 𝒞) :
+    @Functor (Over (B := V)) (Over (B := (V ++ d : List 𝒞))) (overCat V)
+      (overCat (V ++ d : List 𝒞)) where
+  obj := sliceCatObj d
   map {X Y} g := sliceCatMap d g
   map_id X := OverHom.ext (by
     show catMap d (Cat.id (listProd X.dom)) = Cat.id (listProd (X.dom ++ d))
@@ -1626,9 +1631,14 @@ def PrefixChain.toOrdChain (P : PrefixChain 𝒞) : OrdChain (uliftNatDirected.{
     original functor — a definitional repackaging.)  Used to transport `sliceCatFunctor d` (a functor
     `A′/V → A′/(V++d)`, source `Over V`, base object `V++d`) along `V++d = U` to land in `A′/U`. -/
 def transportSliceFunctor {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ] {B B' : ℰ} (e : B = B')
-    {G : 𝒟 → Over B} (FG : @Functor 𝒟 _ (Over B) (overCat B) G) :
-    @Functor 𝒟 _ (Over B') (overCat B') (fun X => e ▸ G X) := by
-  subst e; exact FG
+    (FG : @Functor 𝒟 (Over B) _ (overCat B)) :
+    @Functor 𝒟 (Over B') _ (overCat B') where
+  -- object/morphism actions given POINTWISE (`e ▸ …`) so `.obj` is syntactically `e ▸ FG.obj X`,
+  -- matching `innerSliceTr`'s `prefixSuffix_eq ▸ sliceCatObj` (needed for the `CatSystem` `Fmap` fields).
+  obj X := e ▸ FG.obj X
+  map {X Y} g := by subst e; exact FG.map g
+  map_id X := by subst e; exact FG.map_id X
+  map_comp {X Y Z} f g := by subst e; exact FG.map_comp f g
 
 /-- **GENERIC** per-transition functor of the chain system over ANY directed index: for an `OrdChain D O`
     and `hij : D.le i j`, `innerSliceTr (O.mono hij) : A′/(chain i) → A′/(chain j)` is a functor —
@@ -1637,12 +1647,10 @@ def transportSliceFunctor {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u}
     specialization. -/
 noncomputable def ordChainSliceFunctor {ι : Type u} {D : Colim.Directed ι} (O : OrdChain D 𝒞)
     {i j : ι} (hij : D.le i j) :
-    @Functor (innerSliceObj (𝒞 := 𝒞) (O.chain i)) (innerSliceCat (O.chain i))
-      (innerSliceObj (𝒞 := 𝒞) (O.chain j)) (innerSliceCat (O.chain j))
-      (innerSliceTr (O.mono hij)) :=
+    @Functor (innerSliceObj (𝒞 := 𝒞) (O.chain i)) (innerSliceObj (𝒞 := 𝒞) (O.chain j))
+      (innerSliceCat (O.chain i)) (innerSliceCat (O.chain j)) :=
   transportSliceFunctor (𝒟 := Over (B := (O.chain i : Infl 𝒞)))
     (B := O.chain i ++ prefixSuffix (O.chain i) (O.chain j))
-    (G := sliceCatObj (prefixSuffix (O.chain i) (O.chain j)))
     (prefixSuffix_eq (O.mono hij))
     (sliceCatFunctor (prefixSuffix (O.chain i) (O.chain j)) (O.chain i))
 
@@ -1658,7 +1666,9 @@ noncomputable def ordChainSliceSystem {ι : Type u} {D : Colim.Directed ι} (O :
   A i := innerSliceObj (𝒞 := 𝒞) (O.chain i)
   catA i := innerSliceCat (O.chain i)
   F {i j} hij X := innerSliceTr (O.mono hij) X
-  functF {i j} hij := ordChainSliceFunctor O hij
+  Fmap {i j} hij := (ordChainSliceFunctor O hij).map
+  Fmap_id {i j} hij := (ordChainSliceFunctor O hij).map_id
+  Fmap_comp {i j} hij := (ordChainSliceFunctor O hij).map_comp
   F_refl {i} X := by
     show innerSliceTr (O.mono (D.refl i)) X = X
     exact innerSliceTr_refl X
@@ -1670,9 +1680,8 @@ noncomputable def ordChainSliceSystem {ι : Type u} {D : Colim.Directed ι} (O :
 /-- The per-transition functor of the ℕ-chain system — the `uliftNatDirected` specialization of the
     generic `ordChainSliceFunctor`. -/
 noncomputable def chainSliceFunctor (P : PrefixChain 𝒞) {i j : Nat} (hij : i ≤ j) :
-    @Functor (innerSliceObj (𝒞 := 𝒞) (P.chain i)) (innerSliceCat (P.chain i))
-      (innerSliceObj (𝒞 := 𝒞) (P.chain j)) (innerSliceCat (P.chain j))
-      (innerSliceTr (P.prefix hij)) :=
+    @Functor (innerSliceObj (𝒞 := 𝒞) (P.chain i)) (innerSliceObj (𝒞 := 𝒞) (P.chain j))
+      (innerSliceCat (P.chain i)) (innerSliceCat (P.chain j)) :=
   ordChainSliceFunctor P.toOrdChain (i := ⟨i⟩) (j := ⟨j⟩) hij
 
 /-- **§1.547 (option (b)) — the DIRECTED strict `CatSystem` of inflation slices along an ℕ-prefix-chain.**
@@ -1698,8 +1707,8 @@ noncomputable def chainSliceSystem (P : PrefixChain 𝒞) :
     original `FG.map g` (the transport only re-types the base; the underlying arrow is unchanged).
     `subst e` collapses the transport to `FG.map g` definitionally. -/
 theorem transportSliceFunctor_map_f_heq {𝒟 : Type u} [Cat.{u} 𝒟] {ℰ : Type u} [Cat.{u} ℰ]
-    {B B' : ℰ} (e : B = B') {G : 𝒟 → Over B}
-    (FG : @Functor 𝒟 _ (Over B) (overCat B) G) {X Y : 𝒟} (g : X ⟶ Y) :
+    {B B' : ℰ} (e : B = B')
+    (FG : @Functor 𝒟 (Over B) _ (overCat B)) {X Y : 𝒟} (g : X ⟶ Y) :
     HEq ((transportSliceFunctor e FG).map g).f (FG.map g).f := by
   subst e; rfl
 
@@ -2449,8 +2458,7 @@ noncomputable def ordChainStageHasImages [RegularCategory 𝒞] (i : ι) :
 
 /-- The inner transitions preserve monos as a `PreservesMono` (packaging `ordChainHmono`). -/
 theorem ordChainPreservesMono {i j : ι} (hij : D.le i j) :
-    @PreservesMono _ ((ordChainSliceSystem O).catA i) _ ((ordChainSliceSystem O).catA j)
-      ((ordChainSliceSystem O).F hij) ((ordChainSliceSystem O).functF hij) :=
+    PreservesMono ((ordChainSliceSystem O).functF hij) :=
   fun {_ _ _} hφ => ordChainHmono O hij _ hφ
 
 open Freyd.Colim in
@@ -2473,8 +2481,8 @@ noncomputable def ordChainSliceHasImages [RegularCategory 𝒞]
         ordChainStageHasImages O i
       letI : @HasPullbacks ((ordChainSliceSystem O).A j) ((ordChainSliceSystem O).catA j) :=
         overHasPullbacks (𝒞 := Infl 𝒞) ((O.chain j : Infl 𝒞))
-      Colim.transitions_preserve_images ((ordChainSliceSystem O).F hij)
-        (hF := (ordChainSliceSystem O).functF hij) (ordChainPreservesMono O hij)
+      Colim.transitions_preserve_images ((ordChainSliceSystem O).functF hij)
+        (ordChainPreservesMono O hij)
         (fun {_ _} φ hφ => ordChainHcovpres O hij φ hφ) f)
 
 end InnerPackage
