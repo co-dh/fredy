@@ -426,8 +426,7 @@ theorem cVert_inl {k i : Nat} (hi : i ≤ k + 1) :
     simp only [cVert, if_pos h]
   · have h : i = k + 1 := Nat.le_antisymm hi hge
     subst h
-    simp only [cVert, if_neg (by omega : ¬ k + 1 ≤ k), if_pos rfl, if_true,
-      cVert_last k]
+    simp only [cVert, if_neg (by omega : ¬k + 1 ≤ k), if_true, cVert_last k]
 
 /-- The chain's `bL i`-edge runs from the `i`-th top midpoint to the
     `(i+1)`-st corner. -/
@@ -804,7 +803,7 @@ theorem chain_complete : ∀ k (w : (toGraph (chainT k)).V),
         rcases lens_complete (m+1) u with h | h | h | h
         · subst h
           refine Or.inl ⟨m+1, by omega, ?_⟩
-          simp only [cVert, if_neg (by omega : ¬ m + 1 ≤ m), if_pos rfl, if_true]
+          simp only [cVert, if_neg (by omega : ¬m + 1 ≤ m), if_true]
           exact (gcomp_glue _ _).symm
         · subst h
           refine Or.inr (Or.inl ⟨m+1, Nat.le_refl _, ?_⟩)
@@ -1042,8 +1041,7 @@ theorem chain_edge_a : ∀ k i, i ≤ k →
     rcases Nat.lt_or_ge m i with hgt | hle
     · have hi1 : i = m + 1 := Nat.le_antisymm hi hgt
       subst hi1
-      simp only [pVert, if_neg (by omega : ¬ m + 1 ≤ m),
-        cVert, if_neg (by omega : ¬ m + 1 ≤ m), if_pos rfl, if_true]
+      simp only [pVert, cVert, if_neg (by omega : ¬m + 1 ≤ m), if_true]
       rw [gcomp_glue]
       exact glued_edge_inr (lensP_edge (m+1))
     · rw [cVert_inl (by omega : i ≤ m + 1)]
@@ -1066,8 +1064,7 @@ theorem chain_edge_c : ∀ k i, i ≤ k →
     rcases Nat.lt_or_ge m i with hgt | hle
     · have hi1 : i = m + 1 := Nat.le_antisymm hi hgt
       subst hi1
-      simp only [qVert, if_neg (by omega : ¬ m + 1 ≤ m),
-        cVert, if_neg (by omega : ¬ m + 1 ≤ m), if_pos rfl, if_true]
+      simp only [qVert, cVert, if_neg (by omega : ¬m + 1 ≤ m), if_true]
       rw [gcomp_glue]
       exact glued_edge_inr (lensQ_edge (m+1))
     · rw [cVert_inl (by omega : i ≤ m + 1)]

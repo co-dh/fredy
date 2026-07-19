@@ -366,7 +366,7 @@ theorem equiv_reflects_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → �
     | all => exact satisfies_nil_all f
     | ex  =>
       -- s.map T = nil _ .ex; hsat : ¬Satisfies (nil .ex) (hT.map f), contradiction
-      simp [QSeq.map, Satisfies] at hsat
+      simp [QSeq.map] at hsat
   | cons q α rest ih =>
     cases q with
     | all =>

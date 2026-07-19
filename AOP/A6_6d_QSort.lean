@@ -237,11 +237,11 @@ theorem partition_perm (p : A → Bool) : ∀ x : ConsList Unit A,
       unfold cfilter
       cases hp : p a with
       | true =>
-          simp only [hp, Bool.not_true]
+          simp only [Bool.not_true]
           -- left = a :: keep, right = drop ; cappend (a::keep) drop = a :: cappend keep drop
           exact Perm.cons a ih
       | false =>
-          simp only [hp, Bool.not_false]
+          simp only [Bool.not_false]
           -- left = keep, right = a :: drop
           exact Perm.trans (Perm.cons a ih)
                   (perm_cons_cappend a (cfilter p x) (cfilter (fun y => !p y) x))

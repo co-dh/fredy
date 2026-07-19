@@ -1501,8 +1501,8 @@ theorem quotAddAssoc (Qadd : prod Q Q ⟶ Q)
       = pair (pair ((fst ≫ fst) ≫ q) ((fst ≫ snd) ≫ q) ≫ Qadd) (snd ≫ q) ≫ Qadd := by
     rw [← Cat.assoc, ab_pair_precomp]
     congr 2
-    · simp only [Cat.assoc, fst_pair]
-      rw [← Cat.assoc, ab_pair_precomp]; simp only [Cat.assoc, fst_pair, snd_pair]
+    · simp only [Cat.assoc]
+      rw [← Cat.assoc, ab_pair_precomp]; simp only [fst_pair]
     · rw [snd_pair]
   have hRHS : pair (fst ≫ pair (fst ≫ q) (snd ≫ q))
         (snd ≫ q : prod (prod A.carrier A.carrier) A.carrier ⟶ Q)

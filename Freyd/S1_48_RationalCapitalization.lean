@@ -2680,7 +2680,7 @@ theorem pairPair_equ {Z X Y : PairObj 𝒞} (Hdistinct : Z.DistinctTargets)
     obtain ⟨C, rr⟩ := r; obtain ⟨C', rr'⟩ := r'
     simp only at hff hrt hrt' hre hre' hmatch ⊢
     subst hff; subst hrt; subst hrt'
-    simp only [eq_mpr_eq_cast, cast_eq] at hre hre' hmatch ⊢
+    simp only at hre hre' hmatch ⊢
     rw [← Cat.assoc, ← Cat.assoc, fst_pair, snd_pair, hre, hre', hmatch]
   · rw [dif_neg hff] at hq3; exact absurd hq3 (by simp)
 
@@ -3884,7 +3884,7 @@ noncomputable def pairDense_pb_canonical_dense [DecidableEq 𝒞] [PullbacksTran
     have hmem := List.get_mem (dx.surv.filter (fun T => !collides Z T)) k
     have hnc := (List.mem_filter.1 hmem).2
     have hcf : collides Z ((dx.surv.filter (fun T => !collides Z T)).get k) = false := by
-      simp only [Bool.not_eq_true', decide_eq_false_iff_not, Bool.not_eq_true] at hnc
+      simp only [Bool.not_eq_true'] at hnc
       exact hnc
     intro hZ
     obtain ⟨p, hp, hpe⟩ := List.mem_map.1 hZ

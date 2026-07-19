@@ -612,7 +612,7 @@ theorem coproduct_is_coproduct_in_Rel
           _ = cpR.inj i ≫ (image.lift m ≫ U_sub.arr) ≫ fst := by
                 simp [Cat.assoc]
           _ = cpR.inj i ≫ m ≫ fst := by rw [image.lift_fac]
-          _ = cpR.inj i ≫ colA_big := by simp [m, Cat.assoc, fst_pair]
+          _ = cpR.inj i ≫ colA_big := by simp [m, fst_pair]
           _ = (R i).colA ≫ uᵢ := cpR.fac _ i
     -- v ≫ U.colB = (R i).colB
     have hv_colB : v ≫ U.colB = (R i).colB :=
@@ -621,7 +621,7 @@ theorem coproduct_is_coproduct_in_Rel
           _ = cpR.inj i ≫ (image.lift m ≫ U_sub.arr) ≫ snd := by
                 simp [Cat.assoc]
           _ = cpR.inj i ≫ m ≫ snd := by rw [image.lift_fac]
-          _ = cpR.inj i ≫ colB_big := by simp [m, Cat.assoc, snd_pair]
+          _ = cpR.inj i ≫ colB_big := by simp [m, snd_pair]
           _ = (R i).colB := cpR.fac _ i
     -- Cone at pb_i with (R i).colA and v; lift gives w_i : (R i).src → pb_i.cone.pt
     let cone_i : Cone uᵢ U.colA := ⟨(R i).src, (R i).colA, v, hv_colA.symm⟩

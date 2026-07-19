@@ -492,15 +492,15 @@ theorem primRec_unique {𝒞 : Type u} [Cat.{v} 𝒞]
       rw [primRecBase]
       apply pair_uniq
       · apply pair_uniq <;>
-          simp only [Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
-      · simp only [Cat.assoc, fst_pair, snd_pair]; exact hf0
+          simp only [Cat.assoc, fst_pair, snd_pair]
+      · simp only [Cat.assoc, snd_pair]; exact hf0
     · -- (A×s) ≫ kf = kf ≫ b'; both equal ⟨⟨p₁, p₂s⟩, kf≫h⟩.
       have lhs : prodMap A hN.nno hN.nno hN.succ ≫ pair (pair fst snd) f
           = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
         apply pair_uniq
         · apply pair_uniq <;>
             simp only [Cat.assoc, fst_pair, snd_pair, prodMap_fst, prodMap_snd]
-        · simp only [Cat.assoc, fst_pair, snd_pair]; exact hfs
+        · simp only [Cat.assoc, snd_pair]; exact hfs
       have rhs : pair (pair fst snd) f ≫ pair (pair (fst ≫ fst) (fst ≫ snd ≫ hN.succ)) h
           = pair (pair fst (snd ≫ hN.succ)) (pair (pair fst snd) f ≫ h) := by
         apply pair_uniq

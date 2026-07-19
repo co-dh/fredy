@@ -470,7 +470,7 @@ theorem ab_add_eq_pair_codiag {A B : AbelianGroupObject 𝒞} (x y : A ⟶ B) :
       = (pair x.val y.val) ≫ AbCoprod.caseCar (Cat.id B.carrier) (Cat.id B.carrier)
   unfold AbCoprod.caseCar
   rw [← Cat.assoc, ab_pair_precomp]
-  simp only [← Cat.assoc, fst_pair, snd_pair, Cat.comp_id]
+  simp only [fst_pair, snd_pair, Cat.comp_id]
 
 /-- **§1.595 KEYSTONE.**  `Ab(𝒞)` is a half-additive category: finite products and
     coproducts coincide (biproducts), and the induced hom-set addition is the pointwise

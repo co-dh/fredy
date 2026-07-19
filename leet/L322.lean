@@ -177,8 +177,8 @@ theorem contrib_none_iff {step : Nat → Option Nat} {t c : Nat} :
   by_cases h : 1 ≤ c ∧ c ≤ t
   · rw [if_pos h]
     rcases hs : step (t - c) with _ | mv
-    · simp [hs]
-    · simp [hs, h]
+    · simp
+    · simp [h]
   · rw [if_neg h]
     simp [h]
 
