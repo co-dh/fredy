@@ -42,11 +42,11 @@ noncomputable def ratCapHasImages [Nonempty ι] (P : ProjSystem ι D 𝒞)
   -- transition mono- and cover-preservation (as `Preserves…` props), shared by `himgpres`.
   have hmono : ∀ {i j : ι} (hij : D.le i j),
       @PreservesMono _ ((laxOfProjSystem' P).catA i) _ ((laxOfProjSystem' P).catA j)
-        ((laxOfProjSystem' P).F hij) ((laxOfProjSystem' P).functF hij) :=
+        ((laxOfProjSystem' P).functF hij) :=
     fun {i j} hij {X Y} {f} hf => projStage_preservesMono P hij f hf
   have hcovpres : ∀ {i j : ι} (hij : D.le i j),
       @PreservesCovers _ _ ((laxOfProjSystem' P).catA i) ((laxOfProjSystem' P).catA j)
-        ((laxOfProjSystem' P).F hij) ((laxOfProjSystem' P).functF hij) :=
+        ((laxOfProjSystem' P).functF hij) :=
     fun {i j} hij {A B} f hf => projStage_preservesCover P hij f hf
   -- pullbacks in `ratCapCat P` come from its pre-regularity.
   letI hpull : @HasPullbacks (Obj (laxOfProjSystem' P)) (ratCat P) :=
@@ -58,7 +58,7 @@ noncomputable def ratCapHasImages [Nonempty ι] (P : ProjSystem ι D 𝒞)
     (fun {i j} hij {X Y} f =>
       letI : HasImages ((laxOfProjSystem' P).A i) := overHasImages (P.pr i)
       letI : HasPullbacks ((laxOfProjSystem' P).A j) := overHasPullbacks (P.pr j)
-      transitions_preserve_images ((laxOfProjSystem' P).F hij)
-        (hF := (laxOfProjSystem' P).functF hij) (hmono hij) (hcovpres hij) f)
+      transitions_preserve_images ((laxOfProjSystem' P).functF hij)
+        (hmono hij) (hcovpres hij) f)
 
 end Freyd.LaxColim
