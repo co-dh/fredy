@@ -87,9 +87,9 @@ theorem slice_embedding_separates [PullbacksTransferCovers 𝒞] (B : 𝒞) (hws
   iterating the slice functor A → A/B for each well-supported B. -/
 
 /-- A* is a relative capitalization of A. -/
-def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] (A A_star : 𝒞) : Prop :=
-  ∀ (B : 𝒞) (hws : WellSupported B) (B' : Subobject 𝒞 B)
-    (hproper : ¬ Subobject.IsEntire B'),
+def IsRelativeCapitalization [HasTerminal 𝒞] [HasImages 𝒞] : Prop :=
+  ∀ (B : 𝒞) (B' : Subobject 𝒞 B)
+,
     ∃ (x : one ⟶ B), ¬ Allows B' x
 
 /-! ## §1.543 Capitalization Lemma

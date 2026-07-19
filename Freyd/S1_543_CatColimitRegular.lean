@@ -2746,7 +2746,7 @@ noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hn
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
     @HasPullbacks C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
@@ -2781,7 +2781,7 @@ theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : No
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
@@ -2790,7 +2790,7 @@ theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : No
     ∀ {A B Z : C.Obj} (f : A ⟶ Z) (g : B ⟶ Z),
       (colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift).has f g
         = products_equalizers_implies_pullbacks f g :=
-  fun f g => rfl
+  fun _ _ => rfl
 
 /-- **Comparison map of two pullbacks of the same cospan is an iso.**  If `c` and
     `c'` both satisfy `Cone.IsPullback` over the cospan `f, g`, the unique map
@@ -3089,7 +3089,7 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     -- pullbacks-transfer-covers: the canonical pullback's π₂ is a cover
     (hcanon : letI : Cat C.Obj := colimitCat C hC

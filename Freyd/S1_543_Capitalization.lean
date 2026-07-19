@@ -183,7 +183,7 @@ theorem stageInclFaithful (C : CatSystem ι D) (hC : C.Coherent)
 /-- **The stage terminal is the colimit terminal.**  For any two stages `i j`,
     `objIncl i (ht i).one = objIncl j (ht j).one`.  Both are carried to `objIncl k (ht k).one`
     at a common bound `k` (via `objIncl_compat` + the on-the-nose `htpres`). -/
-theorem objIncl_terminal_eq (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
+theorem objIncl_terminal_eq (C : CatSystem.{u, u} ι D) (hC : C.Coherent)
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one) (i j : ι) :
     C.objIncl i (ht i).one = C.objIncl j (ht j).one := by
@@ -254,7 +254,7 @@ theorem objIncl_preservesEqualizers (C : CatSystem.{u, u} ι D) (hC : C.Coherent
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
@@ -298,7 +298,7 @@ theorem objIncl_preserves_pullbacks (C : CatSystem.{u, u} ι D) (hC : C.Coherent
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (i : ι) {a b c : C.A i} (f : a ⟶ c) (g : b ⟶ c) :
     letI : Cat C.Obj := colimitCat C hC
@@ -375,7 +375,7 @@ theorem colimitCanonicalCover (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     -- faithfulness / conservativity / mono-preservation of every transition (cover reflection)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
@@ -1997,7 +1997,7 @@ theorem baseSliceObj_pres_pullback {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
 theorem baseSliceObjCartFunctor :
     CartesianFunctor (F := baseSliceObj (𝒞 := 𝒞)) :=
   pullbacks_terminal_implies_cartesianFunctor
-    (F := baseSliceObj) (fun {A B C} f g => baseSliceObj_pres_pullback f g)
+    (F := baseSliceObj) (fun f g => baseSliceObj_pres_pullback f g)
     baseSliceObjPresTerminal
 
 /-- An isomorphism is a cover (a mono it factors through is split epi + mono = iso).  Inlined here
@@ -2123,7 +2123,7 @@ theorem objIncl_preservesCover {ι : Type u} {D : Colim.Directed ι}
     {i : ι} {x y : C.A i} (φ : x ⟶ y) (hφ : Cover φ) :
     letI : Cat C.Obj := Colim.colimitCat C hC
     @Cover C.Obj (Colim.colimitCat C hC) _ _ ((stageInclFunctor C hC i).map φ) :=
-  Colim.homInclObj_cover_of_stage C hC hfaith φ (fun {j} hij => hcovpres hij φ hφ)
+  Colim.homInclObj_cover_of_stage C hC hfaith φ (fun hij => hcovpres hij φ hφ)
 
 /-- **A pullback-preserving functor preserves monos.**  `f` monic ⟺ its canonical level diagonal
     `δ` is iso (`mono_iff_level_diag_iso`); `T` carries the level to a level of `T f` (`Level.map`,

@@ -338,8 +338,8 @@ def listDirected : Directed (List 𝒞) where
   le := listSubset
   refl _ _ h := h
   trans hVU hUW x hx := hUW x (hVU x hx)
-  bound V U := ⟨V ++ U, fun x hx => List.mem_append.2 (Or.inl hx),
-    fun x hx => List.mem_append.2 (Or.inr hx)⟩
+  bound V U := ⟨V ++ U, fun _ hx => List.mem_append.2 (Or.inl hx),
+    fun _ hx => List.mem_append.2 (Or.inr hx)⟩
 
 /-- **§1.547 — the product-slice `A/(∏U)` acquires a point of EVERY factor.**  For each
     positional index `k`, `sliceFactorPoint (U.get k) (listProdProj U k)` is a point
@@ -609,10 +609,10 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
     Colim.CatSystem (List 𝒞) listDirected where
   A := innerObj (𝒞 := 𝒞)
   catA := innerCat
-  F := fun {V U} h => innerF P h
-  functF := fun {V U} h => innerFunctF P h
-  F_refl := fun {U} X => hS.F_refl X
-  F_trans := fun {V U W} hVU hUW X => hS.F_trans hVU hUW X
+  F := fun h => innerF P h
+  functF := fun h => innerFunctF P h
+  F_refl := fun X => hS.F_refl X
+  F_trans := fun hVU hUW X => hS.F_trans hVU hUW X
 
 /-! ## ROUTE 1 — strict reindexing: the strict laws hold, but the variance is wrong
 
