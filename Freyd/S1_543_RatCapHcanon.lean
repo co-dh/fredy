@@ -150,8 +150,8 @@ theorem isIso_unconj {𝒜 : Type w} [Cat.{w} 𝒜] {W X Y Z : 𝒜}
     arrows.  The lax companion of stripping `homTr`'s `castHom`. -/
 theorem pushHom_injective
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     (hik : D.le i k) (hjk : D.le j k) (hkm : D.le k m)
     {f g : L.F hik x ⟶ L.F hjk y}
@@ -174,8 +174,8 @@ theorem pushHom_injective
     where the `pushHom`s agree, and `pushHom_injective` strips back.  Lax `homIncl_injective`. -/
 theorem homInclL_injective
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
     {g g' : L.F a.2.1 x ⟶ L.F a.2.2 y}
     (h : homInclL L hL x y a g = homInclL L hL x y a g') : g = g' := by
@@ -321,8 +321,8 @@ theorem homInclL_mono_of_stage
     back.  Lax `colimHom_mono_reflects`. -/
 theorem homInclL_mono_reflects
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
     (g : L.F a.2.1 x ⟶ L.F a.2.2 y)
     (hmono : @Monic (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨j, y⟩ (homInclL L hL x y a g))
@@ -359,8 +359,8 @@ theorem homInclL_mono_reflects
     the level shift (`homInclL_compat`).  Lax `colimHom_cover_of_rep`. -/
 theorem homInclL_cover_of_rep
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     {i j : ι} (x : L.A i) (y : L.A j) (a : UpperBound D i j)
     (g : L.F a.2.1 x ⟶ L.F a.2.2 y)
     (hcov : ∀ (e : ι) (hae : D.le a.1 e), Cover (pushHom L x y a.2.1 a.2.2 hae g)) :
@@ -398,10 +398,10 @@ theorem homInclL_cover_of_rep
     pre/post-composing a cover with isos keeps it a cover.  Lax `homInclObj_cover_of_stage`. -/
 theorem homInclL_cover_of_stage
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     {i : ι} (x y : L.A i) (g : x ⟶ y)
-    (hcov : ∀ {e : ι} (hie : D.le i e), Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g)) :
+    (hcov : ∀ {e : ι} (hie : D.le i e), Cover ((L.functF hie).map g)) :
     @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
       (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
   -- the germ `gᵣ := reflApp x ≫ g ≫ (reflApp y)⁻¹` at the reflexive bound `⟨i, refl i, refl i⟩`.
@@ -412,30 +412,30 @@ theorem homInclL_cover_of_stage
   -- `map gᵣ = map (reflApp x) ≫ map g ≫ map (reflApp y)⁻¹`, all but `map g` being isos.
   unfold pushHom
   -- the middle `map gᵣ` factors through `map g` flanked by isos (functor preserves iso & comp).
-  rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
-      @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ g (isoInv (reflApp_isIso L y))]
+  rw [(L.functF hie).map_comp (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
+      (L.functF hie).map_comp g (isoInv (reflApp_isIso L y))]
   -- assemble: cover flanked by four isos (transApp, map reflApp x, map (reflApp y)⁻¹, isoInv transApp).
   have hi1 : IsIso (transApp L (D.refl i) hie x) := transApp_isIso L (D.refl i) hie x
-  have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)) :=
-    @functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x)
-  have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
-    @functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+  have hi2 : IsIso ((L.functF hie).map (reflApp L x)) :=
+    functor_preserves_iso (F := L.functF hie) (reflApp L x) (reflApp_isIso L x)
+  have hi3 : IsIso ((L.functF hie).map (isoInv (reflApp_isIso L y))) :=
+    functor_preserves_iso (F := L.functF hie) (isoInv (reflApp_isIso L y))
       ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
   have hi4 : IsIso (isoInv (transApp_isIso L (D.refl i) hie y)) :=
     ⟨transApp L (D.refl i) hie y, inv_isoInv_comp _, isoInv_comp _⟩
   -- cover (map g) ⇒ cover of the whole flanked composite (iso pre/post composition).
-  have hg_cov : Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g) := hcov hie
+  have hg_cov : Cover ((L.functF hie).map g) := hcov hie
   -- peel the flanking isos: transApp (pre), isoInv transApp (post), map reflApp x (pre), map isoInv (post).
-  have c1 : Cover (@Functor.map _ _ _ _ _ (L.functF hie) x y g
-      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+  have c1 : Cover ((L.functF hie).map g
+      ≫ (L.functF hie).map (isoInv (reflApp_isIso L y))) :=
     cover_comp_iso' hg_cov hi3
-  have c2 : Cover (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
-      ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y g
-      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+  have c2 : Cover ((L.functF hie).map (reflApp L x)
+      ≫ (L.functF hie).map g
+      ≫ (L.functF hie).map (isoInv (reflApp_isIso L y))) :=
     cover_precomp_iso hi2 c1
-  have c3 : Cover ((@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
-      ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y g
-      ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y)))
+  have c3 : Cover (((L.functF hie).map (reflApp L x)
+      ≫ (L.functF hie).map g
+      ≫ (L.functF hie).map (isoInv (reflApp_isIso L y)))
       ≫ isoInv (transApp_isIso L (D.refl i) hie y)) :=
     cover_comp_iso' c2 hi4
   exact @cover_precomp_iso _ _ _ _ _ _ hi1 _ c3
@@ -446,7 +446,7 @@ theorem homInclL_cover_of_stage
     `homInclObj_isIso_reflects`. -/
 theorem homInclL_isIso_reflects'
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        Monic φ → IsIso ((L.functF hij).map φ) → IsIso φ)
     {i : ι} (x y : L.A i) (g : x ⟶ y) (hgmono : Monic g)
     (hiso : @IsIso (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩
       (homInclL L hL x y ⟨i, D.refl i, D.refl i⟩ (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y)))) :
@@ -458,17 +458,17 @@ theorem homInclL_isIso_reflects'
   have hi1 : IsIso (transApp L (D.refl i) hae x) := transApp_isIso L (D.refl i) hae x
   have hi1' : IsIso (isoInv (transApp_isIso L (D.refl i) hae y)) :=
     ⟨transApp L (D.refl i) hae y, inv_isoInv_comp _, isoInv_comp _⟩
-  have hmapr : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _
+  have hmapr : IsIso ((L.functF hae).map
       (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
     have := hpiso; unfold pushHom at this
     exact isIso_unconj hi1 hi1' this
   -- `map gᵣ = (map reflApp x) ≫ (map g) ≫ (map isoInv)`; un-conjugate again.
-  rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
-      @Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ g (isoInv (reflApp_isIso L y))] at hmapr
-  have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (reflApp L x)) :=
-    @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (reflApp L x) (reflApp_isIso L x)
-  have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))) :=
-    @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))
+  rw [(L.functF hae).map_comp (reflApp L x) (g ≫ isoInv (reflApp_isIso L y)),
+      (L.functF hae).map_comp g (isoInv (reflApp_isIso L y))] at hmapr
+  have hi2 : IsIso ((L.functF hae).map (reflApp L x)) :=
+    functor_preserves_iso (F := L.functF hae) (reflApp L x) (reflApp_isIso L x)
+  have hi3 : IsIso ((L.functF hae).map (isoInv (reflApp_isIso L y))) :=
+    functor_preserves_iso (F := L.functF hae) (isoInv (reflApp_isIso L y))
       ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
   exact isIso_unconj hi2 hi3 hmapr
 
@@ -511,9 +511,9 @@ theorem stageInclL_comp {i : ι} {x y z : L.A i} (g : x ⟶ y) (h : y ⟶ z) :
     `homInclObj_cover_reflects`. -/
 theorem homInclL_cover_reflects
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        Monic φ → IsIso ((L.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → Monic (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+        Monic φ → Monic ((L.functF hij).map φ))
     {i : ι} {x y : L.A i} (g : x ⟶ y)
     (hcov : @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL g)) :
     Cover g := by
@@ -527,21 +527,21 @@ theorem homInclL_cover_reflects
     -- `pushHom (reflApp ≫ m' ≫ isoInv) = transApp ≫ map(reflApp ≫ m' ≫ isoInv) ≫ isoInv`,
     -- all but `map m'` isos, and `map m'` mono (hmono) ⇒ the push is mono.
     -- left/right-cancel the flanking isos in `huv`, apply `hmono`, re-flank.
-    have hmono_map : Monic (@Functor.map _ _ _ _ _ (L.functF hie) c y m') := hmono hie m' hm'
+    have hmono_map : Monic ((L.functF hie).map m') := hmono hie m' hm'
     -- `pushHom = transApp ≫ map(reflApp x ≫ m' ≫ isoInv) ≫ isoInv transApp`; expand `map`.
     revert huv
     unfold pushHom
-    rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L c) (m' ≫ isoInv (reflApp_isIso L y)),
-        @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ m' (isoInv (reflApp_isIso L y))]
+    rw [(L.functF hie).map_comp (reflApp L c) (m' ≫ isoInv (reflApp_isIso L y)),
+        (L.functF hie).map_comp m' (isoInv (reflApp_isIso L y))]
     intro huv
     -- the composite map is mono: map m' mono flanked by isos (pre/post compose mono by iso stays mono).
-    have hbig : Monic (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L c)
-          ≫ @Functor.map _ _ _ _ _ (L.functF hie) c y m'
-          ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+    have hbig : Monic ((L.functF hie).map (reflApp L c)
+          ≫ (L.functF hie).map m'
+          ≫ (L.functF hie).map (isoInv (reflApp_isIso L y))) :=
       mono_precomp_iso'
-        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L c) (reflApp_isIso L c))
+        (functor_preserves_iso (F := L.functF hie) (reflApp L c) (reflApp_isIso L c))
         (mono_postcomp_iso' hmono_map
-          (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+          (functor_preserves_iso (F := L.functF hie) (isoInv (reflApp_isIso L y))
             ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
     exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie c)
       (mono_postcomp_iso' hbig
@@ -637,74 +637,74 @@ variable {𝒟 : Type w} [Cat.{w} 𝒟]
 theorem image_chosenPullback_isPullback' {𝒞 : Type w} [Cat.{w} 𝒞]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
     [HasTerminal 𝒟] [HasBinaryProducts 𝒟] [HasEqualizers 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F]
+    (F : Functor 𝒞 𝒟)
     (hprod : PreservesBinaryProducts F) (hpeq : PreservesEqualizers F)
     {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
-    (Cone.mk (f := hF.map f) (g := hF.map g)
-      (F (products_equalizers_implies_pullbacks f g).cone.pt)
-      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₁)
-      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₂)
-      (by rw [← hF.map_comp, ← hF.map_comp,
+    (Cone.mk (f := F.map f) (g := F.map g)
+      (F.obj (products_equalizers_implies_pullbacks f g).cone.pt)
+      (F.map (products_equalizers_implies_pullbacks f g).cone.π₁)
+      (F.map (products_equalizers_implies_pullbacks f g).cone.π₂)
+      (by rw [← F.map_comp, ← F.map_comp,
               (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback := by
   let eo : 𝒞 := eqObj (fst ≫ f) (snd ≫ g)
   let em : eo ⟶ prod A B := eqMap (fst ≫ f) (snd ≫ g)
-  have hFem_eq : hF.map em ≫ hF.map (fst ≫ f) = hF.map em ≫ hF.map (snd ≫ g) :=
-    (hF.map_comp em (fst ≫ f)).symm.trans
-      ((congrArg hF.map (eqMap_eq (fst ≫ f) (snd ≫ g))).trans (hF.map_comp em (snd ≫ g)))
-  let cD := HasEqualizers.eq (F (prod A B)) (F C) (hF.map (fst ≫ f)) (hF.map (snd ≫ g))
-  let hcone : EqualizerCone (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) :=
-    { dom := F eo, map := hF.map em, eq := hFem_eq }
+  have hFem_eq : F.map em ≫ F.map (fst ≫ f) = F.map em ≫ F.map (snd ≫ g) :=
+    (F.map_comp em (fst ≫ f)).symm.trans
+      ((congrArg F.map (eqMap_eq (fst ≫ f) (snd ≫ g))).trans (F.map_comp em (snd ≫ g)))
+  let cD := HasEqualizers.eq (F.obj (prod A B)) (F.obj C) (F.map (fst ≫ f)) (F.map (snd ≫ g))
+  let hcone : EqualizerCone (F.map (fst ≫ f)) (F.map (snd ≫ g)) :=
+    { dom := F.obj eo, map := F.map em, eq := hFem_eq }
   let k := cD.lift hcone
-  have hk_fac : k ≫ eqMap (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) = hF.map em := cD.fac hcone
+  have hk_fac : k ≫ eqMap (F.map (fst ≫ f)) (F.map (snd ≫ g)) = F.map em := cD.fac hcone
   have hk_iso : IsIso k := hpeq (fst ≫ f) (snd ≫ g)
   obtain ⟨k', hkk', hk'k⟩ := hk_iso
-  have hFem_isEq : (EqualizerCone.mk (F eo) (hF.map em) hFem_eq).IsEqualizer := by
+  have hFem_isEq : (EqualizerCone.mk (F.obj eo) (F.map em) hFem_eq).IsEqualizer := by
     have h0 := Colim.isEqualizer_iso_apex
-      (chosenEqualizer_isEqualizer (hF.map (fst ≫ f)) (hF.map (snd ≫ g))) k k' hkk' hk'k
+      (chosenEqualizer_isEqualizer (F.map (fst ≫ f)) (F.map (snd ≫ g))) k k' hkk' hk'k
     intro d
     obtain ⟨u, hu, huniq⟩ := h0 d
     refine ⟨u, ?_, fun v hv => huniq v ?_⟩
     · exact (congrArg (u ≫ ·) hk_fac).symm.trans hu
     · exact (congrArg (v ≫ ·) hk_fac).trans hv
-  let φ : F (prod A B) ⟶ prod (F A) (F B) :=
-    pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  let φ : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) :=
+    pair (F.map (fst (A := A) (B := B))) (F.map snd)
   have hφ_iso : IsIso φ := hprod (A := A) (B := B)
-  have hφ_fst : φ ≫ fst = hF.map (fst (A := A) (B := B)) := fst_pair _ _
-  have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
-  have hpair_f : hF.map (fst ≫ f) = φ ≫ (fst ≫ hF.map f) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_fst]
-  have hpair_g : hF.map (snd ≫ g) = φ ≫ (snd ≫ hF.map g) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_snd]
-  have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ hF.map f)) (g := φ ≫ (snd ≫ hF.map g))
-      (F eo) (hF.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
+  have hφ_fst : φ ≫ fst = F.map (fst (A := A) (B := B)) := fst_pair _ _
+  have hφ_snd : φ ≫ snd = F.map (snd (A := A) (B := B)) := snd_pair _ _
+  have hpair_f : F.map (fst ≫ f) = φ ≫ (fst ≫ F.map f) := by
+    rw [F.map_comp, ← Cat.assoc, hφ_fst]
+  have hpair_g : F.map (snd ≫ g) = φ ≫ (snd ≫ F.map g) := by
+    rw [F.map_comp, ← Cat.assoc, hφ_snd]
+  have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ F.map f)) (g := φ ≫ (snd ≫ F.map g))
+      (F.obj eo) (F.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
     intro d
-    have hd : d.map ≫ hF.map (fst ≫ f) = d.map ≫ hF.map (snd ≫ g) := by
+    have hd : d.map ≫ F.map (fst ≫ f) = d.map ≫ F.map (snd ≫ g) := by
       rw [hpair_f, hpair_g]; exact d.eq
     obtain ⟨u, hu, huniq⟩ := hFem_isEq (EqualizerCone.mk d.dom d.map hd)
     exact ⟨u, hu, huniq⟩
   have hslid := Colim.isEqualizer_comp_iso hφ_iso
     (by rw [← hpair_f, ← hpair_g]; exact hFem_eq) hFem_isEq'
-  have hmeq : (hF.map em ≫ φ) ≫ (fst ≫ hF.map f) = (hF.map em ≫ φ) ≫ (snd ≫ hF.map g) := by
+  have hmeq : (F.map em ≫ φ) ≫ (fst ≫ F.map f) = (F.map em ≫ φ) ≫ (snd ≫ F.map g) := by
     rw [Cat.assoc, Cat.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
   have hpb := Colim.pullback_of_equalizer hmeq hslid
   intro d
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hpb d
-  have hbr₁ : hF.map em ≫ φ ≫ fst = hF.map (em ≫ fst) := by rw [hφ_fst, ← hF.map_comp]
-  have hbr₂ : hF.map em ≫ φ ≫ snd = hF.map (em ≫ snd) := by rw [hφ_snd, ← hF.map_comp]
+  have hbr₁ : F.map em ≫ φ ≫ fst = F.map (em ≫ fst) := by rw [hφ_fst, ← F.map_comp]
+  have hbr₂ : F.map em ≫ φ ≫ snd = F.map (em ≫ snd) := by rw [hφ_snd, ← F.map_comp]
   refine ⟨u, ⟨?_, ?_⟩, ?_⟩
-  · show u ≫ hF.map (em ≫ fst) = d.π₁
-    rw [show hF.map (em ≫ fst) = (hF.map em ≫ φ) ≫ fst from
+  · show u ≫ F.map (em ≫ fst) = d.π₁
+    rw [show F.map (em ≫ fst) = (F.map em ≫ φ) ≫ fst from
       ((Cat.assoc _ _ _).trans hbr₁).symm]; exact hu₁
-  · show u ≫ hF.map (em ≫ snd) = d.π₂
-    rw [show hF.map (em ≫ snd) = (hF.map em ≫ φ) ≫ snd from
+  · show u ≫ F.map (em ≫ snd) = d.π₂
+    rw [show F.map (em ≫ snd) = (F.map em ≫ φ) ≫ snd from
       ((Cat.assoc _ _ _).trans hbr₂).symm]; exact hu₂
   · intro v hv₁ hv₂
     refine huniq v ?_ ?_
-    · show v ≫ (hF.map em ≫ φ) ≫ fst = d.π₁
-      rw [show (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
+    · show v ≫ (F.map em ≫ φ) ≫ fst = d.π₁
+      rw [show (F.map em ≫ φ) ≫ fst = F.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
       exact hv₁
-    · show v ≫ (hF.map em ≫ φ) ≫ snd = d.π₂
-      rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
+    · show v ≫ (F.map em ≫ φ) ≫ snd = d.π₂
+      rw [show (F.map em ≫ φ) ≫ snd = F.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
       exact hv₂
 
 /-- **A cone with the binary-product universal property has iso comparison map** (= verbatim
@@ -734,9 +734,10 @@ variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Co
 /-- The lax stage-inclusion functor at stage `i` (object map `⟨i,·⟩`, morphism map `stageInclL`).
     Requires `ι : Type w` so source `L.A i` and target `Obj L` share the hom-universe `w`. -/
 noncomputable def stageInclFunctorL (i : ι) :
-    @Functor (L.A i) (L.catA i) (Obj L) (laxColimCat L hL) (fun x => ⟨i, x⟩) :=
+    @Functor (L.A i) (Obj L) (L.catA i) (laxColimCat L hL) :=
   letI : Cat (Obj L) := laxColimCat L hL
-  { map := fun {x y} g => stageInclL L hL g
+  { obj := fun x => ⟨i, x⟩
+    map := fun {x y} g => stageInclL L hL g
     map_id := fun x => stageInclL_id L hL x
     map_comp := fun {x y z} g h => stageInclL_comp L hL g h }
 
@@ -840,12 +841,10 @@ theorem stageInclL_product_up (pData : LaxProductData L) (i : ι) (x y : L.A i)
           = (L.functF hkn).map pr := by
       intro w pr
       rw [← Cat.assoc (isoInv (transApp_isIso L hik hkn w)), inv_isoInv_comp, Cat.id_comp,
-          @Functor.map_comp (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn) (L.functF hkn)
-            _ _ _ pr (isoInv (reflApp_isIso L w)),
-          Cat.assoc, ← @Functor.map_comp (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn)
-            (L.functF hkn) _ _ _ (isoInv (reflApp_isIso L w)) (reflApp L w),
+          (L.functF hkn).map_comp pr (isoInv (reflApp_isIso L w)),
+          Cat.assoc, ← (L.functF hkn).map_comp (isoInv (reflApp_isIso L w)) (reflApp L w),
           inv_isoInv_comp,
-          @Functor.map_id (L.A i) (L.catA i) (L.A n) (L.catA n) (L.F hkn) (L.functF hkn) w,
+          (L.functF hkn).map_id,
           Cat.comp_id]
     have hfst : u₁ ≫ (L.functF hkn).map (pData.hp i).fst
         = u₂ ≫ (L.functF hkn).map (pData.hp i).fst := by
@@ -909,12 +908,13 @@ theorem stageInclL_product_up (pData : LaxProductData L) (i : ι) (x y : L.A i)
     rw [Cat.assoc, ← Cat.assoc (isoInv (prUnit_isIso L p hiN)),
         inv_isoInv_comp, Cat.id_comp]
     -- distribute `map (proj ≫ isoInv reflApp)` and use `hcomp` to substitute `r ≫ map proj`.
-    rw [@Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
-          _ _ _ proj (isoInv (reflApp_isIso L w)), ← Cat.assoc, ← Cat.assoc r,
+    rw [(L.functF hiN).map_comp proj (isoInv (reflApp_isIso L w)), ← Cat.assoc, ← Cat.assoc r,
         hcomp]
     -- now `pushHom wa ≫ transApp ≫ map(reflApp w) ≫ map(isoInv reflApp w) ≫ isoInv transApp`.
     -- `map(reflApp) ≫ map(isoInv reflApp) = id`, then `transApp ≫ isoInv transApp = id`.
-    simp only [Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id, Cat.comp_id]
+    simp only [Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id]
+    rw [show 𝟙 ((L.functF hiN).obj (L.F (D.refl i) w)) = 𝟙 (L.F hiN (L.F (D.refl i) w))
+      from rfl, Cat.id_comp, isoInv_comp, Cat.comp_id]
     -- absorb the level `aw.1 → N` transition by `homInclL_compat`.
     exact homInclL_compat L hL z w (a := aw)
       (b := ⟨N, D.trans aw.2.1 hawN, D.trans aw.2.2 hawN⟩) hawN wa
@@ -934,7 +934,7 @@ theorem stageInclL_product_up (pData : LaxProductData L) (i : ι) (x y : L.A i)
     `isIso_of_product_up'`, whose hypothesis is the product universal property `stageInclL_product_up`. -/
 theorem stageInclFunctorL_preservesProducts (pData : LaxProductData L) (i : ι) :
     @PreservesBinaryProducts (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (pData.hp i)
+      (stageInclFunctorL L hL i) (pData.hp i)
       (laxColimHasBinaryProducts L hL pData) := by
   letI : Cat (Obj L) := laxColimCat L hL
   letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
@@ -1010,12 +1010,10 @@ theorem stageInclL_equalizer_up (eqData : LaxEqualizerData L) (i : ι) {x y : L.
               ≫ (L.functF hkn).map (reflApp L x)
           = (L.functF hkn).map (eqMap f g) := by
       rw [← Cat.assoc (isoInv (transApp_isIso L hik hkn x)), inv_isoInv_comp, Cat.id_comp,
-          @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn) (L.functF hkn)
-            _ _ _ (eqMap f g) (isoInv (reflApp_isIso L x)),
-          Cat.assoc, ← @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn)
-            (L.functF hkn) _ _ _ (isoInv (reflApp_isIso L x)) (reflApp L x),
+          (L.functF hkn).map_comp (eqMap f g) (isoInv (reflApp_isIso L x)),
+          Cat.assoc, ← (L.functF hkn).map_comp (isoInv (reflApp_isIso L x)) (reflApp L x),
           inv_isoInv_comp,
-          @Functor.map_id (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hkn) (L.functF hkn) x,
+          (L.functF hkn).map_id,
           Cat.comp_id]
     have hmapeq : u₁ ≫ (L.functF hkn).map (eqMap f g)
         = u₂ ≫ (L.functF hkn).map (eqMap f g) := by
@@ -1071,12 +1069,11 @@ theorem stageInclL_equalizer_up (eqData : LaxEqualizerData L) (i : ι) {x y : L.
               ≫ transApp L (D.refl i) hiN y ≫ (L.functF hiN).map (reflApp L y) := by
     intro m
     rw [← Cat.assoc (isoInv (transApp_isIso L (D.refl i) hiN y)), inv_isoInv_comp, Cat.id_comp,
-        @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
-          _ _ _ m (isoInv (reflApp_isIso L y))]
-    rw [Cat.assoc ((L.functF hiN).map m), ← @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N)
-          (L.F hiN) (L.functF hiN) _ _ _ (isoInv (reflApp_isIso L y)) (reflApp L y),
+        (L.functF hiN).map_comp m (isoInv (reflApp_isIso L y))]
+    rw [Cat.assoc ((L.functF hiN).map m),
+        ← (L.functF hiN).map_comp (isoInv (reflApp_isIso L y)) (reflApp L y),
         inv_isoInv_comp,
-        @Functor.map_id (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN) y,
+        (L.functF hiN).map_id,
         Cat.comp_id]
     simp only [cN, Cat.assoc]
   have hcN : cN ≫ (L.functF hiN).map f = cN ≫ (L.functF hiN).map g := by
@@ -1103,10 +1100,11 @@ theorem stageInclL_equalizer_up (eqData : LaxEqualizerData L) (i : ι) {x y : L.
         inv_isoInv_comp, Cat.id_comp]
     -- distribute `map (eqMap ≫ isoInv reflApp)` and use `hr` to substitute `r ≫ map eqMap`.
     rw [show projE = eqMap f g ≫ isoInv (reflApp_isIso L x) from rfl,
-        @Functor.map_comp (L.A i) (L.catA i) (L.A N) (L.catA N) (L.F hiN) (L.functF hiN)
-          _ _ _ (eqMap f g) (isoInv (reflApp_isIso L x)), ← Cat.assoc, ← Cat.assoc r, hr]
+        (L.functF hiN).map_comp (eqMap f g) (isoInv (reflApp_isIso L x)), ← Cat.assoc, ← Cat.assoc r, hr]
     -- now `cN ≫ map(isoInv reflApp) ≫ isoInv transApp`; unfold cN and cancel the units.
-    simp only [cN, prUnit, Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id, Cat.comp_id]
+    simp only [cN, prUnit, Cat.assoc, ← Functor.map_comp, isoInv_comp, Functor.map_id]
+    rw [show 𝟙 ((L.functF hiN).obj (L.F (D.refl i) x)) = 𝟙 (L.F hiN (L.F (D.refl i) x))
+      from rfl, Cat.id_comp, isoInv_comp, Cat.comp_id]
     exact homInclL_compat L hL z x (a := ac)
       (b := ⟨N, D.trans ac.2.1 haN, D.trans ac.2.2 haN⟩) haN cc
   refine ⟨homInclL L hL z Eobj ⟨N, hlN, hiN⟩ (r ≫ isoInv (prUnit_isIso L Eobj hiN)), ?_, ?_⟩
@@ -1120,7 +1118,7 @@ theorem stageInclL_equalizer_up (eqData : LaxEqualizerData L) (i : ι) {x y : L.
     so the canonical comparison to the chosen colimit equalizer is iso (`isIso_of_two_equalizers`). -/
 theorem stageInclFunctorL_preservesEqualizers (eqData : LaxEqualizerData L) (i : ι) :
     @PreservesEqualizers (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (eqData.he i)
+      (stageInclFunctorL L hL i) (eqData.he i)
       (laxColimHasEqualizers L hL eqData) := by
   letI : Cat (Obj L) := laxColimCat L hL
   letI hEq : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
@@ -1181,7 +1179,7 @@ theorem stageInclFunctorL_preservesPullbacks [Nonempty ι]
   letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
   letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
   exact image_chosenPullback_isPullback' (𝒞 := L.A i) (𝒟 := Obj L)
-    (fun x => (⟨i, x⟩ : Obj L)) (hF := stageInclFunctorL L hL i)
+    (stageInclFunctorL L hL i)
     (stageInclFunctorL_preservesProducts L hL pData i)
     (stageInclFunctorL_preservesEqualizers L hL eqData i) f g
 
@@ -1191,13 +1189,13 @@ theorem stageInclFunctorL_preservesPullbacks [Nonempty ι]
     flanking isos `reflApp` gives `g = g'`.  Lax `objIncl_faithful` (embedding part). -/
 theorem stageInclFunctorL_faithful
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        IsIso ((L.functF hij).map φ) → IsIso φ)
     (i : ι) :
     @Faithful (L.A i) (L.catA i) (Obj L) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) := by
+      (stageInclFunctorL L hL i) := by
   letI : Cat (Obj L) := laxColimCat L hL
   refine ⟨?_, ?_⟩
   · -- Embedding: `stageInclL` injective on hom-sets.
@@ -1226,18 +1224,18 @@ theorem stageInclFunctorL_faithful
     have hi1 : IsIso (transApp L (D.refl i) hae x) := transApp_isIso L (D.refl i) hae x
     have hi1' : IsIso (isoInv (transApp_isIso L (D.refl i) hae y)) :=
       ⟨transApp L (D.refl i) hae y, inv_isoInv_comp _, isoInv_comp _⟩
-    have hmapr : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _
+    have hmapr : IsIso ((L.functF hae).map
         (reflApp L x ≫ g ≫ isoInv (reflApp_isIso L y))) := by
       have := hpiso; unfold pushHom at this
       exact isIso_unconj hi1 hi1' this
     -- `map gᵣ = (map reflApp x) ≫ (map g) ≫ (map isoInv)`; un-conjugate again.
-    rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ (reflApp L x)
+    rw [(L.functF hae).map_comp (reflApp L x)
           (g ≫ isoInv (reflApp_isIso L y)),
-        @Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ g (isoInv (reflApp_isIso L y))] at hmapr
-    have hi2 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (reflApp L x)) :=
-      @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (reflApp L x) (reflApp_isIso L x)
-    have hi3 : IsIso (@Functor.map _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))) :=
-      @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L y))
+        (L.functF hae).map_comp g (isoInv (reflApp_isIso L y))] at hmapr
+    have hi2 : IsIso ((L.functF hae).map (reflApp L x)) :=
+      functor_preserves_iso (F := L.functF hae) (reflApp L x) (reflApp_isIso L x)
+    have hi3 : IsIso ((L.functF hae).map (isoInv (reflApp_isIso L y))) :=
+      functor_preserves_iso (F := L.functF hae) (isoInv (reflApp_isIso L y))
         ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩
     exact isIso_unconj hi2 hi3 hmapr
 
@@ -1248,7 +1246,7 @@ theorem stageInclFunctorL_faithful
     `hM_mono` block inside `homInclL_cover_reflects`. -/
 theorem stageInclFunctorL_preservesMono
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → Monic (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+        Monic φ → Monic ((L.functF hij).map φ))
     {i : ι} {x y : L.A i} (φ : x ⟶ y) (hφ : Monic φ) :
     @Monic (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL φ) := by
   letI : Cat (Obj L) := laxColimCat L hL
@@ -1257,21 +1255,21 @@ theorem stageInclFunctorL_preservesMono
   intro e hie z u v huv
   -- `pushHom (reflApp ≫ φ ≫ isoInv) = transApp ≫ map(reflApp ≫ φ ≫ isoInv) ≫ isoInv`,
   -- all but `map φ` isos, and `map φ` mono (hmono) ⇒ the push is mono.
-  have hmono_map : Monic (@Functor.map _ _ _ _ _ (L.functF hie) x y φ) := hmono hie φ hφ
+  have hmono_map : Monic ((L.functF hie).map φ) := hmono hie φ hφ
   revert huv
   unfold pushHom
-  rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L x)
+  rw [(L.functF hie).map_comp (reflApp L x)
         (φ ≫ isoInv (reflApp_isIso L y)),
-      @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ φ (isoInv (reflApp_isIso L y))]
+      (L.functF hie).map_comp φ (isoInv (reflApp_isIso L y))]
   intro huv
   -- the composite map is mono: map φ mono flanked by isos (pre/post compose mono by iso stays mono).
-  have hbig : Monic (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
-        ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y φ
-        ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+  have hbig : Monic ((L.functF hie).map (reflApp L x)
+        ≫ (L.functF hie).map φ
+        ≫ (L.functF hie).map (isoInv (reflApp_isIso L y))) :=
     mono_precomp_iso'
-      (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x))
+      (functor_preserves_iso (F := L.functF hie) (reflApp L x) (reflApp_isIso L x))
       (mono_postcomp_iso' hmono_map
-        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+        (functor_preserves_iso (F := L.functF hie) (isoInv (reflApp_isIso L y))
           ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
   exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie x)
     (mono_postcomp_iso' hbig
@@ -1283,10 +1281,10 @@ theorem stageInclFunctorL_preservesMono
     Wrapper of `homInclL_cover_of_stage` at the reflexive bound. -/
 theorem stageInclFunctorL_preservesCover
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Cover φ → Cover (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+        Cover φ → Cover ((L.functF hij).map φ))
     {i : ι} {x y : L.A i} (φ : x ⟶ y) (hφ : Cover φ) :
     @Cover (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL φ) := by
   unfold stageInclL
@@ -1457,14 +1455,14 @@ theorem colimHom_cospan_as_stageInclL {A B Z : Obj L}
 theorem laxColim_hcanon_of_stage [Nonempty ι]
     (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p
+          = (L.functF hij).map q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → IsIso (@Functor.map _ _ _ _ _ (L.functF hij) x y φ) → IsIso φ)
+        Monic φ → IsIso ((L.functF hij).map φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Monic φ → Monic (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+        Monic φ → Monic ((L.functF hij).map φ))
     (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (φ : x ⟶ y),
-        Cover φ → Cover (@Functor.map _ _ _ _ _ (L.functF hij) x y φ))
+        Cover φ → Cover ((L.functF hij).map φ))
     (hstagePTC : ∀ i, @PullbacksTransferCovers (L.A i) (L.catA i)) :
     letI : Cat (Obj L) := laxColimCat L hL
     letI : HasPullbacks (Obj L) := laxColimHasPullbacks L hL tData pData eqData
