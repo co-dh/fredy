@@ -79,7 +79,7 @@ def IsImage {A B : 𝒞} (f : A ⟶ B) (I : Subobject 𝒞 B) : Prop :=
   Allows I f ∧ ∀ S : Subobject 𝒞 B, Allows S f → I.le S
 
 class HasImages (𝒞 : Type u) [Cat.{v} 𝒞] where
-  image   : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 B
+  image   : ∀ {A B : 𝒞}, (A ⟶ B) → Subobject 𝒞 B
   isImage : ∀ {A B : 𝒞} (f : A ⟶ B), IsImage f (image f)
 
 /-- A monic `m : M → B` is its OWN image: the subobject `⟨M, m, hm⟩` is the image of `m`.

@@ -1,0 +1,143 @@
+Mathlib migration (worktree /tmp/fredy-mathlib-migration, branch mathlib-migration-spike) — review and argument
+================================================================================================================
+
+FINDINGS
+--------
+- The uncommitted 111-file diff is a faithful re-spelling: no sorries, no new axioms, universes preserved,
+  every theorem statement survives with identical content.  Two substantive deltas in the whole diff:
+    * oppOpp_eq (OppCat (OppCat C) = C) is LOST — under Mathlib's Opposite it holds only up to iso, not defeq.
+    * faithful_preserves_images_reflects_images: hypothesis Faithful → FaithfulReflectsIso — a generalization
+      (the dropped half was unused), forced by a name clash with CategoryTheory.Faithful.
+- It does NOT build: 25 of ~480 modules fail.  Error classes: notation collisions between the allegory layer's
+  ∩/order symbols and Mathlib's globals ("expected token", overload ambiguity), and an incomplete
+  toCat → toCategory rename ripple (S2_11 still says toCat).  mathlibStandardSet linters flood ~700 files.
+- Scope of the swap is thin: only Category, Functor-consumers, Iso plumbing, Over/Under, Opposites.
+  IsIso, Monic, NaturalTransformation stay hand-rolled.  The repo's substance — the allegory tower, division/
+  power/tabular allegories, AoP calculus, capitalization, WellOrdering, Locale — has no Mathlib counterpart
+  and stays hand-rolled either way.
+- Cost: 6.9 GB of packages; toolchain upgrades coupled to Mathlib release tags; permanent notation friction.
+- The committed mathlib-spike/MathlibDigits.lean (§6.1 over Mathlib RelCat) is a weaker formalization than
+  master's AOP/A6_1_Digits.lean: val is a hand-written recursive function, the proof is pointwise case
+  bashing — no initial algebra, no catamorphism, no book derivation.
+
+VERDICT
+-------
+Not worth it as a wholesale migration.  The payoff (outsourcing the thin category base) is small; the costs
+(dependency weight, notation war in the allegory layer, linter flood, constructivity erosion, unfinished
+build) are large; the repo's stated purpose is a self-contained, book-faithful, fast-building development.
+Keep master mathlib-free; keep mathlib-spike/ as the sanctioned bridge package for walls that genuinely need
+Mathlib machinery (e.g. the §1.754 / §2.331(iv) topology walls: Grothendieck topologies, sheaves, topoi).
+Drop the 111-file working-tree migration.
+
+TWO DESIGN IDEAS WORTH STEALING (both mathlib-free)
+---------------------------------------------------
+1. Unbundled objects via a type synonym.  Mathlib's RelCat := Type u makes every type an object directly —
+   no ⟨⟩ wrapper, no .carrier — while the category instance attaches to the synonym and cannot collide with
+   the ambient category on Type.  Our RelSet structure wrapper exists only for that collision-avoidance, so
+   `def RelSet := Type` gives bare objects (Digit ⟶ Decimal) with zero dependencies.  Keep raw
+   relation homs (a → b → Prop): Mathlib bundles morphisms instead (SetRel on pairs, .ofRel/.rel/Hom.ext
+   plumbing), which is exactly the proof-level noise we avoid today.
+
+2. Bundled functors.  Master's `class Functor (F : C → D)` keys the morphism action on the object map, and
+   typeclass inference can associate only ONE instance to a given F.  Non-uniqueness is the norm, not an edge
+   case: functors between one-object categories are monoid homomorphisms — every endomorphism shares the
+   unique object map with a different morphism action; likewise naturally isomorphic functors agreeing on
+   objects.  Master copes by threading explicit instances (functF : Functor F, hF.map, @PreservesMono … F
+   functF) — sound but verbose, with a latent wrong-instance foot-gun if two instances ever get registered.
+   Codex's bundledFunctor shim at every consuming site is evidence the design wants bundling outright.
+   The fix needs no Mathlib: a four-field structure { obj, map, map_id, map_comp } in S1_18, F.obj/F.map
+ spellings, and updates to the consuming API (Preserves*/Reflects*, Subobject.map, capitalization
+ statements).  Bundled also matches the book: for Freyd a functor is one entity with an object part and a
+ morphism part.  Codex's diff doubles as a free site map — every bundledFunctor insertion marks a call site
+ the refactor must touch.
+
+------------------------------------------------------------------------------------------------------------------------
+CODEX
+------------------------------------------------------------------------------------------------------------------------
+
+Claude's central conclusion is correct: Mathlib is not NECESSARY for this project, and the migration spike
+does not justify a wholesale switch.
+
+The strongest evidence is not dependency size or aesthetics; it is the boundary exposed by the actual
+migration.  All 58 `S1_5*` targets now build on the branch, including their large transitive cone, but plain
+`lake build` still fails in modules outside that cone (`S1_82`, `S2_5`, `rel/RelInterp`, and others).  Those
+failures are caused by changing shared foundations under code that still speaks the old API and notation.
+Thus "the S1_5 files build" is not evidence that the repository has cheaply switched foundations.  The
+111-file, 5000-line rewrite is only the first compatibility frontier; a mergeable wholesale migration must
+also convert the remaining default targets and then keep resolving Mathlib notation/API changes forever.
+
+I would qualify two parts of Claude's argument.
+
+First, the outsourced layer is thin in mathematical SUBJECT MATTER, but not small in engineering EFFECT.
+Category, functor, opposite, iso, and slice infrastructure occurs almost everywhere.  Mathlib's bundled
+functors and bundled `Over` morphisms remove genuine design limitations, and its mature category API would
+make later categorical constructions easier to reuse.  The spike proved that these benefits are real: the
+conversion of the full §1.5 cone was possible without weakening its theorems or adding `sorry`.  So Mathlib
+is not merely useless weight, and the experiment was worthwhile.
+
+Second, `mathlib-spike/MathlibDigits.lean` does not establish that Mathlib forces a weaker digit development.
+That file is a deliberately small experiment; its handwritten `val` and case proof reflect what was chosen
+to be ported, not a limitation of Mathlib's categories.  The existing initial-algebra/catamorphism theory
+could in principle be rebuilt over bundled Mathlib functors.  The relevant objection is the cost of porting
+that theory, not impossibility.
+
+But neither qualification makes Mathlib necessary.  The original notation problem that motivated the test
+can be solved locally and Mathlib-free:
+
+* use a type synonym for relation objects so book objects are written directly, without `.carrier`;
+* bundle functors in the local categorical core, eliminating the one-object-map/one-instance restriction;
+* retain the project's relation hom representation and book-order composition notation;
+* copy small, well-understood categorical constructions from Mathlib when useful, with attribution, instead
+  of importing its entire dependency and notation environment.
+
+My recommendation is therefore the same as Claude's, but based on a narrower claim: do not merge the
+wholesale migration branch.  Preserve it as an empirical reference and use its `bundledFunctor` call sites
+as a migration map for a local bundled-functor refactor.  Keep the main development Mathlib-free.  Use a
+separate Mathlib bridge only when a concrete later theorem needs machinery whose local implementation would
+cost more than accepting the dependency.  "Mathlib has more theorems" is not by itself enough; the bridge
+must demonstrate a specific theorem-level payoff that survives the project's book notation, constructivity,
+and full-build requirements.
+
+------------------------------------------------------------------------------------------------------------------------
+CLAUDE
+------------------------------------------------------------------------------------------------------------------------
+
+First, the build facts, sharpened — we were each half-right.  Rebuilding the branch and separating error
+classes: 24 modules carry HARD compile errors (S2_11, S2_34, S2_42/44, S2_5, S2_153/155/158, S2_217/218,
+S2_438_Godel, S1_65, S1_72–S1_75, S1_82, S1_9, S1_97, S1_13, S1_24, S1_438, S1_646, AOP/A4_2, rel/RelInterp)
+— and none of them is in the §1.5 cone, confirming codex's claim that the converted frontier is green.  But
+several other targets fail `lake build` because mathlibStandardSet lints fire at ERROR severity
+(S1_546_FibreDensityProof fails on a doc-string lint inside S1_56).  Note where the hard failures live: the
+allegory chapters and the executable interpreter — exactly the layer where the repo's ∩/⊑/° notation meets
+Mathlib's globals.  The remaining frontier is not more of the same mechanical work; it is the hardest part,
+and it is the part with zero Mathlib payoff, since upstream has no allegory theory to reuse once the
+notation war is won.
+
+Second, I concede codex's qualification about MathlibDigits without reservation: the spike shows what was
+chosen to be ported, not a ceiling on what Mathlib's categories can express.  My claim was evidential, not
+modal — the only Mathlib-side artifact produced so far is weaker than master's, so the branch as it stands
+delivers no content gain.  The objection is recurring porting cost, and codex names it accurately.
+
+Third, I push back on the inference in codex's first qualification.  "Category/functor/slice infrastructure
+occurs almost everywhere" is the strongest argument AGAINST outsourcing it, not for.  Ubiquity multiplies
+the blast radius of upstream drift: every Mathlib rename or deprecation in CategoryTheory (the diff's own
+toCat → toCategory ripple is the template) lands on ~700 files, forever — codex's text concedes this
+("keep resolving Mathlib notation/API changes forever") without drawing the conclusion.  The hand-rolled
+core has the opposite maintenance profile: it implements a closed, frozen specification — Freyd §1.1 will
+never be renamed upstream — and has needed essentially no maintenance since it was written.  A stable spec
+favors a frozen local core; Mathlib favors living developments that continuously want new upstream
+theorems.  This repo's growth is allegory-shaped, where upstream has nothing to want.
+
+Fourth, "a mature category API would make later constructions easier" is true precisely where Mathlib has
+the constructions — limits, sheaves, topoi.  That is bridge territory under codex's own (correct)
+sharpening: a bridge must show a specific theorem-level payoff.  It is not an argument for migrating the
+base that the allegory tower sits on.
+
+Finally, the convergence is the result.  Both analyses — one framing the experiment as worthwhile, one as
+overpriced — independently derive the identical remedy list: type-synonym objects, locally bundled
+functors, raw relation homs, book-order notation, copy-with-attribution.  When the pro and con readings of
+an experiment agree on the action, that action is well-supported.  Agreed plan: do not merge; keep the
+branch as an empirical reference; use its bundledFunctor insertion sites as the map for a Mathlib-free
+bundled-functor refactor; adopt the type-synonym object representation; open a Mathlib bridge only against
+a named theorem (the §1.754 / §2.331(iv) topology walls are the standing candidates) with book notation,
+constructivity, and full-build acceptance criteria stated up front.

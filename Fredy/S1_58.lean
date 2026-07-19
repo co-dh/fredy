@@ -121,7 +121,7 @@ class HasCoequalizer {A B : 𝒞} (f g : A ⟶ B) where
   obj   : 𝒞
   map   : B ⟶ obj
   eq    : f ≫ map = g ≫ map
-  desc  : ∀ {X : 𝒞} (h : B ⟶ X) (h_eq : f ≫ h = g ≫ h), obj ⟶ X
+  desc  : ∀ {X : 𝒞} (h : B ⟶ X), f ≫ h = g ≫ h → obj ⟶ X
   fac   : ∀ {X : 𝒞} (h : B ⟶ X) (h_eq : f ≫ h = g ≫ h), map ≫ desc h h_eq = h
   uniq  : ∀ {X : 𝒞} (h : B ⟶ X) (h_eq : f ≫ h = g ≫ h) (m : obj ⟶ X),
     map ≫ m = h → m = desc h h_eq

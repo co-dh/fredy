@@ -135,7 +135,7 @@ structure RightASet (A : Type u) [Cat.{v} A] where
   /-- Source map X → |A|: assigns to each point its "current object". -/
   src       : carrier → A
   /-- Partial action: given x : carrier and a morphism a : A' → src x, produce a new point. -/
-  act       : ∀ (x : carrier) {A' : A} (a : A' ⟶ src x), carrier
+  act       : ∀ (x : carrier) {A' : A}, (A' ⟶ src x) → carrier
   /-- x · id = x. -/
   act_id    : ∀ (x : carrier), act x (Cat.id (src x)) = x
   /-- src(x · a) = domain of a. -/
@@ -162,7 +162,7 @@ structure LeftASet (A : Type u) [Cat.{v} A] where
   /-- Target map X → |A|: the object "labelling" a point. -/
   tgt       : carrier → A
   /-- Partial action: given x : carrier and morphism a : tgt x → A', produce a new point. -/
-  act       : ∀ (x : carrier) {A' : A} (a : tgt x ⟶ A'), carrier
+  act       : ∀ (x : carrier) {A' : A}, (tgt x ⟶ A') → carrier
   /-- id · x = x. -/
   act_id    : ∀ (x : carrier), act x (Cat.id (tgt x)) = x
   /-- tgt(a · x) = codomain of a. -/

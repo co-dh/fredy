@@ -25,3 +25,8 @@ globs = ["leet.+"]
 [[lean_lib]]
 name = "rel"             # the relation-algebra interpreter + case studies + auto-derivation drivers
 globs = ["rel.+"]
+
+[[lean_exe]]
+name = "lean-refactor"
+root = "Fredy.tool.LeanRefactor"
+supportInterpreter = true

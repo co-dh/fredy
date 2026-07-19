@@ -1,4 +1,5 @@
 import Mathlib.CategoryTheory.Category.RelCat
+import Mathlib.CategoryTheory.Endofunctor.Algebra
 
 /-!
 Experimental vertical slice: B&dM p.138 directly over Mathlib's `RelCat`.
@@ -51,6 +52,79 @@ def rprod {A A' B B' : Rel} (R : A ⟶ A') (S : B ⟶ B') :
 /-- Identity relation, named as in the book. -/
 def rid (A : Rel) : A ⟶ A := 𝟙 A
 
+/-! ## General polynomial relator and initial algebra
+
+This is the direct Mathlib version of the reusable machinery in `A6_1_Digits.lean`.
+Mathlib supplies `Functor`, `Endofunctor.Algebra`, and `Limits.IsInitial`; only the
+order-enrichment (the extra condition that makes a functor a book relator) is local.
+-/
+
+/-- Pointwise inclusion of relations. -/
+def subrel {A B : Rel} (R S : A ⟶ B) : Prop := ∀ a b, R.rel (a, b) → S.rel (a, b)
+
+/-- The book's relator: an ordinary endofunctor whose action is monotone. -/
+structure Relator where
+  toFunctor : Rel ⥤ Rel
+  map_mono : ∀ {A B : Rel} {R S : A ⟶ B}, subrel R S →
+    subrel (toFunctor.map R) (toFunctor.map S)
+
+instance : Coe Relator (Rel ⥤ Rel) := ⟨Relator.toFunctor⟩
+
+/-- `F A = Digit⁺ + (A × Digit)`. -/
+def Fobj (A : Rel) : Rel := DigitP ⊕ (A × Digit)
+
+/-- `F R = id + (R × id)`. -/
+def Fmap {A B : Rel} (R : A ⟶ B) : Fobj A ⟶ Fobj B :=
+  rel fun u v => match u, v with
+    | Sum.inl d, Sum.inl e => d = e
+    | Sum.inr p, Sum.inr q => R.rel (p.1, q.1) ∧ p.2 = q.2
+    | _, _ => False
+
+/-- The digits polynomial as a Mathlib functor. -/
+def FFunctor : Rel ⥤ Rel where
+  obj := Fobj
+  map := Fmap
+  map_id A := by
+    apply RelCat.Hom.ext
+    funext ⟨u, v⟩
+    apply propext
+    cases u with
+    | inl d => cases v with
+      | inl e => exact ⟨congrArg Sum.inl, Sum.inl.inj⟩
+      | inr q => exact ⟨False.elim, fun h => nomatch h⟩
+    | inr p => cases v with
+      | inl e => exact ⟨False.elim, fun h => nomatch h⟩
+      | inr q => exact ⟨fun h => congrArg Sum.inr (Prod.ext_iff.mpr h),
+          fun h => Prod.ext_iff.mp (Sum.inr.inj h)⟩
+  map_comp R S := by
+    apply RelCat.Hom.ext
+    funext ⟨u, v⟩
+    apply propext
+    cases u with
+    | inl d => cases v with
+      | inl e => exact ⟨fun h => ⟨Sum.inl d, rfl, h⟩,
+          fun ⟨w, hw, hw'⟩ => by cases w with
+            | inl k => exact hw.trans hw'
+            | inr q => exact hw.elim⟩
+      | inr q => exact ⟨False.elim, fun ⟨w, hw, hw'⟩ => by
+          cases w <;> first | exact hw.elim | exact hw'.elim⟩
+    | inr p => cases v with
+      | inl e => exact ⟨False.elim, fun ⟨w, hw, hw'⟩ => by
+          cases w <;> first | exact hw.elim | exact hw'.elim⟩
+      | inr q =>
+          exact ⟨fun ⟨⟨m, hm, hm'⟩, hd⟩ =>
+              ⟨Sum.inr (m, p.2), ⟨hm, rfl⟩, ⟨hm', hd⟩⟩,
+            fun ⟨w, hw, hw'⟩ => by cases w with
+              | inl e => exact hw.elim
+              | inr z => exact ⟨⟨z.1, hw.1, hw'.1⟩, hw.2.trans hw'.2⟩⟩
+
+/-- The digits polynomial is a relator in the book's sense. -/
+def F : Relator where
+  toFunctor := FFunctor
+  map_mono h := by
+    intro u v huv
+    cases u <;> cases v <;> simp_all [FFunctor, Fmap, rel, subrel]
+
 /-- The book's constructor relation `wrap : Digit⁺ → Decimal`. -/
 def wrap : DigitP ⟶ Decimal := rel fun d x => x = Decimal.Carrier.wrap d
 
@@ -72,6 +146,108 @@ def valFn : Decimal → Nat
 
 /-- `val : Decimal → Nat`, now with exactly the book-level object names in its categorical type. -/
 def val : Decimal ⟶ Nat := rel fun x n => n = valFn x
+
+/-- Constructor algebra `⁅wrap,snoc⁆ : F Decimal ⟶ Decimal`. -/
+def constructors : Fobj Decimal ⟶ Decimal := rel fun u x =>
+  (match u with
+    | Sum.inl d => Decimal.Carrier.wrap d
+    | Sum.inr p => Decimal.Carrier.snoc p.1 p.2) = x
+
+/-- Constructive fold of an arbitrary relation algebra. -/
+def cataFold {A : Rel} (φ : Fobj A ⟶ A) : Decimal → A → Prop
+  | .wrap d, a => φ.rel (Sum.inl d, a)
+  | .snoc x d, a => ∃ b, cataFold φ x b ∧ φ.rel (Sum.inr (b, d), a)
+
+/-- The fold, bundled as a `RelCat` morphism. -/
+def cata {A : Rel} (φ : Fobj A ⟶ A) : Decimal ⟶ A := rel (cataFold φ)
+
+/-- The initial digits algebra in Mathlib's standard algebra category. -/
+def decimalAlgebra : Endofunctor.Algebra FFunctor := ⟨Decimal, constructors⟩
+
+/-- The constructive fold is an algebra homomorphism. -/
+def cataHom (A : Endofunctor.Algebra FFunctor) : decimalAlgebra ⟶ A where
+  f := cata A.str
+  h := by
+    apply RelCat.Hom.ext
+    funext ⟨u, a⟩
+    apply propext
+    cases u with
+    | inl d =>
+      constructor
+      · rintro ⟨v, hv, ha⟩
+        cases v with
+        | inl e => subst e; exact ⟨Decimal.Carrier.wrap d, rfl, ha⟩
+        | inr q => exact hv.elim
+      · rintro ⟨x, hx, ha⟩
+        change Decimal.Carrier.wrap d = x at hx
+        subst x; exact ⟨Sum.inl d, rfl, ha⟩
+    | inr p =>
+      constructor
+      · rintro ⟨v, hv, ha⟩
+        cases v with
+        | inl e => exact hv.elim
+        | inr q =>
+          obtain ⟨hq, hd⟩ := hv
+          exact ⟨Decimal.Carrier.snoc p.1 p.2, rfl, q.1, hq, hd ▸ ha⟩
+      · rintro ⟨x, hx, ha⟩
+        change Decimal.Carrier.snoc p.1 p.2 = x at hx
+        subst x
+        obtain ⟨b, hb, hφ⟩ := ha
+        exact ⟨Sum.inr (b, p.2), ⟨hb, rfl⟩, hφ⟩
+
+/-- `Decimal` is initial, hence `cataHom` is the general catamorphism theorem.
+Unlike the project-specific structure, no `Map` premises are needed in concrete `RelCat`. -/
+def decimalIsInitial : Limits.IsInitial decimalAlgebra :=
+  Limits.IsInitial.ofUniqueHom cataHom fun A h => by
+    apply Endofunctor.Algebra.Hom.ext
+    apply RelCat.Hom.ext
+    funext ⟨x, a⟩
+    apply propext
+    induction x generalizing a with
+    | wrap d =>
+        have e := congrArg (fun k => k.rel (Sum.inl d, a)) h.h
+        change (FFunctor.map h.f ≫ A.str).rel (Sum.inl d, a) =
+          (decimalAlgebra.str ≫ h.f).rel (Sum.inl d, a) at e
+        constructor
+        · intro hh
+          have lhs : (decimalAlgebra.str ≫ h.f).rel (Sum.inl d, a) :=
+            ⟨Decimal.Carrier.wrap d, rfl, hh⟩
+          rw [← e] at lhs
+          obtain ⟨v, hv, ha⟩ := lhs
+          cases v with
+          | inl k => subst k; exact ha
+          | inr q => exact hv.elim
+        · intro ha
+          have rhs : (FFunctor.map h.f ≫ A.str).rel (Sum.inl d, a) :=
+            ⟨Sum.inl d, rfl, ha⟩
+          rw [e] at rhs
+          obtain ⟨x, hx, hh⟩ := rhs
+          change Decimal.Carrier.wrap d = x at hx
+          subst x; exact hh
+    | snoc x d ih =>
+        have e := congrArg (fun k => k.rel (Sum.inr (x, d), a)) h.h
+        change (FFunctor.map h.f ≫ A.str).rel (Sum.inr (x, d), a) =
+          (decimalAlgebra.str ≫ h.f).rel (Sum.inr (x, d), a) at e
+        constructor
+        · intro hh
+          have lhs : (decimalAlgebra.str ≫ h.f).rel (Sum.inr (x, d), a) :=
+            ⟨Decimal.Carrier.snoc x d, rfl, hh⟩
+          rw [← e] at lhs
+          obtain ⟨v, hv, ha⟩ := lhs
+          cases v with
+          | inl k => exact hv.elim
+          | inr q =>
+              obtain ⟨qb, qd⟩ := q
+              change h.f.rel (x, qb) ∧ d = qd at hv
+              rw [← hv.2] at ha
+              exact ⟨qb, (ih qb).mp hv.1, ha⟩
+        · rintro ⟨b, hb, ha⟩
+          have rhs : (FFunctor.map h.f ≫ A.str).rel (Sum.inr (x, d), a) :=
+            ⟨Sum.inr (b, d), ⟨(ih b).mpr hb, rfl⟩, ha⟩
+          rw [e] at rhs
+          obtain ⟨y, hy, hh⟩ := rhs
+          change Decimal.Carrier.snoc x d = y at hy
+          subst y; exact hh
 
 /-- B&dM p.138's recursive equation, in the repository's diagram-order composition.
 The statement has no object wrappers and no `.carrier`; `.rel` appears only when proving equality

@@ -35,7 +35,7 @@ def SeparatesMaps {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
 def Full (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
   ∀ {A B : 𝒞} (h : F A ⟶ F B), ∃ f : A ⟶ B, hF.map f = h
 
-def HasRepresentativeImage (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
+def HasRepresentativeImage (F : 𝒞 → 𝒟) [Functor F] : Prop :=
   ∀ B : 𝒟, ∃ A : 𝒞, ∃ (h : F A ⟶ B), IsIso h
 
 def EquivalenceFunctor (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=

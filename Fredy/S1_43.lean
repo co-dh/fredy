@@ -309,13 +309,13 @@ def finiteProducts_implies_binary (hfp : HasFiniteProducts 𝒞) : HasBinaryProd
   prod  := fun A B => (hfp.fin_prod (n := 2) (fin2 A B)).prod
   fst   := fun {A B} => (hfp.fin_prod (fin2 A B)).proj 0
   snd   := fun {A B} => (hfp.fin_prod (fin2 A B)).proj 1
-  pair  := fun {X A B} f g =>
+  pair  := fun {_ A B} f g =>
     (hfp.fin_prod (fin2 A B)).lift (Fin.cases f (Fin.cases g (fun i => i.elim0)))
-  fst_pair := fun {X A B} f g =>
+  fst_pair := fun {_ A B} f g =>
     (hfp.fin_prod (fin2 A B)).lift_π (Fin.cases f (Fin.cases g (fun i => i.elim0))) 0
-  snd_pair := fun {X A B} f g =>
+  snd_pair := fun {_ A B} f g =>
     (hfp.fin_prod (fin2 A B)).lift_π (Fin.cases f (Fin.cases g (fun i => i.elim0))) 1
-  pair_uniq := fun {X A B} f g h h₁ h₂ =>
+  pair_uniq := fun {_ A B} f g h h₁ h₂ =>
     (hfp.fin_prod (fin2 A B)).lift_uniq (Fin.cases f (Fin.cases g (fun i => i.elim0))) h
       (fun i => Fin.cases h₁ (fun j => Fin.cases h₂ (fun k => k.elim0) j) i)
 
@@ -406,7 +406,7 @@ def PreservesEqualizers {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES TERMINAL if `F(1_𝒞)` is terminal in `𝒟`. -/
 def PreservesTerminal {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] [HasTerminal 𝒞] [HasTerminal 𝒟] : Prop :=
+    (F : 𝒞 → 𝒟) [Functor F] [HasTerminal 𝒞] [HasTerminal 𝒟] : Prop :=
   ∀ (X : 𝒟) (f g : X ⟶ F one), f = g
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES BINARY PRODUCTS if the canonical map
@@ -426,18 +426,6 @@ structure CartesianFunctor {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
   pres_terminal  : PreservesTerminal F
   pres_products  : PreservesBinaryProducts F
   pres_equalizers : PreservesEqualizers F
-
-/-- **§1.437**: A CartesianFunctor preserves pullbacks.
-
-  PROOF: By §1.432 a pullback of `f : A → C`, `g : B → C` is the equalizer
-  of `fst ≫ f`, `snd ≫ g` on `A × B`.  Since `F` preserves products and
-  equalizers, it preserves this construction. -/
-theorem cartesianFunctor_preserves_pullbacks {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    [CartesianCategory 𝒞] [CartesianCategory 𝒟]
-    {F : 𝒞 → 𝒟} [hF : Functor F] (hcf : CartesianFunctor F) :
-    ∀ {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C),
-      (products_equalizers_implies_pullbacks f g).cone.IsPullback :=
-  fun f g => (products_equalizers_implies_pullbacks f g).cone_isPullback
 
 /-- An `EqualizerCone` is an EQUALIZER if every cone over the same parallel
     pair factors uniquely through it (universal-property form, choice-free). -/

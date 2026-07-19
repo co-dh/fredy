@@ -122,7 +122,7 @@ def F : Relator RelSet.{0} RelSet.{0} where
             | inl e => exact hw1.elim
             | inr md => exact ⟨⟨md.1, hw1.1, hw2.1⟩, hw1.2.trans hw2.2⟩⟩
   map_mono {c c' R S} h := le_iff.mpr fun u v => by
-    cases u <;> cases v <;> simp only [Fmap_ll, Fmap_rr, Fmap_lr, Fmap_rl] <;>
+    cases u <;> cases v <;>
       first | exact id | exact fun hh => ⟨le_iff.mp h _ _ hh.1, hh.2⟩ | exact False.elim
 
 /-! ## `Decimal` is the initial algebra of `F` -/

@@ -1,0 +1,33 @@
+# Fake theorems — theorems whose conclusion is literally `True` (vacuous/stub)
+# or whose proof body is `sorry` (unfinished).
+# Generated 2026-06-16. Only main repo (Fredy/), excludes .lake/ and worktrees.
+
+## Empty `by` block (won't compile — no proof body at all)
+Fredy/S1_64.lean:147   preTopos_opposite_regular
+Fredy/S1_72.lean:135   focal_representation_theorem
+Fredy/S1_72.lean:145   geometric_representation_theorem
+Fredy/S1_91.lean:138   minimal_topos_has_terminator
+Fredy/S1_94.lean:24    topos_has_strict_coterminator
+Fredy/S1_94.lean:28    topos_is_regular
+Fredy/S1_94.lean:33    topos_is_logos
+Fredy/S2_5.lean:151    topos_boolean_representation
+
+## `:= by trivial` (compiles but proves nothing — just `True.intro`)
+Fredy/S1_59.lean:106   effective_regular_additive_is_abelian
+Fredy/S2_4.lean:146    topos_allegory_is_power
+
+## `:= trivial` (term-mode trivial = True.intro — same as above)
+Fredy/S1_58.lean:80    image_via_coeq
+Fredy/S1_58.lean:106   middle_two_interchange
+
+## `:= sorry` on theorems (unfinished proofs)
+Fredy/S1_61.lean:142   cartesian_distributive_implies_prelogos
+Fredy/S1_61.lean:145   monic_inverseImage_iff_distributive
+Fredy/S1_61.lean:151   union_via_coproduct_image
+
+## `:= sorry` on structure fields in `logos_implies_preLogos` (S1_70)
+Fredy/S1_70.lean:55    invImage_preserves_union
+Fredy/S1_70.lean:61    bottom
+Fredy/S1_70.lean:62    bottom_min
+Fredy/S1_70.lean:63    bottom_dom_iso
+Fredy/S1_70.lean:64    invImage_preserves_bottom
