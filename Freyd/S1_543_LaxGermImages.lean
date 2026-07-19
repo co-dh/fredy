@@ -57,26 +57,26 @@ variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L)
   whole composite is monic (mono preserved by iso pre/post-composition). -/
 theorem stageInclL_mono_of_stage
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     {i : ι} {x y : L.A i} (m : x ⟶ y) (hm : @Monic (L.A i) (L.catA i) _ _ m) :
     @Monic (Obj L) (laxColimCat L hL) ⟨i, x⟩ ⟨i, y⟩ (stageInclL L hL m) := by
   letI : Cat (Obj L) := laxColimCat L hL
   unfold stageInclL
   apply homInclL_mono_of_stage L hL x y ⟨i, D.refl i, D.refl i⟩
   intro e hie z u v huv
-  have hmono_map : Monic (@Functor.map _ _ _ _ _ (L.functF hie) x y m) := hmono hie hm
+  have hmono_map : Monic (L.Fmap hie m) := hmono hie hm
   revert huv
   unfold pushHom
-  rw [@Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ (reflApp L x) (m ≫ isoInv (reflApp_isIso L y)),
-      @Functor.map_comp _ _ _ _ _ (L.functF hie) _ _ _ m (isoInv (reflApp_isIso L y))]
+  rw [(L.functF hie).map_comp (reflApp L x) (m ≫ isoInv (reflApp_isIso L y)),
+      (L.functF hie).map_comp m (isoInv (reflApp_isIso L y))]
   intro huv
-  have hbig : Monic (@Functor.map _ _ _ _ _ (L.functF hie) _ _ (reflApp L x)
-        ≫ @Functor.map _ _ _ _ _ (L.functF hie) x y m
-        ≫ @Functor.map _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))) :=
+  have hbig : Monic (L.Fmap hie (reflApp L x)
+        ≫ L.Fmap hie m
+        ≫ L.Fmap hie (isoInv (reflApp_isIso L y))) :=
     mono_precomp_iso'
-      (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (reflApp L x) (reflApp_isIso L x))
+      (functor_preserves_iso (F := L.functF hie) (reflApp L x) (reflApp_isIso L x))
       (mono_postcomp_iso' hmono_map
-        (@functor_preserves_iso _ _ _ _ _ (L.functF hie) _ _ (isoInv (reflApp_isIso L y))
+        (functor_preserves_iso (F := L.functF hie) (isoInv (reflApp_isIso L y))
           ⟨reflApp L y, inv_isoInv_comp _, isoInv_comp _⟩))
   exact mono_precomp_iso' (transApp_isIso L (D.refl i) hie x)
     (mono_postcomp_iso' hbig
@@ -88,13 +88,12 @@ theorem stageInclL_mono_of_stage
 theorem objInclL_preserves_images
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        L.Fmap hij p = L.Fmap hij q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ (L.Fmap hij f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)]
     (i : ι) {a b : L.A i} (f : a ⟶ b) :
@@ -110,7 +109,7 @@ theorem objInclL_preserves_images
   -- the cover leg: `stageInclL (image.lift f)` is a colimit cover.
   have hcov : @Cover (Obj L) (laxColimCat L hL) _ _ (stageInclL L hL (image.lift f)) :=
     homInclL_cover_of_stage L hL hfaith a (image f).dom (image.lift f)
-      (fun {e} hie => preservesImage_lift_cover (L.F hie) (hF := L.functF hie) (hmono hie) f
+      (fun {e} hie => preservesImage_lift_cover (L.functF hie) (hmono hie) f
         (himgpres hie f))
   -- the composite `stageInclL (image.lift f) ⊚ stageInclL (image f).arr = stageInclL f`.
   have hcomp : @compL _ _ L hL (objIncl L i a) (objIncl L i (image f).dom) (objIncl L i b)
