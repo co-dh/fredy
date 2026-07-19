@@ -121,7 +121,7 @@ private abbrev pj {i j : ι} (hij : D.le i j) : P.pr j ⟶ P.pr i := P.proj hij
 
 /-- `(laxOfProjSystem' P).functF hij` acts on arrows as `baseChangeMap (P.proj hij)`. -/
 private theorem functF_map {i j : ι} (hij : D.le i j) {X Y : Over (P.pr i)} (m : X ⟶ Y) :
-    @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) X Y m
+    ((laxOfProjSystem' P).functF hij).map m
       = baseChangeMap (pj P hij) m := rfl
 
 /-! ### `LaxTerminalData` -/
