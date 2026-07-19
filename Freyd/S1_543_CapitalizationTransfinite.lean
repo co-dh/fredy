@@ -101,7 +101,7 @@ def StageRelCap {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u
     @Monic (C.A j) (C.catA j) _ _ m' → ¬ @IsIso (C.A j) (C.catA j) _ _ m' →
     ∃ (k : ι) (hjk : D.le j k)
       (pt : @HasTerminal.one (C.A k) (C.catA k) (ht k) ⟶ C.F hjk (C.F hij A₀)),
-      ¬ ∃ y, y ≫ (C.functF hjk).map m' = pt
+      ¬ ∃ y, y ≫ C.Fmap hjk m' = pt
 
 /-! ## Cover-survival of well-pointedness through the colimit -/
 
@@ -150,22 +150,22 @@ theorem homInclObj_mono_reflects (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
         (k : z ⟶ C.F hij X)
-        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     {K : ι} {x y : C.A K} (g : x ⟶ y)
     (hm : @Monic C.Obj (colimitCat C hC) (C.objIncl K x) (C.objIncl K y) (homInclObj C hC g)) :
     @Monic (C.A K) (C.catA K) x y g := by
@@ -248,26 +248,26 @@ theorem wellPointed_of_stage
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
-      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
-      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+      uu ≫ (C.Fmap hij (hp i).fst) = vv ≫ (C.Fmap hij (hp i).fst) →
+      uu ≫ (C.Fmap hij (hp i).snd) = vv ≫ (C.Fmap hij (hp i).snd) → uu = vv)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
       ∃ r : z ⟶ C.F hij ((hp i).prod a c),
-        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+        r ≫ (C.Fmap hij (hp i).fst) = p ∧ r ≫ (C.Fmap hij (hp i).snd) = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
       (uu vv : z ⟶ C.F hij (eqObj f g)),
-      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+      uu ≫ (C.Fmap hij (eqMap f g)) = vv ≫ (C.Fmap hij (eqMap f g)) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
-      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
-      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ (C.Fmap hij f) = k ≫ (C.Fmap hij g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.Fmap hij (eqMap f g)) = k)
     (hcanon : letI : Cat C.Obj := colimitCat C hC
         letI : HasPullbacks C.Obj :=
           colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
         ∀ {X Y Z : C.Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
             Cover f → Cover (HasPullbacks.has f g).cone.π₂)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (i : ι) (A₀ : C.A i)
     (hRC : StageRelCap C ht i A₀) :
     letI : Cat C.Obj := colimitCat C hC
@@ -283,7 +283,7 @@ theorem wellPointed_of_stage
   obtain ⟨K, hNK, hiK, hAeq⟩ := Quotient.exact eA
   dsimp only [CatSystem.objSystem] at hAeq
   -- push `mN` to stage `K`; `m` is its stage-`K` inclusion (transported by the object equalities)
-  let mNK := (C.functF hNK).map mN
+  let mNK := C.Fmap hNK mN
   have hcodXE : C.objIncl K (C.F hNK xE) = C.objIncl N xE := C.objIncl_compat hNK xE
   have hcodXA : C.objIncl K (C.F hNK xA) = C.objIncl i A₀ := (C.objIncl_compat hNK xA).trans eA
   have hmeq : castHom hcodXE hcodXA (homInclObj C hC mNK) = m :=
@@ -313,7 +313,7 @@ theorem wellPointed_of_stage
   -- generalize the codomain to a fresh object so `hAeq` can rewrite the existential goal uniformly.
   obtain ⟨k, hKk, pt, hpt⟩ : ∃ (k : ι) (hKk : D.le K k)
       (pt : @HasTerminal.one (C.A k) (C.catA k) (ht k) ⟶ C.F hKk (C.F hNK xA)),
-      ¬ ∃ y, y ≫ (C.functF hKk).map mNK = pt := by
+      ¬ ∃ y, y ≫ C.Fmap hKk mNK = pt := by
     -- clear the `m`-aligned facts (they mention `C.F hNK xA` via casts) so only `mNK`,
     -- `hmNK_mono`, `hmNK_niso` depend on the rewritten codomain and get carried through `rw [hAeq]`.
     clear hmeq hmNK_eq hm' hniso' hHEq
@@ -322,7 +322,7 @@ theorem wellPointed_of_stage
     revert mNK hmNK_mono hmNK_niso; rw [hAeq]; intro mNK hmNK_mono hmNK_niso
     exact hRC hiK mNK hmNK_mono hmNK_niso
   -- push the mono to stage `k`: `mNk : C.F hKk (C.F hNK xE) ⟶ C.F hKk (C.F hNK xA)`
-  let mNk := (C.functF hKk).map mNK
+  let mNk := C.Fmap hKk mNK
   -- colimit-object equalities at stage `k`: `objIncl k (F hKk ·) = objIncl i A₀ / objIncl N xE`
   have hcodXEk : C.objIncl k (C.F hKk (C.F hNK xE)) = C.objIncl N xE :=
     (C.objIncl_compat hKk (C.F hNK xE)).trans hcodXE
@@ -409,29 +409,29 @@ theorem tower_capital_of_cofinal
     (hppres : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b ccs.step).A i)
       (z : (towerSystem b ccs.step).A j)
       (uu vv : z ⟶ (towerSystem b ccs.step).F hij ((hp i).prod a c)),
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst →
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd → uu = vv)
+      uu ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst →
+      uu ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd → uu = vv)
     (hppres_pair : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b ccs.step).A i)
       (z : (towerSystem b ccs.step).A j)
       (p : z ⟶ (towerSystem b ccs.step).F hij a) (q : z ⟶ (towerSystem b ccs.step).F hij c),
       ∃ r : z ⟶ (towerSystem b ccs.step).F hij ((hp i).prod a c),
-        r ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst = p ∧
-        r ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd = q)
+        r ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst = p ∧
+        r ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers ((towerSystem b ccs.step).A i))
     (hepres : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b ccs.step).A i}
       (f g : X ⟶ Y) (z : (towerSystem b ccs.step).A j)
       (uu vv : z ⟶ (towerSystem b ccs.step).F hij (eqObj f g)),
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) → uu = vv)
+      uu ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b ccs.step).A i}
       (f g : X ⟶ Y) (z : (towerSystem b ccs.step).A j)
       (k : z ⟶ (towerSystem b ccs.step).F hij X)
-      (_hk : k ≫ ((towerSystem b ccs.step).functF hij).map f =
-        k ≫ ((towerSystem b ccs.step).functF hij).map g),
+      (_hk : k ≫ (towerSystem b ccs.step).Fmap hij f =
+        k ≫ (towerSystem b ccs.step).Fmap hij g),
       ∃ r : z ⟶ (towerSystem b ccs.step).F hij (eqObj f g),
-        r ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) = k)
+        r ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) = k)
     (hcanon : letI : Cat (towerSystem b ccs.step).Obj := colimitCat _ (towerCoherent b ccs.step)
         letI : HasPullbacks (towerSystem b ccs.step).Obj :=
           colimitHasPullbacks _ (towerCoherent b ccs.step) ht htpres hp hppres hppres_pair he
@@ -487,30 +487,30 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
-      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
-      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+      uu ≫ (C.Fmap hij (hp i).fst) = vv ≫ (C.Fmap hij (hp i).fst) →
+      uu ≫ (C.Fmap hij (hp i).snd) = vv ≫ (C.Fmap hij (hp i).snd) → uu = vv)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
       ∃ r : z ⟶ C.F hij ((hp i).prod a c),
-        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+        r ≫ (C.Fmap hij (hp i).fst) = p ∧ r ≫ (C.Fmap hij (hp i).snd) = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
       (uu vv : z ⟶ C.F hij (eqObj f g)),
-      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+      uu ≫ (C.Fmap hij (eqMap f g)) = vv ≫ (C.Fmap hij (eqMap f g)) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
-      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
-      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ (C.Fmap hij f) = k ≫ (C.Fmap hij g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.Fmap hij (eqMap f g)) = k)
     (hcanon : letI : Cat C.Obj := colimitCat C hC
         letI : HasPullbacks C.Obj :=
           colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
         ∀ {X Y Z : C.Obj} (f : X ⟶ Z) (g : Y ⟶ Z),
             Cover f → Cover (HasPullbacks.has f g).cone.π₂)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     -- `_hmono` (stage push of monos) is part of the cofinal-system reflection package a caller
     -- supplies; the weakened `wellPointed_of_stage` no longer needs it (monos reflect from the colimit).
     (_hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     (hstage : ∀ (X : C.Obj),
         letI : Cat C.Obj := colimitCat C hC
         letI : PreRegularCategory C.Obj :=
@@ -535,32 +535,32 @@ theorem capital_of_cofinalSystem {ι : Type u} {D : Colim.Directed ι}
 theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
-    (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
-    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) base baseFun)
+    (baseFun : @Functor A (C.A i₀) _ (C.catA i₀))
+    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) baseFun)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-      (C.functF hij).map p = (C.functF hij).map q → p = q)
+      C.Fmap hij p = C.Fmap hij q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
-      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
-      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+      uu ≫ (C.Fmap hij (hp i).fst) = vv ≫ (C.Fmap hij (hp i).fst) →
+      uu ≫ (C.Fmap hij (hp i).snd) = vv ≫ (C.Fmap hij (hp i).snd) → uu = vv)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
       ∃ r : z ⟶ C.F hij ((hp i).prod a c),
-        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+        r ≫ (C.Fmap hij (hp i).fst) = p ∧ r ≫ (C.Fmap hij (hp i).snd) = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
       (uu vv : z ⟶ C.F hij (eqObj f g)),
-      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+      uu ≫ (C.Fmap hij (eqMap f g)) = vv ≫ (C.Fmap hij (eqMap f g)) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
-      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
-      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ (C.Fmap hij f) = k ≫ (C.Fmap hij g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.Fmap hij (eqMap f g)) = k)
     (hcanon : letI : Cat C.Obj := colimitCat C hC
         letI : HasPullbacks C.Obj :=
           colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
@@ -595,35 +595,35 @@ theorem capData_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
 theorem capitalization_regular_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     {ι : Type u} {D : Colim.Directed ι} (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     [hne : Nonempty ι] (i₀ : ι) (base : A → C.A i₀)
-    (baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base)
-    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) base baseFun)
+    (baseFun : @Functor A (C.A i₀) _ (C.catA i₀))
+    (baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) baseFun)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-      (C.functF hij).map p = (C.functF hij).map q → p = q)
+      C.Fmap hij p = C.Fmap hij q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     (hcovpres : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesCovers _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij))
+        @PreservesCovers _ _ (C.catA i) (C.catA j) (C.functF hij))
     (hi : ∀ i, @HasImages (C.A i) (C.catA i))
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (uu vv : z ⟶ C.F hij ((hp i).prod a c)),
-      uu ≫ ((C.functF hij).map (hp i).fst) = vv ≫ ((C.functF hij).map (hp i).fst) →
-      uu ≫ ((C.functF hij).map (hp i).snd) = vv ≫ ((C.functF hij).map (hp i).snd) → uu = vv)
+      uu ≫ (C.Fmap hij (hp i).fst) = vv ≫ (C.Fmap hij (hp i).fst) →
+      uu ≫ (C.Fmap hij (hp i).snd) = vv ≫ (C.Fmap hij (hp i).snd) → uu = vv)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a c : C.A i) (z : C.A j)
       (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij c),
       ∃ r : z ⟶ C.F hij ((hp i).prod a c),
-        r ≫ ((C.functF hij).map (hp i).fst) = p ∧ r ≫ ((C.functF hij).map (hp i).snd) = q)
+        r ≫ (C.Fmap hij (hp i).fst) = p ∧ r ≫ (C.Fmap hij (hp i).snd) = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
       (uu vv : z ⟶ C.F hij (eqObj f g)),
-      uu ≫ ((C.functF hij).map (eqMap f g)) = vv ≫ ((C.functF hij).map (eqMap f g)) → uu = vv)
+      uu ≫ (C.Fmap hij (eqMap f g)) = vv ≫ (C.Fmap hij (eqMap f g)) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {X Y : C.A i} (f g : X ⟶ Y) (z : C.A j)
-      (k : z ⟶ C.F hij X) (_hk : k ≫ ((C.functF hij).map f) = k ≫ ((C.functF hij).map g)),
-      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ ((C.functF hij).map (eqMap f g)) = k)
+      (k : z ⟶ C.F hij X) (_hk : k ≫ (C.Fmap hij f) = k ≫ (C.Fmap hij g)),
+      ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.Fmap hij (eqMap f g)) = k)
     (hcanon : letI : Cat C.Obj := colimitCat C hC
         letI : HasPullbacks C.Obj :=
           colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
@@ -637,7 +637,7 @@ theorem capitalization_regular_of_cofinalSystem (A : Type u) [Cat.{u} A] [PreReg
         StageRelCap C ht (colimOut C X).1 (colimOut C X).2) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   -- Build the pre-regular `CapData` AS A RECORD LITERAL (not via `capData_of_cofinalSystem`'s
   -- `Nonempty`), so its `.ι`/`.D`/`.C` fields are DEFINITIONALLY `ι`/`D`/`C`; this lets `hi`/`hmono`/
   -- `hcovpres` (stated over `C`) land directly into the regular reduction without a transport.
