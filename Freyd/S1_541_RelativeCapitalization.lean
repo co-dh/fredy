@@ -150,8 +150,9 @@ theorem sliceEmbedMap_f (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
 
 /-- The slice embedding `A → A/B` is a functor.  Underlying arrows are `prodRightFunctor B`'s,
     so the laws transport along `OverHom.ext` (a slice equation is its underlying equation). -/
-instance sliceEmbedFunctor (B : 𝒞) : Functor (sliceEmbedObj B) where
-  map {C D} f := sliceEmbedMap B f
+def sliceEmbedFunctor (B : 𝒞) : Functor 𝒞 (Over B) where
+  obj := sliceEmbedObj B
+  map f := sliceEmbedMap B f
   map_id C := OverHom.ext (by
     show (sliceEmbedMap B (Cat.id C)).f = (Cat.id (sliceEmbedObj B C)).f
     rw [sliceEmbedMap_f, (prodRightFunctor B).map_id]; rfl)
@@ -178,7 +179,7 @@ theorem sliceEmbedFunctor_map_f (B : 𝒞) {C D : 𝒞} (f : C ⟶ D) :
     well-supported `B`.  This is `slice_embedding_separates` read through the underlying-arrow
     identification `sliceEmbedFunctor_map_f`. -/
 theorem sliceEmbed_embedding (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : WellSupported B) :
-    @Embedding 𝒞 _ (Over B) _ (sliceEmbedObj B) (sliceEmbedFunctor B) := by
+    @Embedding 𝒞 _ (Over B) _ (sliceEmbedFunctor B) := by
   intro C D f g h
   exact slice_embedding_separates B hws f g (congrArg OverHom.f h)
 
@@ -192,7 +193,7 @@ theorem cover_of_comp_cover {X Y Z : 𝒞} (g : X ⟶ Y) (f : Y ⟶ Z) (hgf : Co
 
 /-- **§1.544 — the slice embedding is FAITHFUL** for well-supported `B`. -/
 theorem sliceEmbedFaithful (B : 𝒞) [PullbacksTransferCovers 𝒞] (hws : WellSupported B) :
-    @Faithful 𝒞 _ (Over B) _ (sliceEmbedObj B) (sliceEmbedFunctor B) := by
+    @Faithful 𝒞 _ (Over B) _ (sliceEmbedFunctor B) := by
   refine ⟨sliceEmbed_embedding B hws, ?_⟩
   intro C D f hiso
   -- the underlying arrow `f×B : C×B → D×B` is iso in `𝒞`
@@ -571,8 +572,8 @@ def innerF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset
 
 /-- The inner transition is a functor in the slice variable (base-change functoriality).  This is
     Sorry-free — it is exactly `baseChangeFunctor` along `P.proj h`. -/
-instance innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
-    @Functor (innerObj (𝒞 := 𝒞) V) (innerCat V) (innerObj (𝒞 := 𝒞) U) (innerCat U) (innerF P h) :=
+def innerFunctF (P : ListProjFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    @Functor (innerObj (𝒞 := 𝒞) V) (innerObj (𝒞 := 𝒞) U) (innerCat V) (innerCat U) :=
   baseChangeFunctor (P.proj h)
 
 /-- **The strict-functoriality obligation for the inner transition (residual (B-strict)), AS A
@@ -610,7 +611,9 @@ noncomputable def innerCatSystem (P : ListProjFamily (𝒞 := 𝒞)) (hS : Stric
   A := innerObj (𝒞 := 𝒞)
   catA := innerCat
   F := fun h => innerF P h
-  functF := fun h => innerFunctF P h
+  Fmap := fun h => (innerFunctF P h).map
+  Fmap_id := fun h => (innerFunctF P h).map_id
+  Fmap_comp := fun h => (innerFunctF P h).map_comp
   F_refl := fun X => hS.F_refl X
   F_trans := fun hVU hUW X => hS.F_trans hVU hUW X
 
@@ -685,9 +688,8 @@ def reindexObjStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : li
   reindexObj (R.base h)
 
 /-- The strict reindexing transition is a functor — STRICTLY (it is `reindexFunctor`). -/
-instance reindexFunctStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
-    @Functor (innerObj (𝒞 := 𝒞) V) (innerCat V) (innerObj (𝒞 := 𝒞) U) (innerCat U)
-      (reindexObjStage R h) :=
+def reindexFunctStage (R : ReindexFamily (𝒞 := 𝒞)) {V U : List 𝒞} (h : listSubset V U) :
+    @Functor (innerObj (𝒞 := 𝒞) V) (innerObj (𝒞 := 𝒞) U) (innerCat V) (innerCat U) :=
   reindexFunctor (R.base h)
 
 /-- **The strict reindexing inner `CatSystem` — route 1, Sorry-free, NO strictness hypothesis.**
@@ -703,7 +705,9 @@ def strictReindexSystem (R : ReindexFamily (𝒞 := 𝒞)) :
   A := innerObj (𝒞 := 𝒞)
   catA := innerCat
   F := fun {V U} h => reindexObjStage R h
-  functF := fun {V U} h => reindexFunctStage R h
+  Fmap := fun {V U} h => (reindexFunctStage R h).map
+  Fmap_id := fun {V U} h => (reindexFunctStage R h).map_id
+  Fmap_comp := fun {V U} h => (reindexFunctStage R h).map_comp
   F_refl := fun {U} X => by
     show reindexObj (R.base (listDirected.refl U)) X = X
     rw [R.base_refl, reindexObj_id]
