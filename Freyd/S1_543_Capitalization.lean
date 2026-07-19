@@ -87,12 +87,12 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟] {ℰ : Ty
 
 /-- Faithful functors compose.  `embedding_comp` (§1.31) gives the embedding half;
     iso-reflection composes directly (`G` reflects iso, then `F` reflects iso). -/
-theorem faithful_comp {F : 𝒞 → 𝒟} {G : 𝒟 → ℰ} [hF : Functor F] [hG : Functor G]
-    (fF : Faithful F) (fG : Faithful G) : Faithful (G ∘ F) := by
+theorem faithful_comp {F : Functor 𝒞 𝒟} {G : Functor 𝒟 ℰ}
+    (fF : Faithful F) (fG : Faithful G) : Faithful (compFunctor F G) := by
   refine ⟨embedding_comp fF.1 fG.1, ?_⟩
   intro A B f hiso
   -- `(G∘F).map f` iso ⟹ `F.map f` iso (G reflects) ⟹ `f` iso (F reflects).
-  exact fF.2 f (fG.2 (hF.map f) hiso)
+  exact fF.2 f (fG.2 (F.map f) hiso)
 
 end Freyd
 
@@ -133,7 +133,7 @@ theorem homInclObj_id (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i
   rw [homInclObj_eq C hC (Cat.id x) w]
   have hgerm : w.germ (Cat.id x) = Cat.id (C.F w.hpx (colimOut C (C.objIncl i x)).2) := by
     unfold HioWitness.germ
-    rw [(C.functF w.hix).map_id]
+    rw [C.Fmap_id w.hix]
     exact castHom_of_heq _ _ (by rw [w.hgx])
   rw [hgerm]
   -- both sides are identity germs of the SAME hom-colimit `HomColim … (out).2 (out).2`;
@@ -154,9 +154,10 @@ theorem homInclObj_id (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x : C.A i
     `homInclObj_comp`.  (The `colimitCat` instance on `C.Obj` is supplied via `letI`.) -/
 noncomputable def stageInclFunctor (C : CatSystem ι D) (hC : C.Coherent) (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
-    @Functor (C.A i) (C.catA i) C.Obj (colimitCat C hC) (C.objIncl i) :=
+    Functor (C.A i) C.Obj :=
   letI : Cat C.Obj := colimitCat C hC
-  { map := fun {_ _} g => homInclObj C hC g
+  { obj := C.objIncl i
+    map := fun {_ _} g => homInclObj C hC g
     map_id := fun x => homInclObj_id C hC x
     map_comp := fun {_ _ _} g g' => homInclObj_comp C hC g g' }
 
@@ -167,12 +168,12 @@ noncomputable def stageInclFunctor (C : CatSystem ι D) (hC : C.Coherent) (i : �
     composite `A = A₀ → Ā`. -/
 theorem stageInclFaithful (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
-    @Faithful (C.A i) (C.catA i) C.Obj (colimitCat C hC) (C.objIncl i) (stageInclFunctor C hC i) := by
+    Faithful (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := colimitCat C hC
   refine ⟨?_, ?_⟩
   · intro x y g g' h
@@ -206,8 +207,7 @@ theorem objIncl_preservesTerminal (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
     letI : Cat C.Obj := colimitCat C hC
     letI : HasTerminal (C.A i) := ht i
     letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
-    @PreservesTerminal (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
-      (stageInclFunctor C hC i) _ _ := by
+    PreservesTerminal (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := colimitCat C hC
   letI htiOne : HasTerminal (C.A i) := ht i
   letI htCol : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
@@ -229,18 +229,17 @@ theorem objIncl_preservesBinaryProducts (C : CatSystem.{u, u} ι D) (hC : C.Cohe
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasBinaryProducts (C.A i) := hp i
     letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
-    @PreservesBinaryProducts (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
-      (stageInclFunctor C hC i) _ _ :=
+    PreservesBinaryProducts (stageInclFunctor C hC i) :=
   fun {a b} => objIncl_preserves_products C hC hp hpres hpres_pair i a b
 
 /-- **`objIncl i` preserves equalizers, as `PreservesEqualizers`.**  Convert the
@@ -251,17 +250,16 @@ theorem objIncl_preservesEqualizers (C : CatSystem.{u, u} ι D) (hC : C.Coherent
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (_ : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasEqualizers (C.A i) := he i
     letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
-    @PreservesEqualizers (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
-      (stageInclFunctor C hC i) _ _ := by
+    PreservesEqualizers (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := colimitCat C hC
   letI : HasEqualizers (C.A i) := he i
   letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
@@ -286,20 +284,20 @@ theorem objIncl_preserves_pullbacks (C : CatSystem.{u, u} ι D) (hC : C.Coherent
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (_ : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     (i : ι) {a b c : C.A i} (f : a ⟶ c) (g : b ⟶ c) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasTerminal (C.A i) := ht i
@@ -327,9 +325,7 @@ theorem objIncl_preserves_pullbacks (C : CatSystem.{u, u} ι D) (hC : C.Coherent
   letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
   letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hpres hpres_pair
   letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
-  letI hFun : @Functor (C.A i) (C.catA i) C.Obj (colimitCat C hC) (C.objIncl i) :=
-    stageInclFunctor C hC i
-  exact image_chosenPullback_isPullback (C.objIncl i)
+  exact image_chosenPullback_isPullback (stageInclFunctor C hC i)
     (objIncl_preservesBinaryProducts C hC hp hpres hpres_pair i)
     (objIncl_preservesEqualizers C hC he hepres hepres_lift i) f g
 
@@ -363,27 +359,27 @@ theorem colimitCanonicalCover (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (_ : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     -- faithfulness / conservativity / mono-preservation of every transition (cover reflection)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     -- per-stage `PullbacksTransferCovers` (the stages are pre-regular)
     (hstagePTC : ∀ (i : ι), letI : HasTerminal (C.A i) := ht i;
         letI : HasBinaryProducts (C.A i) := hp i; letI : HasEqualizers (C.A i) := he i;
@@ -391,7 +387,7 @@ theorem colimitCanonicalCover (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne
         PullbacksTransferCovers (C.A i))
     -- transition functors preserve covers
     (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Cover φ → Cover ((C.functF hij).map φ)) :
+        Cover φ → Cover (C.Fmap hij φ)) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasPullbacks C.Obj :=
       colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
@@ -598,33 +594,33 @@ structure CapData (A : Type u) [Cat.{u} A] [PreRegularCategory A] where
   /-- the base stage and the faithful start `A → A_{i₀}` -/
   i₀ : ι
   base : A → C.A i₀
-  baseFun : @Functor A _ (C.A i₀) (C.catA i₀) base
-  baseFaithful : @Faithful A _ (C.A i₀) (C.catA i₀) base baseFun
+  baseFun : Functor A (C.A i₀)
+  baseFaithful : Faithful baseFun
   /-- every transition is faithful on morphisms and conservative — so stages inject faithfully -/
   hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-    (C.functF hij).map p = (C.functF hij).map q → p = q
+    C.Fmap hij p = C.Fmap hij q → p = q
   hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-    IsIso ((C.functF hij).map φ) → IsIso φ
+    IsIso (C.Fmap hij φ) → IsIso φ
   /-- the `colimitPreRegular` preservation package -/
   ht : ∀ i, HasTerminal (C.A i)
   htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one
   hp : ∀ i, HasBinaryProducts (C.A i)
   hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
     (u v : z ⟶ C.F hij ((hp i).prod a b)),
-    u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-    u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v
+    u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+    u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v
   hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
     (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
     ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-      r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q
+      r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q
   he : ∀ i, HasEqualizers (C.A i)
   hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
     (u v : z ⟶ C.F hij (eqObj f g)),
-    u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v
+    u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v
   hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
     (k : z ⟶ C.F hij A)
-    (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-    ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k
+    (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+    ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k
   hcanon : letI : Cat C.Obj := colimitCat C hC
       letI : HasPullbacks C.Obj :=
         colimitHasPullbacks C hC ht htpres hp hppres hppres_pair he hepres hepres_lift
@@ -642,7 +638,7 @@ theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A
     (cd : CapData.{u} A) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   haveI := cd.hne
   letI : Cat cd.C.Obj := colimitCat cd.C cd.hC
   letI hPre : PreRegularCategory cd.C.Obj :=
@@ -650,10 +646,7 @@ theorem capitalization_of_capData {A : Type u} [Cat.{u} A] [PreRegularCategory A
       cd.he cd.hepres cd.hepres_lift cd.hcanon
   refine ⟨cd.C.Obj, _, hPre, cd.capital, ?_⟩
   -- the faithful representation is `objIncl i₀ ∘ base`
-  letI := cd.baseFun
-  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
-    stageInclFunctor cd.C cd.hC cd.i₀
-  refine ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance, ?_⟩
+  refine ⟨compFunctor cd.baseFun (stageInclFunctor cd.C cd.hC cd.i₀), ?_⟩
   exact faithful_comp cd.baseFaithful
     (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)
 
@@ -670,14 +663,14 @@ theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCa
     (cd : CapData.{u} A)
     (hi : ∀ i, HasImages (cd.C.A i))
     (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.functF hij))
     (himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
         IsImage ((cd.C.functF hij).map f)
-          (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
-            (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f))) :
+          (Subobject.map (cd.C.functF hij) (hmono hij)
+            (@image _ (cd.C.catA i) (hi i) _ _ f))) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   haveI := cd.hne
   letI : Cat cd.C.Obj := colimitCat cd.C cd.hC
   letI hPre : PreRegularCategory cd.C.Obj :=
@@ -688,10 +681,7 @@ theorem capitalization_of_capData_regular {A : Type u} [Cat.{u} A] [PreRegularCa
   letI hReg : RegularCategory cd.C.Obj := { hPre with toHasImages := hImg }
   -- `hReg.toHasTerminal` is `hPre.toHasTerminal` definitionally, so `cd.capital` lands directly.
   refine ⟨cd.C.Obj, _, hReg, cd.capital, ?_⟩
-  letI := cd.baseFun
-  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
-    stageInclFunctor cd.C cd.hC cd.i₀
-  exact ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance,
+  exact ⟨compFunctor cd.baseFun (stageInclFunctor cd.C cd.hC cd.i₀),
     faithful_comp cd.baseFaithful (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)⟩
 
 /-- **§1.543 reduction, REGULAR form — image-preservation DERIVED.**  Same conclusion as
@@ -709,17 +699,17 @@ theorem capitalization_of_capData_regular_of_covers {A : Type u} [Cat.{u} A] [Pr
     (cd : CapData.{u} A)
     (hi : ∀ i, HasImages (cd.C.A i))
     (hmono : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+        @PreservesMono _ (cd.C.catA i) _ (cd.C.catA j) (cd.C.functF hij))
     (hcovpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)) :
+        @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.functF hij)) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   -- derive `himgpres` per transition from cover + mono preservation + target stage pullbacks.
   have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
       IsImage ((cd.C.functF hij).map f)
-        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
-          (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
+        (Subobject.map (cd.C.functF hij) (hmono hij)
+          (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
     intro i j hij X Y f
     letI : Cat (cd.C.A i) := cd.C.catA i
     letI : Cat (cd.C.A j) := cd.C.catA j
@@ -728,7 +718,7 @@ theorem capitalization_of_capData_regular_of_covers {A : Type u} [Cat.{u} A] [Pr
     letI : HasBinaryProducts (cd.C.A j) := cd.hp j
     letI : HasEqualizers (cd.C.A j) := cd.he j
     letI : HasPullbacks (cd.C.A j) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-    exact Colim.transitions_preserve_images (cd.C.F hij) (hF := cd.C.functF hij)
+    exact Colim.transitions_preserve_images (cd.C.functF hij)
       (hmono hij) (hcovpres hij) f
   exact capitalization_of_capData_regular cd hi hmono himgpres
 
@@ -774,9 +764,9 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
   preT : @PreRegularCategory T catT
   /-- the successor functor `S → T` and its functoriality -/
   step : S → T
-  stepFun : @Functor S _ T catT step
+  stepFun : @Functor S T _ catT
   /-- §1.544: the step is faithful (separates morphisms; conservative) -/
-  stepFaithful : @Faithful S _ T catT step stepFun
+  stepFaithful : @Faithful S _ T catT stepFun
   -- §1.543 single-step PRESERVATION package.  These are the per-rung ingredients the OUTER ω-tower
   -- composes (`preservesTerminal_comp`/`preservesBinaryProducts_comp`/`preservesEqualizers_comp`) and
   -- then converts (`preservesBinaryProducts_jointly_monic`/`…_pair`, `preservesEqualizers_mono`/`…_lift`,
@@ -788,7 +778,7 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
       `htpres` object-equality `step (ht i).one = (ht (i+1)).one` holds by definition — this field
       only certifies that that chosen object is genuinely terminal. -/
   stepTerminal :
-    @PreservesTerminal S T _ catT step stepFun
+    @PreservesTerminal S T _ catT stepFun
       (PreRegularCategory.toHasTerminal)
       (@PreRegularCategory.toHasTerminal T catT preT)
   /-- the EXISTENCE half of "`step 1` is terminal": a map `X ⟶ step 1` from every object of `T`.
@@ -797,15 +787,15 @@ structure CapStep (S : Type u) [Cat.{u} S] [PreRegularCategory S] where
       with `HasTerminal` data, making `htpres` an on-the-nose object equality (`colimitHasTerminal`
       requires the strict form). -/
   stepTerminalArrow :
-    ∀ (X : T), @Cat.Hom T catT X (step (@HasTerminal.one S _ (PreRegularCategory.toHasTerminal)))
+    ∀ (X : T), @Cat.Hom T catT X (stepFun.obj (@HasTerminal.one S _ (PreRegularCategory.toHasTerminal)))
   /-- the step preserves binary products (`hppres`/`hppres_pair`). -/
   stepProds :
-    @PreservesBinaryProducts S T _ catT step stepFun
+    @PreservesBinaryProducts S T _ catT stepFun
       (PreRegularCategory.toHasBinaryProducts)
       (@PreRegularCategory.toHasBinaryProducts T catT preT)
   /-- the step preserves equalizers (`hepres`/`hepres_lift`). -/
   stepEqs :
-    @PreservesEqualizers S T _ catT step stepFun
+    @PreservesEqualizers S T _ catT stepFun
       (products_pullbacks_implies_equalizers)
       (@products_pullbacks_implies_equalizers T catT
         (@PreRegularCategory.toHasBinaryProducts T catT preT)
@@ -868,7 +858,22 @@ def stageBundle (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) :
 /-- The single-step functor from stage `n` to stage `n+1`. -/
 def stageStep (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (b : PreRegBundle.{u})
     (n : Nat) : (stageBundle nextStep b n).carrier → (stageBundle nextStep b (n+1)).carrier :=
-  (nextStep (stageBundle nextStep b n)).step
+  let s := nextStep (stageBundle nextStep b n)
+  @Functor.obj _ _ _ s.catT s.stepFun
+
+/-- One rung `stageStep n` as a bundled functor. -/
+def stageStepFun (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
+    (b : PreRegBundle.{u}) (n : Nat) :
+    @Functor _ _ (stageBundle nextStep b n).cat (stageBundle nextStep b (n+1)).cat :=
+  (nextStep (stageBundle nextStep b n)).stepFun
+
+/-- The bundled iterated transition, defined before its object-map projection. -/
+def rawTransNFun (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
+    (b : PreRegBundle.{u}) (n : Nat) :
+    ∀ d, @Functor _ _ (stageBundle nextStep b n).cat (stageBundle nextStep b (n+d)).cat
+  | 0 => idFunctor
+  | (d+1) =>
+    compFunctor (rawTransNFun nextStep b n d) (stageStepFun nextStep b (n+d))
 
 /-- The iterated transition `stage n → stage (n+d)`, by recursion on the difference `d`:
     compose `d` consecutive `stageStep`s.  This is the object map of the tower's transition
@@ -876,8 +881,7 @@ def stageStep (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (b : Pr
     recursion mathlib-free (`Nat.leRec` is not in core). -/
 def transN (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (b : PreRegBundle.{u}) (n : Nat) :
     ∀ d : Nat, (stageBundle nextStep b n).carrier → (stageBundle nextStep b (n+d)).carrier
-  | 0 => id
-  | (d+1) => fun x => stageStep nextStep b (n+d) (transN nextStep b n d x)
+  | d => (rawTransNFun nextStep b n d).obj
 
 @[simp] theorem transN_zero (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (n : Nat) (x : (stageBundle nextStep b n).carrier) :
@@ -887,18 +891,11 @@ def transN (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (b : PreRe
     (b : PreRegBundle.{u}) (n d : Nat) (x : (stageBundle nextStep b n).carrier) :
     transN nextStep b n (d+1) x = stageStep nextStep b (n+d) (transN nextStep b n d x) := rfl
 
-/-- One rung `stageStep n` is a functor (it is the bundled `CapStep.step`). -/
-instance stageStepFun (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
-    (b : PreRegBundle.{u}) (n : Nat) :
-    @Functor _ (stageBundle nextStep b n).cat _ (stageBundle nextStep b (n+1)).cat
-      (stageStep nextStep b n) :=
-  (nextStep (stageBundle nextStep b n)).stepFun
-
 /-- One rung `stageStep n` is faithful (§1.544). -/
 theorem stageStepFaithful (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (n : Nat) :
     @Faithful _ (stageBundle nextStep b n).cat _ (stageBundle nextStep b (n+1)).cat
-      (stageStep nextStep b n) (stageStepFun nextStep b n) :=
+      (stageStepFun nextStep b n) :=
   (nextStep (stageBundle nextStep b n)).stepFaithful
 
 /-- The rung functor `stageStep`'s `.map` respects heterogeneous equality of arguments at
@@ -914,22 +911,14 @@ theorem stageStepFun_map_congr_heq (nextStep : ∀ (S : PreRegBundle.{u}), CapSt
 /-- The iterated transition `transN n d` is a functor: a composite of the `d` rung functors. -/
 def transNFun (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (n : Nat) :
-    ∀ d, @Functor _ (stageBundle nextStep b n).cat _ (stageBundle nextStep b (n+d)).cat
-      (transN nextStep b n d)
-  | 0 => { map := fun f => f, map_id := fun _ => rfl, map_comp := fun _ _ => rfl }
-  | (d+1) =>
-    letI hF := transNFun nextStep b n d
-    letI hG := stageStepFun nextStep b (n+d)
-    -- `transN n (d+1) x = stageStep (n+d) (transN n d x)`, so map is `hG.map ∘ hF.map`
-    { map := fun f => hG.map (hF.map f)
-      map_id := fun x => by rw [hF.map_id, hG.map_id]; rfl
-      map_comp := fun f g => by rw [hF.map_comp, hG.map_comp] }
+    ∀ d, @Functor _ _ (stageBundle nextStep b n).cat (stageBundle nextStep b (n+d)).cat
+  | d => rawTransNFun nextStep b n d
 
 /-- The iterated transition `transN n d` is faithful: a composite of faithful rungs. -/
 theorem transNFaithful (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (b : PreRegBundle.{u}) (n : Nat) :
     ∀ d, @Faithful _ (stageBundle nextStep b n).cat _ (stageBundle nextStep b (n+d)).cat
-      (transN nextStep b n d) (transNFun nextStep b n d)
+      (transNFun nextStep b n d)
   | 0 => ⟨fun _ _ h => h, fun _ h => h⟩
   | (d+1) => by
     refine ⟨fun f g h => ?_, fun f hiso => ?_⟩
@@ -1032,7 +1021,7 @@ theorem transN_add (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (n
       transN nextStep b n (d + e) x =
         stageCast b nextStep (by omega)
           (transN nextStep b (n + d) e (transN nextStep b n d x))
-  | 0, x => by simp [transN, stageCast]
+  | 0, x => by simp [transN, rawTransNFun, stageCast]
   | (e+1), x => by
     -- LHS: `transN n (d+(e+1)) = stageStep (n+(d+e)) (transN n (d+e) x)`
     show stageStep nextStep b (n + (d + e)) (transN nextStep b n (d + e) x) = _
@@ -1083,12 +1072,13 @@ def towerFmap (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     functorial (`subst` reduces it to identity). -/
 def towerFunctF (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : i.down ≤ j.down) :
-    @Functor _ ((stageBundle nextStep b i.down).cat) _ ((stageBundle nextStep b j.down).cat)
-      (towerF b nextStep hij) where
+    @Functor _ _ ((stageBundle nextStep b i.down).cat) ((stageBundle nextStep b j.down).cat) where
+  obj := towerF b nextStep hij
   map g := towerFmap b nextStep hij g
   map_id x := by
     unfold towerFmap
-    rw [(transNFun nextStep b i.down (j.down - i.down)).map_id, stageCastHom_id]; rfl
+    rw [(transNFun nextStep b i.down (j.down - i.down)).map_id]
+    exact stageCastHom_id _ _ _ _
   map_comp g g' := by
     unfold towerFmap
     rw [(transNFun nextStep b i.down (j.down - i.down)).map_comp, stageCastHom_comp]
@@ -1101,7 +1091,9 @@ def towerSystem (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) :
   A i := towerObj b nextStep i
   catA i := (stageBundle nextStep b i.down).cat
   F hij := towerF b nextStep hij
-  functF hij := towerFunctF b nextStep hij
+  Fmap hij := (towerFunctF b nextStep hij).map
+  Fmap_id hij := (towerFunctF b nextStep hij).map_id
+  Fmap_comp hij := (towerFunctF b nextStep hij).map_comp
   F_refl {i} x := by
     -- `j = i`, so the difference is `0`, `transN 0 = id`, cast over `i+0=i`.
     show stageCast b nextStep _ (transN nextStep b i.down (i.down - i.down) _) = x
@@ -1164,7 +1156,8 @@ theorem towerCoherent (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
   refl_map {i x x'} g := by
     -- `(functF (refl)).map g = towerFmap (refl) g = stageCastHom (transNFun (i-i)).map g`; with
     -- `i-i=0`, `transNFun 0 = id`, and the cast is `HEq`-trivial.
-    show HEq (towerFmap b nextStep _ g) g
+    show HEq ((towerSystem b nextStep).Fmap (uliftNatDirected.refl i) g) g
+    change HEq (towerFmap b nextStep (uliftNatDirected.refl i) g) g
     unfold towerFmap
     refine (stageCastHom_heq b nextStep _ _).trans ?_
     rw [Nat.sub_self]; rfl
@@ -1212,7 +1205,7 @@ theorem stageCastHom_isIso_reflects (nextStep : ∀ (S : PreRegBundle.{u}), CapS
 theorem towerHfaith (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     {x y : (towerSystem b nextStep).A i} (p q : x ⟶ y)
-    (h : ((towerSystem b nextStep).functF hij).map p = ((towerSystem b nextStep).functF hij).map q) :
+    (h : (towerSystem b nextStep).Fmap hij p = (towerSystem b nextStep).Fmap hij q) :
     p = q :=
   (transNFaithful nextStep b i.down (j.down - i.down)).1 p q
     (stageCastHom_injective b nextStep _ _ _ h)
@@ -1222,7 +1215,7 @@ theorem towerHfaith (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
 theorem towerHcons (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     {x y : (towerSystem b nextStep).A i} (φ : x ⟶ y)
-    (hiso : @IsIso _ ((towerSystem b nextStep).catA j) _ _ (((towerSystem b nextStep).functF hij).map φ)) :
+    (hiso : @IsIso _ ((towerSystem b nextStep).catA j) _ _ ((towerSystem b nextStep).Fmap hij φ)) :
     @IsIso _ ((towerSystem b nextStep).catA i) _ _ φ :=
   (transNFaithful nextStep b i.down (j.down - i.down)).2 φ
     (stageCastHom_isIso_reflects b nextStep _ _ hiso)
@@ -1244,19 +1237,18 @@ noncomputable def capStepHasTerminal {S : Type u} [Cat.{u} S] [PreRegularCategor
     (s : CapStep S) (htS : HasTerminal S) :
     @HasTerminal s.T s.catT := by
   letI : Cat s.T := s.catT
-  letI fS : Functor s.step := s.stepFun
   letI bundled : HasTerminal S := PreRegularCategory.toHasTerminal
   -- the comparison arrow `step htS.one ⟶ step (bundled.one)` is `step (bundled.trm htS.one)`; it is
   -- iso (functor of the unique terminal iso `htS.one ≅ bundled.one`).
   let base : @Cat.Hom _ _ htS.one bundled.one := bundled.trm htS.one
-  let cmp : @Cat.Hom _ s.catT (s.step htS.one) (s.step bundled.one) := fS.map base
+  let cmp : @Cat.Hom _ s.catT (s.stepFun.obj htS.one) (s.stepFun.obj bundled.one) := s.stepFun.map base
   have hiso : @IsIso _ s.catT _ _ cmp := by
-    refine functor_preserves_iso (F := s.step) base ?_
+    refine functor_preserves_iso (F := s.stepFun) base ?_
     exact ⟨htS.trm bundled.one, htS.uniq _ (Cat.id _), bundled.uniq _ (Cat.id _)⟩
   -- choose the inverse (goal is `Type`, so eliminate the existential via `Classical.choose`).
-  let inv : @Cat.Hom _ s.catT (s.step bundled.one) (s.step htS.one) := Classical.choose hiso
+  let inv : @Cat.Hom _ s.catT (s.stepFun.obj bundled.one) (s.stepFun.obj htS.one) := Classical.choose hiso
   have hinv₁ : cmp ≫ inv = Cat.id _ := (Classical.choose_spec hiso).1
-  refine @HasTerminal.mk s.T s.catT (s.step htS.one) (fun X => s.stepTerminalArrow X ≫ inv) ?_
+  refine @HasTerminal.mk s.T s.catT (s.stepFun.obj htS.one) (fun X => s.stepTerminalArrow X ≫ inv) ?_
   -- uniqueness into `step htS.one`: post-compose with the mono `cmp`, reducing to `stepTerminal`.
   intro X f g
   have hmono : @Monic _ s.catT _ _ cmp := mono_of_retraction _ inv hinv₁
@@ -1358,7 +1350,7 @@ noncomputable instance stageHasEqualizers (nextStep : ∀ (S : PreRegBundle.{u})
 theorem transN_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (n d : Nat) :
     @PreservesBinaryProducts _ _ (stageBundle nextStep b n).cat (stageBundle nextStep b (n+d)).cat
-      (transN nextStep b n d) (transNFun nextStep b n d)
+      (transNFun nextStep b n d)
       (stageBundle nextStep b n).pre.toHasBinaryProducts
       (stageBundle nextStep b (n+d)).pre.toHasBinaryProducts := by
   induction d with
@@ -1381,7 +1373,7 @@ theorem transN_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), C
     exact preservesBinaryProducts_comp (𝒜 := (stageBundle nextStep b n).carrier)
       (ℬ := (stageBundle nextStep b (n+d)).carrier)
       (ℰ := (stageBundle nextStep b (n+d+1)).carrier)
-      (transN nextStep b n d) (stageStep nextStep b (n+d)) ihF
+      (transNFun nextStep b n d) (stageStepFun nextStep b (n+d)) ihF
       (nextStep (stageBundle nextStep b (n+d))).stepProds (A := A) (B := B)
 
 /-- **The iterated transition `transN n d` preserves equalizers.**  Composite of `d` rungs, each
@@ -1389,7 +1381,7 @@ theorem transN_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), C
 theorem transN_preservesEqualizers (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     (n d : Nat) :
     @PreservesEqualizers _ _ (stageBundle nextStep b n).cat (stageBundle nextStep b (n+d)).cat
-      (transN nextStep b n d) (transNFun nextStep b n d)
+      (transNFun nextStep b n d)
       (stageHasEqualizers b nextStep n) (stageHasEqualizers b nextStep (n+d)) := by
   induction d with
   | zero =>
@@ -1413,7 +1405,7 @@ theorem transN_preservesEqualizers (nextStep : ∀ (S : PreRegBundle.{u}), CapSt
     exact preservesEqualizers_comp (𝒜 := (stageBundle nextStep b n).carrier)
       (ℬ := (stageBundle nextStep b (n+d)).carrier)
       (ℰ := (stageBundle nextStep b (n+d+1)).carrier)
-      (transN nextStep b n d) (stageStep nextStep b (n+d)) ihF
+      (transNFun nextStep b n d) (stageStepFun nextStep b (n+d)) ihF
       (nextStep (stageBundle nextStep b (n+d))).stepEqs f g
 
 /-- **The iterated transition `transN n d` preserves monos.**  Composite of `d` mono-preserving
@@ -1452,9 +1444,11 @@ theorem transN_preservesCover (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.
 theorem stageCast_transN_preservesBinaryProducts
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (m d n : Nat) (h : m + d = n) :
     @PreservesBinaryProducts _ _ (stageBundle nextStep b m).cat (stageBundle nextStep b n).cat
-      (fun x => stageCast b nextStep h (transN nextStep b m d x))
-      { map := fun {x y} g => stageCastHom b nextStep h ((transNFun nextStep b m d).map g)
-        map_id := fun x => by rw [(transNFun nextStep b m d).map_id, stageCastHom_id]
+      { obj := fun x => stageCast b nextStep h (transN nextStep b m d x)
+        map := fun {x y} g => stageCastHom b nextStep h ((transNFun nextStep b m d).map g)
+        map_id := fun x => by
+          rw [(transNFun nextStep b m d).map_id]
+          exact stageCastHom_id _ _ _ _
         map_comp := fun f g => by
           rw [(transNFun nextStep b m d).map_comp, stageCastHom_comp] }
       (stageBundle nextStep b m).pre.toHasBinaryProducts
@@ -1468,7 +1462,7 @@ theorem stageCast_transN_preservesBinaryProducts
 theorem towerF_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j) :
     @PreservesBinaryProducts _ _ (stageBundle nextStep b i.down).cat
-      (stageBundle nextStep b j.down).cat (towerF b nextStep hij) (towerFunctF b nextStep hij)
+      (stageBundle nextStep b j.down).cat (towerFunctF b nextStep hij)
       (stageBundle nextStep b i.down).pre.toHasBinaryProducts
       (stageBundle nextStep b j.down).pre.toHasBinaryProducts :=
   stageCast_transN_preservesBinaryProducts b nextStep i.down (j.down - i.down) j.down
@@ -1478,9 +1472,11 @@ theorem towerF_preservesBinaryProducts (nextStep : ∀ (S : PreRegBundle.{u}), C
 theorem stageCast_transN_preservesEqualizers
     (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier) (m d n : Nat) (h : m + d = n) :
     @PreservesEqualizers _ _ (stageBundle nextStep b m).cat (stageBundle nextStep b n).cat
-      (fun x => stageCast b nextStep h (transN nextStep b m d x))
-      { map := fun {x y} g => stageCastHom b nextStep h ((transNFun nextStep b m d).map g)
-        map_id := fun x => by rw [(transNFun nextStep b m d).map_id, stageCastHom_id]
+      { obj := fun x => stageCast b nextStep h (transN nextStep b m d x)
+        map := fun {x y} g => stageCastHom b nextStep h ((transNFun nextStep b m d).map g)
+        map_id := fun x => by
+          rw [(transNFun nextStep b m d).map_id]
+          exact stageCastHom_id _ _ _ _
         map_comp := fun f g => by
           rw [(transNFun nextStep b m d).map_comp, stageCastHom_comp] }
       (stageHasEqualizers b nextStep m) (stageHasEqualizers b nextStep n) := by
@@ -1491,7 +1487,7 @@ theorem stageCast_transN_preservesEqualizers
 theorem towerF_preservesEqualizers (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j) :
     @PreservesEqualizers _ _ (stageBundle nextStep b i.down).cat
-      (stageBundle nextStep b j.down).cat (towerF b nextStep hij) (towerFunctF b nextStep hij)
+      (stageBundle nextStep b j.down).cat (towerFunctF b nextStep hij)
       (stageHasEqualizers b nextStep i.down) (stageHasEqualizers b nextStep j.down) :=
   stageCast_transN_preservesEqualizers b nextStep i.down (j.down - i.down) j.down
     (Nat.add_sub_cancel' hij)
@@ -1518,13 +1514,13 @@ theorem towerHppres (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j)
     (a c : (towerSystem b nextStep).A i) (z : (towerSystem b nextStep).A j)
     (uu vv : z ⟶ (towerSystem b nextStep).F hij ((towerHp b nextStep i).prod a c))
-    (hf : uu ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).fst =
-        vv ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).fst)
-    (hs : uu ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).snd =
-        vv ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).snd) : uu = vv :=
+    (hf : uu ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).fst =
+        vv ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).fst)
+    (hs : uu ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).snd =
+        vv ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).snd) : uu = vv :=
   (@preservesBinaryProducts_jointly_monic _ _ (stageBundle nextStep b i.down).cat
     (stageBundle nextStep b j.down).cat (towerHp b nextStep i) (towerHp b nextStep j)
-    (towerF b nextStep hij) (towerFunctF b nextStep hij)
+    (towerFunctF b nextStep hij)
     (towerF_preservesBinaryProducts b nextStep hij) a c) uu vv hf hs
 
 /-- **`hppres_pair`** (pairing through `(F fst, F snd)`) from `towerF_preservesBinaryProducts`. -/
@@ -1533,11 +1529,11 @@ theorem towerHppresPair (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrie
     (a c : (towerSystem b nextStep).A i) (z : (towerSystem b nextStep).A j)
     (p : z ⟶ (towerSystem b nextStep).F hij a) (q : z ⟶ (towerSystem b nextStep).F hij c) :
     ∃ r : z ⟶ (towerSystem b nextStep).F hij ((towerHp b nextStep i).prod a c),
-      r ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).fst = p ∧
-      r ≫ ((towerSystem b nextStep).functF hij).map (towerHp b nextStep i).snd = q :=
+      r ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).fst = p ∧
+      r ≫ (towerSystem b nextStep).Fmap hij (towerHp b nextStep i).snd = q :=
   @preservesBinaryProducts_pair _ _ (stageBundle nextStep b i.down).cat
     (stageBundle nextStep b j.down).cat (towerHp b nextStep i) (towerHp b nextStep j)
-    (towerF b nextStep hij) (towerFunctF b nextStep hij)
+    (towerFunctF b nextStep hij)
     (towerF_preservesBinaryProducts b nextStep hij) a c z p q
 
 /-- **`hepres`** (joint monicity of `F (eqMap)`) from `towerF_preservesEqualizers`. -/
@@ -1553,7 +1549,7 @@ theorem towerHepres (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrier)
     uu = vv :=
   (@preservesEqualizers_mono _ _ (stageBundle nextStep b i.down).cat
     (stageBundle nextStep b j.down).cat (towerHe b nextStep i) (towerHe b nextStep j)
-    (towerF b nextStep hij) (towerFunctF b nextStep hij)
+    (towerFunctF b nextStep hij)
     (towerF_preservesEqualizers b nextStep hij) X Y f g) uu vv h
 
 /-- **`hepres_lift`** (lifting through `F (eqMap)`) from `towerF_preservesEqualizers`. -/
@@ -1569,7 +1565,7 @@ theorem towerHepresLift (nextStep : ∀ (S : PreRegBundle.{u}), CapStep S.carrie
         (@eqMap _ ((towerSystem b nextStep).catA i) (towerHe b nextStep i) _ _ f g) = k :=
   @preservesEqualizers_lift _ _ (stageBundle nextStep b i.down).cat
     (stageBundle nextStep b j.down).cat (towerHe b nextStep i) (towerHe b nextStep j)
-    (towerF b nextStep hij) (towerFunctF b nextStep hij)
+    (towerFunctF b nextStep hij)
     (towerF_preservesEqualizers b nextStep hij) X Y f g z k hk
 
 /-- The cast `stageCastHom h` preserves monos (it is `Eq.rec`, an iso). -/
@@ -1770,7 +1766,7 @@ theorem capData_of_tower_regular (A : Type u) [Cat.{u} A] [PreRegularCategory A]
     (hi : ∀ i, HasImages ((towerSystem b nextStep).A i)) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   -- normalize `b = ⟨A,…⟩` everywhere FIRST, so `capData_of_tower`'s internal `subst` and the
   -- `towerHmono`/`towerHcovpres` references all sit over the SAME bundle (`cd.C = towerSystem b _`).
   subst hb
@@ -1876,7 +1872,8 @@ def baseSliceMap {X Y : 𝒞} (f : X ⟶ Y) :
 /-- The base embedding `S → innerSliceObj []` is a functor: its underlying `Infl`-arrows are
     `inflFunctor`'s, so the laws transport along `OverHom.ext` (a slice equation is its underlying
     equation). -/
-instance baseSliceFunctor : @Functor 𝒞 _ (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ baseSliceObj where
+def baseSliceFunctor : Functor 𝒞 (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) where
+  obj := baseSliceObj
   map {X Y} f := baseSliceMap f
   map_id X := OverHom.ext (by
     show (inflFunctor.map (Cat.id X) : (infl X : Infl 𝒞) ⟶ infl X) = Cat.id (infl X : Infl 𝒞)
@@ -1931,7 +1928,7 @@ theorem inflMap_reflects_iso {C D : 𝒞} (f : C ⟶ D)
     `infl_separates`.  Reflects-iso: a slice iso has iso underlying `inflFunctor.map f = pair (fst≫f) snd`,
     and `inflMap_reflects_iso` (with `1` well-supported) descends to `f`. -/
 theorem baseSliceFaithful :
-    @Faithful 𝒞 _ (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ baseSliceObj baseSliceFunctor := by
+    Faithful (baseSliceFunctor (𝒞 := 𝒞)) := by
   refine ⟨?_, ?_⟩
   · -- embedding
     intro X Y f g h
@@ -1954,7 +1951,7 @@ theorem baseSliceFaithful :
     two such agree because both projections land in the `𝒞`-terminal `1` (`term_uniq`). -/
 theorem baseSliceObjPresTerminal :
     letI : HasTerminal (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) := overHasTerminal _
-    @PreservesTerminal 𝒞 (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ _ baseSliceObj baseSliceFunctor
+    @PreservesTerminal 𝒞 (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) _ _ baseSliceFunctor
       _ (overHasTerminal _) := by
   letI : HasTerminal (innerSliceObj (𝒞 := 𝒞) ([] : List 𝒞)) := overHasTerminal _
   intro X f g
@@ -1995,9 +1992,9 @@ theorem baseSliceObj_pres_pullback {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
 
 /-- **§1.543 Fact 1.**  The faithful base embedding `S → innerSliceObj []` is a `CartesianFunctor`. -/
 theorem baseSliceObjCartFunctor :
-    CartesianFunctor (F := baseSliceObj (𝒞 := 𝒞)) :=
+    CartesianFunctor (F := baseSliceFunctor (𝒞 := 𝒞)) :=
   pullbacks_terminal_implies_cartesianFunctor
-    (F := baseSliceObj) (fun f g => baseSliceObj_pres_pullback f g)
+    (F := baseSliceFunctor) (fun f g => baseSliceObj_pres_pullback f g)
     baseSliceObjPresTerminal
 
 /-- An isomorphism is a cover (a mono it factors through is split epi + mono = iso).  Inlined here
@@ -2048,17 +2045,17 @@ end BaseSliceCartesian
     `objIncl`/comp equalizer-preservation (stated for `colimitHasEqualizers`) feed a field whose
     target equalizers are the `products_pullbacks_implies_equalizers` instance. -/
 theorem preservesEqualizers_target_irrel {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] [heS : HasEqualizers 𝒜]
+    (F : Functor 𝒜 ℬ) [heS : HasEqualizers 𝒜]
     (e₁ e₂ : HasEqualizers ℬ)
-    (h : @PreservesEqualizers 𝒜 ℬ _ _ F hF heS e₁) :
-    @PreservesEqualizers 𝒜 ℬ _ _ F hF heS e₂ := by
+    (h : @PreservesEqualizers 𝒜 ℬ _ _ F heS e₁) :
+    @PreservesEqualizers 𝒜 ℬ _ _ F heS e₂ := by
   intro A B f g
   -- the shared image cone `(F (eqObj f g), F (eqMap f g))` over `(F f, F g)`.
-  let cone1 : EqualizerCone (hF.map f) (hF.map g) :=
-    { dom := F (eqObj f g), map := hF.map (eqMap f g)
-      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
-  let cD1 := e₁.eq (F A) (F B) (hF.map f) (hF.map g)
-  let cD2 := e₂.eq (F A) (F B) (hF.map f) (hF.map g)
+  let cone1 : EqualizerCone (F.map f) (F.map g) :=
+    { dom := F.obj (eqObj f g), map := F.map (eqMap f g)
+      eq := by rw [← F.map_comp, ← F.map_comp, eqMap_eq] }
+  let cD1 := e₁.eq (F.obj A) (F.obj B) (F.map f) (F.map g)
+  let cD2 := e₂.eq (F.obj A) (F.obj B) (F.map f) (F.map g)
   -- `cD1.cone` is an equalizer of `(F f, F g)` (its universal property).
   have hcD1 : cD1.cone.IsEqualizer := fun d => ⟨cD1.lift d, cD1.fac d, fun v hv => cD1.uniq d v hv⟩
   have hcD2 : cD2.cone.IsEqualizer := fun d => ⟨cD2.lift d, cD2.fac d, fun v hv => cD2.uniq d v hv⟩
@@ -2081,18 +2078,18 @@ theorem preservesEqualizers_target_irrel {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat
     `CatColimitRegular`) is the on-the-nose form; this is the uniqueness form the `CapStep` field needs
     for the composite `objIncl i0 ∘ baseSliceObj`. -/
 theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ] [Cat.{u} ℰ]
-    (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
     [HasTerminal 𝒜] [HasTerminal ℬ] [HasTerminal ℰ]
     (hpF : PreservesTerminal F) (hpG : PreservesTerminal G) (hGmono : PreservesMono G) :
-    PreservesTerminal (G ∘ F) := by
+    PreservesTerminal (compFunctor F G) := by
   intro X f g
   -- `t := term (F one) : F one ⟶ one_ℬ` is monic (maps into `F one` are unique, `hpF`).
-  have htmono : Monic (term (F (one : 𝒜))) := by
+  have htmono : Monic (term (F.obj (one : 𝒜))) := by
     intro Y p q _; exact hpF Y p q
-  have hGtmono : Monic (hG.map (term (F (one : 𝒜)))) := hGmono htmono
+  have hGtmono : Monic (G.map (term (F.obj (one : 𝒜)))) := hGmono htmono
   -- post-compose with the mono `G t`; the two composites land in `G one_ℬ`, equal by `hpG`.
   apply hGtmono
-  exact hpG X (f ≫ hG.map (term (F (one : 𝒜)))) (g ≫ hG.map (term (F (one : 𝒜))))
+  exact hpG X (f ≫ G.map (term (F.obj (one : 𝒜)))) (g ≫ G.map (term (F.obj (one : 𝒜))))
 
 /-- **`objIncl i` preserves monos**, given the transition mono-preservation `hmono`.  A stage mono
     `φ` stays left-cancellable under every later transition (`hmono` makes `(functF hij).map φ`
@@ -2100,10 +2097,10 @@ theorem preservesTerminal_uniq_comp {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.
 theorem objIncl_preservesMono {ι : Type u} {D : Colim.Directed ι}
     (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     (i : ι) :
     letI : Cat C.Obj := Colim.colimitCat C hC
-    @PreservesMono (C.A i) (C.catA i) C.Obj (Colim.colimitCat C hC) (C.objIncl i)
+    @PreservesMono (C.A i) (C.catA i) C.Obj (Colim.colimitCat C hC)
       (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := Colim.colimitCat C hC
   intro x y φ hφ
@@ -2117,9 +2114,9 @@ theorem objIncl_preservesMono {ι : Type u} {D : Colim.Directed ι}
 theorem objIncl_preservesCover {ι : Type u} {D : Colim.Directed ι}
     (C : Colim.CatSystem.{u, u} ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     (hcovpres : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Cover φ → Cover ((C.functF hij).map φ))
+        Cover φ → Cover (C.Fmap hij φ))
     {i : ι} {x y : C.A i} (φ : x ⟶ y) (hφ : Cover φ) :
     letI : Cat C.Obj := Colim.colimitCat C hC
     @Cover C.Obj (Colim.colimitCat C hC) _ _ ((stageInclFunctor C hC i).map φ) :=
@@ -2132,12 +2129,12 @@ theorem objIncl_preservesCover {ι : Type u} {D : Colim.Directed ι}
     needing no properness hypothesis.) -/
 theorem preservesPullbacks_preservesMono {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
-    (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T) :
+    (T : Functor 𝒜 ℬ) (hpb : PreservesPullbacks T) :
     PreservesMono T := by
   intro A B f hf
   let L := canonicalLevel f
   have hδ : IsIso L.δ := (mono_iff_level_diag_iso L).1 hf
-  have hTδ : IsIso (hT.map L.δ) := functor_preserves_iso (F := T) L.δ hδ
+  have hTδ : IsIso (T.map L.δ) := functor_preserves_iso (F := T) L.δ hδ
   -- `(L.map T hpb).δ = hT.map L.δ`, so the image-level diagonal is iso ⟹ `T f` monic.
   intro W p q hpq
   exact (mono_iff_level_diag_iso (L.map T hpb)).2 hTδ p q hpq
@@ -2158,13 +2155,13 @@ theorem isPullback_legs_congr {𝒟 : Type u} [Cat.{u} 𝒟] {A B C : 𝒟} {f :
     `baseSlice_preservesPullbacks` and (via `objIncl_preserves_pullbacks`)
     `objIncl_preservesPullbacks_generic`. -/
 theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ]
-    [HasBinaryProducts 𝒜] [HasEqualizers 𝒜] (F : 𝒜 → ℬ) [hF : Functor F]
+    [HasBinaryProducts 𝒜] [HasEqualizers 𝒜] (F : Functor 𝒜 ℬ)
     (hchosen : ∀ {A B C : 𝒜} (f : A ⟶ C) (g : B ⟶ C),
-      (Cone.mk (f := hF.map f) (g := hF.map g)
-        (F (products_equalizers_implies_pullbacks f g).cone.pt)
-        (hF.map (products_equalizers_implies_pullbacks f g).cone.π₁)
-        (hF.map (products_equalizers_implies_pullbacks f g).cone.π₂)
-        (by rw [← hF.map_comp, ← hF.map_comp,
+      (Cone.mk (f := F.map f) (g := F.map g)
+        (F.obj (products_equalizers_implies_pullbacks f g).cone.pt)
+        (F.map (products_equalizers_implies_pullbacks f g).cone.π₁)
+        (F.map (products_equalizers_implies_pullbacks f g).cone.π₂)
+        (by rw [← F.map_comp, ← F.map_comp,
                 (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback) :
     PreservesPullbacks F := by
   intro A B C f g c hc
@@ -2173,24 +2170,24 @@ theorem preservesPullbacks_of_chosenPullback {𝒜 ℬ : Type u} [Cat.{u} 𝒜] 
   obtain ⟨m, ⟨hm₁, hm₂⟩, _⟩ := hP c
   have hmiso : IsIso m := isIso_of_two_pullbacks hc hP m hm₁ hm₂
   have hPimg := hchosen f g
-  have hmimg : IsIso (hF.map m) := functor_preserves_iso (F := F) m hmiso
+  have hmimg : IsIso (F.map m) := functor_preserves_iso (F := F) m hmiso
   obtain ⟨n, hn₁, hn₂⟩ := hmimg
-  have hwleg : hF.map P.cone.π₁ ≫ hF.map f = hF.map P.cone.π₂ ≫ hF.map g := by
-    rw [← hF.map_comp, ← hF.map_comp, P.cone.w]
-  have hc' := isPullback_of_iso_apex hPimg (hF.map m) n hn₁ hn₂
-    (by show (hF.map m ≫ hF.map P.cone.π₁) ≫ hF.map f
-          = (hF.map m ≫ hF.map P.cone.π₂) ≫ hF.map g
+  have hwleg : F.map P.cone.π₁ ≫ F.map f = F.map P.cone.π₂ ≫ F.map g := by
+    rw [← F.map_comp, ← F.map_comp, P.cone.w]
+  have hc' := isPullback_of_iso_apex hPimg (F.map m) n hn₁ hn₂
+    (by show (F.map m ≫ F.map P.cone.π₁) ≫ F.map f
+          = (F.map m ≫ F.map P.cone.π₂) ≫ F.map g
         rw [Cat.assoc, Cat.assoc, hwleg])
-  have hleg₁ : hF.map m ≫ hF.map P.cone.π₁ = hF.map c.π₁ := by rw [← hF.map_comp, hm₁]
-  have hleg₂ : hF.map m ≫ hF.map P.cone.π₂ = hF.map c.π₂ := by rw [← hF.map_comp, hm₂]
+  have hleg₁ : F.map m ≫ F.map P.cone.π₁ = F.map c.π₁ := by rw [← F.map_comp, hm₁]
+  have hleg₂ : F.map m ≫ F.map P.cone.π₂ = F.map c.π₂ := by rw [← F.map_comp, hm₂]
   exact isPullback_legs_congr hleg₁ hleg₂ hc'
 
 /-- **`baseSliceObj` preserves pullbacks** (all cones).  The chosen-pullback preservation
     `baseSliceObj_pres_pullback` upgraded to all cones by the DRY hub
     `preservesPullbacks_of_chosenPullback`. -/
 theorem baseSlice_preservesPullbacks [HasEqualizers 𝒞] :
-    PreservesPullbacks (baseSliceObj (𝒞 := 𝒞)) :=
-  preservesPullbacks_of_chosenPullback baseSliceObj (fun f g => baseSliceObj_pres_pullback f g)
+    PreservesPullbacks (baseSliceFunctor (𝒞 := 𝒞)) :=
+  preservesPullbacks_of_chosenPullback baseSliceFunctor (fun f g => baseSliceObj_pres_pullback f g)
 
 /-! ### The enumeration `PrefixChain` and the well-supported-suffix condition `hwsuf`
 
@@ -2295,12 +2292,11 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
   let i0 : ULift.{u} Nat := ⟨0⟩
   -- explicit `.{u,u}` universes: `stageIncl*`'s two universe params (`ι`, the colimit's `w`) are
   -- not pinned by unification here, leaving a `PrefixChain.{max …}` constraint; both are `u`.
-  letI hF0 : @Functor ((chainSliceSystem P).A i0) _ (chainSliceSystem P).Obj _
-      ((chainSliceSystem P).objIncl i0) :=
+  let hF0 : @Functor ((chainSliceSystem P).A i0) (chainSliceSystem P).Obj _ _ :=
     @stageInclFunctor.{u, u} (ULift.{u} Nat) uliftNatDirected
       (chainSliceSystem P) (chainSliceCoherent P) i0
   have hfaith0 : @Faithful ((chainSliceSystem P).A i0) _ (chainSliceSystem P).Obj _
-      ((chainSliceSystem P).objIncl i0) hF0 :=
+      hF0 :=
     @stageInclFaithful.{u, u} (ULift.{u} Nat) uliftNatDirected (chainSliceSystem P) (chainSliceCoherent P)
       (fun {_ _} hij {_ _} p q h => chainHfaith P hij (hwsuf hij) p q h)
       (fun {_ _} hij {_ _} φ hiso => chainHcons P hij (hwsuf hij) φ hiso) i0
@@ -2309,8 +2305,8 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
       catT := colimitCat _ (chainSliceCoherent P)
       preT := chainSlicePreRegularWS (𝒞 := S) P hwsuf
       step := (chainSliceSystem P).objIncl i0 ∘ baseSliceObj (𝒞 := S)
-      stepFun := compFunctor (F := baseSliceObj (𝒞 := S)) (G := (chainSliceSystem P).objIncl i0)
-      stepFaithful := faithful_comp (F := baseSliceObj (𝒞 := S)) (G := (chainSliceSystem P).objIncl i0)
+      stepFun := compFunctor (baseSliceFunctor (𝒞 := S)) hF0
+      stepFaithful := faithful_comp (F := baseSliceFunctor (𝒞 := S)) (G := hF0)
         (baseSliceFaithful (𝒞 := S)) hfaith0
       stepTerminal := by
         letI : HasTerminal (chainSliceSystem P).Obj :=
@@ -2318,8 +2314,8 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
             (chainHasTerminal P) (chainHtpres P)
         letI : HasTerminal (innerSliceObj (𝒞 := S) ([] : List S)) := overHasTerminal _
         intro X f g
-        exact preservesTerminal_uniq_comp (F := baseSliceObj (𝒞 := S))
-          (G := (chainSliceSystem P).objIncl i0)
+        exact preservesTerminal_uniq_comp (F := baseSliceFunctor (𝒞 := S))
+          (G := hF0)
           (baseSliceObjCartFunctor (𝒞 := S)).pres_terminal
           (objIncl_preservesTerminal (chainSliceSystem P) (chainSliceCoherent P)
             (chainHasTerminal P) (chainHtpres P) i0)
@@ -2352,8 +2348,8 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
       stepProds := by
         letI : HasBinaryProducts (chainSliceSystem P).Obj :=
           (chainSlicePreRegularWS (𝒞 := S) P hwsuf).toHasBinaryProducts
-        apply preservesBinaryProducts_comp (F := baseSliceObj (𝒞 := S))
-          (G := (chainSliceSystem P).objIncl i0)
+        apply preservesBinaryProducts_comp (F := baseSliceFunctor (𝒞 := S))
+          (G := hF0)
           (baseSliceObjCartFunctor (𝒞 := S)).pres_products
         exact objIncl_preservesBinaryProducts (chainSliceSystem P) (chainSliceCoherent P)
           (chainHasProducts P) (chainHppres P) (chainHppresPair P) i0
@@ -2363,26 +2359,23 @@ noncomputable def nextStepOfEnum {S : Type u} [Cat.{u} S] [hreg : RegularCategor
         letI heCol : HasEqualizers (chainSliceSystem P).Obj :=
           colimitHasEqualizers (chainSliceSystem P) (chainSliceCoherent P)
             (chainHasEqualizers P) (chainHepres P) (chainHepresLift P)
-        letI hGF : @Functor S _ (chainSliceSystem P).Obj _
-            ((chainSliceSystem P).objIncl i0 ∘ baseSliceObj) :=
-          @compFunctor S _ (innerSliceObj (𝒞 := S) ([] : List S)) _ (chainSliceSystem P).Obj _
-            baseSliceObj ((chainSliceSystem P).objIncl i0) baseSliceFunctor hF0
-        have hcomp : PreservesEqualizers ((chainSliceSystem P).objIncl i0 ∘ baseSliceObj) := by
-          apply preservesEqualizers_comp (F := baseSliceObj (𝒞 := S))
-            (G := (chainSliceSystem P).objIncl i0)
+        let hGF := compFunctor (baseSliceFunctor (𝒞 := S)) hF0
+        have hcomp : PreservesEqualizers hGF := by
+          apply preservesEqualizers_comp (F := baseSliceFunctor (𝒞 := S))
+            (G := hF0)
             (baseSliceObjCartFunctor (𝒞 := S)).pres_equalizers
           exact objIncl_preservesEqualizers (chainSliceSystem P) (chainSliceCoherent P)
             (chainHasEqualizers P) (chainHepres P) (chainHepresLift P) i0
         intro A' B' f g
         exact preservesEqualizers_target_irrel
-          ((chainSliceSystem P).objIncl i0 ∘ baseSliceObj) heCol _ hcomp f g
+          hGF heCol _ hcomp f g
       -- stepMono: `Monic (homInclObj i0 (baseSliceMap φ))` from `Monic φ`.  `baseSliceObj` preserves
       -- monos (pullback-preserving, `preservesPullbacks_preservesMono`+`baseSlice_preservesPullbacks`);
       -- `objIncl i0` lifts the stage mono to a colimit mono (`objIncl_preservesMono`+`ordChainHmono`).
       stepMono := fun {x y} φ hφ =>
         objIncl_preservesMono (chainSliceSystem P) (chainSliceCoherent P)
           (fun {i j} hij {x y} ψ hψ => ordChainHmono P.toOrdChain hij ψ hψ) i0
-          (preservesPullbacks_preservesMono (baseSliceObj (𝒞 := S))
+          (preservesPullbacks_preservesMono (baseSliceFunctor (𝒞 := S))
             (baseSlice_preservesPullbacks (𝒞 := S)) hφ)
       -- stepCover: `Cover (homInclObj i0 (baseSliceMap φ))` from `Cover φ`.  `baseSliceObj` preserves
       -- covers (`baseSlice_preservesCover`, via `coverC_to_inflCover`/`cover_of_cover_f`); `objIncl i0`
