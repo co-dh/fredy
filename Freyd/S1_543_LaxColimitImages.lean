@@ -32,13 +32,12 @@ variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Co
 noncomputable def laxColimHasImages
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        L.Fmap hij p = L.Fmap hij q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ (L.Fmap hij f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)] :
     @HasImages (Obj L) (laxColimCat L hL) := by
@@ -74,12 +73,12 @@ noncomputable def laxColimHasImages
           (pushHom L Iobj y (D.refl a.1) a.2.2 hae gM) := by
         simp only [gM]
         unfold pushHom
-        rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ (reflApp L Iobj) m₀]
+        rw [(L.functF hae).map_comp (reflApp L Iobj) m₀]
         refine mono_precomp_iso' (transApp_isIso L (D.refl a.1) hae Iobj) ?_
         refine mono_postcomp_iso' ?_
           ⟨transApp L a.2.2 hae y, inv_isoInv_comp _, isoInv_comp _⟩
         exact mono_precomp_iso'
-          (@functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (reflApp L Iobj) (reflApp_isIso L Iobj))
+          (functor_preserves_iso (F := L.functF hae) (reflApp L Iobj) (reflApp_isIso L Iobj))
           (hmono hae hm₀_mono)
       exact hgM_mono u v huv
     -- (2) `E` is a cover: `e₀ = image.lift f₀` stays a cover under every transition
@@ -89,13 +88,13 @@ noncomputable def laxColimHasImages
       intro e hae
       simp only [gE]
       unfold pushHom
-      rw [@Functor.map_comp _ _ _ _ _ (L.functF hae) _ _ _ e₀ (isoInv (reflApp_isIso L Iobj))]
+      rw [(L.functF hae).map_comp e₀ (isoInv (reflApp_isIso L Iobj))]
       refine cover_precomp_iso (transApp_isIso L a.2.1 hae x) ?_
       refine cover_comp_iso' ?_
         ⟨transApp L (D.refl a.1) hae Iobj, inv_isoInv_comp _, isoInv_comp _⟩
       refine cover_comp_iso'
-        (preservesImage_lift_cover (L.F hae) (hF := L.functF hae) (hmono hae) f₀ (himgpres hae f₀)) ?_
-      exact @functor_preserves_iso _ _ _ _ _ (L.functF hae) _ _ (isoInv (reflApp_isIso L Iobj))
+        (preservesImage_lift_cover (L.functF hae) (hmono hae) f₀ (himgpres hae f₀)) ?_
+      exact functor_preserves_iso (F := L.functF hae) (isoInv (reflApp_isIso L Iobj))
         ⟨reflApp L Iobj, inv_isoInv_comp _, isoInv_comp _⟩
     -- (3) `E ⊚ M = F` (collapses at bound `a.1`).
     have hEM : @Cat.comp (Obj L) (laxColimCat L hL) ⟨i, x⟩ Img ⟨j, y⟩ E M
