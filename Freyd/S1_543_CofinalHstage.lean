@@ -107,15 +107,15 @@ theorem wellSupported_step {S : Type u} [Cat.{u} S] [PreRegularCategory S]
     (st : CapStep S) {A : S} (hws : WellSupported A) :
     letI : Cat st.T := st.catT
     letI : PreRegularCategory st.T := st.preT
-    WellSupported (st.step A) := by
+    WellSupported (st.stepFun.obj A) := by
   letI : Cat st.T := st.catT
   letI : PreRegularCategory st.T := st.preT
   have hcov : Cover (st.stepFun.map (term A)) := st.stepCover (term A) hws
-  have hiso : IsIso (term (st.step (HasTerminal.one)) : st.step HasTerminal.one ⟶ HasTerminal.one) :=
+  have hiso : IsIso (term (st.stepFun.obj (HasTerminal.one)) : st.stepFun.obj HasTerminal.one ⟶ HasTerminal.one) :=
     ⟨st.stepTerminalArrow HasTerminal.one, st.stepTerminal _ _ _, term_uniq _ _⟩
-  have hterm_eq : term (st.step A)
-      = st.stepFun.map (term A) ≫ (term (st.step HasTerminal.one)) := term_uniq _ _
-  show Cover (term (st.step A))
+  have hterm_eq : term (st.stepFun.obj A)
+      = st.stepFun.map (term A) ≫ (term (st.stepFun.obj HasTerminal.one)) := term_uniq _ _
+  show Cover (term (st.stepFun.obj A))
   rw [hterm_eq]; exact cover_comp_iso_cat hcov hiso
 
 /-- Well-supportedness survives the difference recursion `transN n d` (a composite of `d` rungs,
@@ -190,9 +190,9 @@ theorem wellSupported_stage_of_colim {ι : Type u} {D : Colim.Directed ι}
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     (n : ι) (A₀ : C.A n)
     (hwsCol : letI : Cat C.Obj := colimitCat C hC
       @WellSupported C.Obj (colimitCat C hC) (colimitHasTerminal C hC ht htpres)
@@ -234,15 +234,18 @@ theorem towerF_succ_eq (b : PreRegBundle.{u}) (ccs : CofinalCapStep.{u}) (j : Na
     (HEq, since endpoints differ by `towerF_succ_eq`). -/
 theorem towerFunctF_succ_map_heq (b : PreRegBundle.{u}) (ccs : CofinalCapStep.{u}) (j : Nat)
     {x y : (towerSystem b ccs.step).A ⟨j⟩} (g : x ⟶ y) :
-    HEq (((towerSystem b ccs.step).functF
-          (show uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ from Nat.le_succ j)).map g)
-      ((ccs.step (stageBundle ccs.step b j)).stepFun.map g) := by
+    HEq ((towerSystem b ccs.step).Fmap
+          (show uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ from Nat.le_succ j) g)
+      (@Functor.map _ _ (stageBundle ccs.step b j).cat
+        (ccs.step (stageBundle ccs.step b j)).catT
+        (ccs.step (stageBundle ccs.step b j)).stepFun _ _ g) := by
   show HEq (towerFmap b ccs.step (Nat.le_succ j) g) _
   unfold towerFmap
   refine (stageCastHom_heq b ccs.step _ _).trans ?_
   show HEq ((transNFun ccs.step b j ((j+1)-j)).map g) _
   have he : (j+1) - j = 1 := by omega
   rw [he]
+  rfl
 
 /-- **Core successor step.**  From `WellPointed (ccs.step Z)` (the data `ccs.wellPoints` provides for
     a well-supported `Z` at stage `j`), produce the `StageRelCap` witness at `k = j+1` for any proper
@@ -254,15 +257,17 @@ theorem stageRelCap_succ_of_wellPointed (b : PreRegBundle.{u}) (ccs : CofinalCap
     (Z : (towerSystem b ccs.step).A ⟨j⟩)
     (hwp : @WellPointed _ (ccs.step (stageBundle ccs.step b j)).catT
         (ccs.step (stageBundle ccs.step b j)).preT.toHasTerminal
-        ((ccs.step (stageBundle ccs.step b j)).step Z))
+        (@Functor.obj _ _ (stageBundle ccs.step b j).cat
+          (ccs.step (stageBundle ccs.step b j)).catT
+          (ccs.step (stageBundle ccs.step b j)).stepFun Z))
     {E' : (towerSystem b ccs.step).A ⟨j⟩} (m' : E' ⟶ Z)
     (hmono : @Monic _ (stageBundle ccs.step b j).cat _ _ m')
     (hniso : ¬ @IsIso _ (stageBundle ccs.step b j).cat _ _ m') :
     ∃ (pt : @HasTerminal.one _ ((towerSystem b ccs.step).catA ⟨j+1⟩) (ht ⟨j+1⟩)
         ⟶ (towerSystem b ccs.step).F
             (show uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ from Nat.le_succ j) Z),
-      ¬ ∃ y, y ≫ ((towerSystem b ccs.step).functF
-        (show uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ from Nat.le_succ j)).map m' = pt := by
+      ¬ ∃ y, y ≫ (towerSystem b ccs.step).Fmap
+        (show uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ from Nat.le_succ j) m' = pt := by
   letI := (stageBundle ccs.step b j).cat
   letI : Cat (ccs.step (stageBundle ccs.step b j)).T := (ccs.step (stageBundle ccs.step b j)).catT
   have hjk : uliftNatDirected.le (⟨j⟩ : ULift Nat) ⟨j+1⟩ := Nat.le_succ j
@@ -274,14 +279,16 @@ theorem stageRelCap_succ_of_wellPointed (b : PreRegBundle.{u}) (ccs : CofinalCap
     fun h => hniso ((ccs.step (stageBundle ccs.step b j)).stepFaithful.2 m' h)
   -- transport `WellPointed` to the goal's terminal `ht ⟨j+1⟩` (defeq category) and extract a point
   have hwp' : @WellPointed _ ((towerSystem b ccs.step).catA ⟨j+1⟩) (ht ⟨j+1⟩)
-      ((ccs.step (stageBundle ccs.step b j)).step Z) :=
+      ((ccs.step (stageBundle ccs.step b j)).stepFun.obj Z) :=
     wellPointed_terminal_invariant _ (ht ⟨j+1⟩) hwp
   obtain ⟨pt0, hpt0⟩ := hwp' ((ccs.step (stageBundle ccs.step b j)).stepFun.map m') hsm hsniso
-  have heqZ : (towerSystem b ccs.step).F hjk Z = (ccs.step (stageBundle ccs.step b j)).step Z :=
+  have heqZ : (towerSystem b ccs.step).F hjk Z =
+      (ccs.step (stageBundle ccs.step b j)).stepFun.obj Z :=
     towerF_succ_eq b ccs j Z
-  have heqE : (towerSystem b ccs.step).F hjk E' = (ccs.step (stageBundle ccs.step b j)).step E' :=
+  have heqE : (towerSystem b ccs.step).F hjk E' =
+      (ccs.step (stageBundle ccs.step b j)).stepFun.obj E' :=
     towerF_succ_eq b ccs j E'
-  have hmapeq : castHom heqE heqZ (((towerSystem b ccs.step).functF hjk).map m')
+  have hmapeq : castHom heqE heqZ ((towerSystem b ccs.step).Fmap hjk m')
       = (ccs.step (stageBundle ccs.step b j)).stepFun.map m' :=
     castHom_of_heq heqE heqZ (towerFunctF_succ_map_heq b ccs j m')
   refine ⟨castHom rfl heqZ.symm pt0, ?_⟩
@@ -310,29 +317,29 @@ theorem hstage_of_cofinal (b : PreRegBundle.{u}) (ccs : CofinalCapStep.{u})
     (hppres : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b ccs.step).A i)
       (z : (towerSystem b ccs.step).A j)
       (uu vv : z ⟶ (towerSystem b ccs.step).F hij ((hp i).prod a c)),
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst →
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd → uu = vv)
+      uu ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst →
+      uu ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd → uu = vv)
     (hppres_pair : ∀ {i j} (hij : uliftNatDirected.le i j) (a c : (towerSystem b ccs.step).A i)
       (z : (towerSystem b ccs.step).A j)
       (p : z ⟶ (towerSystem b ccs.step).F hij a) (q : z ⟶ (towerSystem b ccs.step).F hij c),
       ∃ r : z ⟶ (towerSystem b ccs.step).F hij ((hp i).prod a c),
-        r ≫ ((towerSystem b ccs.step).functF hij).map (hp i).fst = p ∧
-        r ≫ ((towerSystem b ccs.step).functF hij).map (hp i).snd = q)
+        r ≫ (towerSystem b ccs.step).Fmap hij (hp i).fst = p ∧
+        r ≫ (towerSystem b ccs.step).Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers ((towerSystem b ccs.step).A i))
     (hepres : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b ccs.step).A i}
       (f g : X ⟶ Y) (z : (towerSystem b ccs.step).A j)
       (uu vv : z ⟶ (towerSystem b ccs.step).F hij (eqObj f g)),
-      uu ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) =
-        vv ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) → uu = vv)
+      uu ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) =
+        vv ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) → uu = vv)
     (hepres_lift : ∀ {i j} (hij : uliftNatDirected.le i j) {X Y : (towerSystem b ccs.step).A i}
       (f g : X ⟶ Y) (z : (towerSystem b ccs.step).A j)
       (k : z ⟶ (towerSystem b ccs.step).F hij X)
-      (_hk : k ≫ ((towerSystem b ccs.step).functF hij).map f =
-        k ≫ ((towerSystem b ccs.step).functF hij).map g),
+      (_hk : k ≫ (towerSystem b ccs.step).Fmap hij f =
+        k ≫ (towerSystem b ccs.step).Fmap hij g),
       ∃ r : z ⟶ (towerSystem b ccs.step).F hij (eqObj f g),
-        r ≫ ((towerSystem b ccs.step).functF hij).map (eqMap f g) = k)
+        r ≫ (towerSystem b ccs.step).Fmap hij (eqMap f g) = k)
     (hcanon : letI : Cat (towerSystem b ccs.step).Obj := colimitCat _ (towerCoherent b ccs.step)
         letI : HasPullbacks (towerSystem b ccs.step).Obj :=
           colimitHasPullbacks _ (towerCoherent b ccs.step) ht htpres hp hppres hppres_pair he
@@ -373,7 +380,9 @@ theorem hstage_of_cofinal (b : PreRegBundle.{u}) (ccs : CofinalCapStep.{u})
   -- `ccs.wellPoints` makes the successor image well-pointed
   have hwp : @WellPointed _ (ccs.step (stageBundle ccs.step b j.down)).catT
       (ccs.step (stageBundle ccs.step b j.down)).preT.toHasTerminal
-      ((ccs.step (stageBundle ccs.step b j.down)).step
+      (@Functor.obj _ _ (stageBundle ccs.step b j.down).cat
+        (ccs.step (stageBundle ccs.step b j.down)).catT
+        (ccs.step (stageBundle ccs.step b j.down)).stepFun
         ((towerSystem b ccs.step).F hnj (colimOut (towerSystem b ccs.step) X).2)) :=
     ccs.wellPoints (stageBundle ccs.step b j.down)
       ((towerSystem b ccs.step).F hnj (colimOut (towerSystem b ccs.step) X).2) hwsZ
