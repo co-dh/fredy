@@ -82,7 +82,7 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞] [DisjointBinaryCoproduct 𝒞]
 
 /-- `T⋆` preserves binary products: fibrewise this is `TF_preserves_binaryProducts`. -/
 theorem Tstar_preservesBinaryProducts :
-    PreservesBinaryProducts (Tstar (𝒞 := 𝒞)) := by
+    PreservesBinaryProducts (TstarFunctor (𝒞 := 𝒞)) := by
   intro A B
   rw [power_isIso_iff]
   intro F
@@ -90,7 +90,7 @@ theorem Tstar_preservesBinaryProducts :
 
 /-- `T⋆` preserves pullbacks: fibrewise this is `TF_preserves_pullbacks`. -/
 theorem Tstar_preservesPullbacks :
-    PreservesPullbacks (Tstar (𝒞 := 𝒞)) := by
+    PreservesPullbacks (TstarFunctor (𝒞 := 𝒞)) := by
   intro A B C f g c hc
   apply power_isPullback_of_fibrewise
   intro F
@@ -98,7 +98,7 @@ theorem Tstar_preservesPullbacks :
 
 /-- `T⋆` preserves monos: fibrewise this is `TF_preserves_mono`. -/
 theorem Tstar_preservesMono :
-    PreservesMono (Tstar (𝒞 := 𝒞)) := by
+    PreservesMono (TstarFunctor (𝒞 := 𝒞)) := by
   intro X Y f hf
   rw [power_monic_iff]
   intro F
@@ -108,7 +108,7 @@ theorem Tstar_preservesMono :
     (`F.property.2.1`), hence projective in a capital pre-logos (`capital_filter_projective`,
     §1.633), so the per-fibre `TF_preserves_covers_of_projective` applies. -/
 theorem Tstar_preservesCovers (hcap : Capital (𝒞 := 𝒞)) :
-    PreservesCovers (Tstar (𝒞 := 𝒞)) := by
+    PreservesCovers (TstarFunctor (𝒞 := 𝒞)) := by
   intro A B f hf
   rw [power_cover_iff]
   intro F
@@ -118,7 +118,7 @@ theorem Tstar_preservesCovers (hcap : Capital (𝒞 := 𝒞)) :
 
 /-- `T⋆` preserves images, fibrewise from `TF_preserves_images` (projectivity via §1.633). -/
 theorem Tstar_preservesImages (hcap : Capital (𝒞 := 𝒞)) :
-    PreservesImages (Tstar (𝒞 := 𝒞)) Tstar_preservesMono := by
+    PreservesImages (TstarFunctor (𝒞 := 𝒞)) Tstar_preservesMono := by
   intro A B f I hI
   apply power_isImage_of_fibrewise
   intro F
@@ -132,7 +132,7 @@ theorem Tstar_preservesImages (hcap : Capital (𝒞 := 𝒞)) :
   field lifting fibrewise from the per-fibre `TF_regularFunctor` (`StalkRegular`), with cover/image
   projectivity supplied by §1.633 (`capital_filter_projective`). -/
 theorem Tstar_regularFunctor (hcap : Capital (𝒞 := 𝒞)) :
-    RelFunctor.RegularFunctor (Tstar (𝒞 := 𝒞)) where
+    RelFunctor.RegularFunctor (TstarFunctor (𝒞 := 𝒞)) where
   pres_prod := Tstar_preservesBinaryProducts
   pres_pullback := Tstar_preservesPullbacks
   pres_covers := Tstar_preservesCovers hcap
