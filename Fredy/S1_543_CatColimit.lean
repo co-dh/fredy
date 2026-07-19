@@ -29,12 +29,29 @@ structure CatSystem (ι : Type u) (D : Directed ι) where
   A : ι → Type w
   catA : ∀ i, Cat.{w} (A i)
   F : ∀ {i j}, D.le i j → A i → A j
-  functF : ∀ {i j} (hij : D.le i j), @Functor (A i) (catA i) (A j) (catA j) (F hij)
+  Fmap : ∀ {i j} (hij : D.le i j) {x y : A i},
+    @Cat.Hom (A i) (catA i) x y → @Cat.Hom (A j) (catA j) (F hij x) (F hij y)
+  Fmap_id : ∀ {i j} (hij : D.le i j) (x : A i),
+    Fmap hij (@Cat.id (A i) (catA i) x) = @Cat.id (A j) (catA j) (F hij x)
+  Fmap_comp : ∀ {i j} (hij : D.le i j) {x y z : A i}
+    (f : @Cat.Hom (A i) (catA i) x y) (g : @Cat.Hom (A i) (catA i) y z),
+    Fmap hij (@Cat.comp (A i) (catA i) x y z f g)
+      = @Cat.comp (A j) (catA j) (F hij x) (F hij y) (F hij z) (Fmap hij f) (Fmap hij g)
   F_refl : ∀ {i} (x : A i), F (D.refl i) x = x
   F_trans : ∀ {i j k} (hij : D.le i j) (hjk : D.le j k) (x : A i),
     F (D.trans hij hjk) x = F hjk (F hij x)
 
 attribute [instance] CatSystem.catA
+
+/-- The transition functor `A i → A j` as a bundled `Functor`, assembled from the
+    object action `F` and the morphism action `Fmap`.  (The object action `F` stays a
+    field of its own because the colimit needs the *strict* object coherences
+    `F_refl`/`F_trans`, which a bundled functor does not record.) -/
+def CatSystem.functF (C : CatSystem ι D) {i j} (hij : D.le i j) : Functor (C.A i) (C.A j) where
+  obj := C.F hij
+  map := C.Fmap hij
+  map_id := C.Fmap_id hij
+  map_comp := C.Fmap_comp hij
 
 /-- Morphism-level coherence of the transition functors: an identity transition
     acts as the identity functor and composite transitions compose, on *morphisms*
@@ -126,9 +143,9 @@ theorem castHom_id {𝒜 : Type w} [Cat.{w} 𝒜] {X X' : 𝒜} (hX : X = X') :
 
 /-- A functor commutes with transport: mapping a transported morphism equals
     transporting the mapped morphism (along the image object-equalities). -/
-theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : 𝒜 → 𝒝) [hT : Functor T]
+theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : Functor 𝒜 𝒝)
     {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) :
-    hT.map (castHom hX hY m) = castHom (congrArg T hX) (congrArg T hY) (hT.map m) := by
+    T.map (castHom hX hY m) = castHom (congrArg T.obj hX) (congrArg T.obj hY) (T.map m) := by
   subst hX; subst hY; rfl
 
 /-- A transport is heterogeneously equal to the morphism it transports. -/
@@ -168,7 +185,7 @@ theorem homTr_trans (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i
     (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
     homTr C x y a c (D.trans hab hbc) g = homTr C x y b c hbc (homTr C x y a b hab g) := by
   unfold homTr
-  rw [map_castHom (C.F hbc) (hT := C.functF hbc), castHom_castHom]
+  rw [map_castHom (C.functF hbc), castHom_castHom]
   exact castHom_heq_congr _ _ _ _ (hC.trans_map hab hbc g)
 
 /-- The hom-colimit system for fixed representatives `x : C.A i`, `y : C.A j`. -/
