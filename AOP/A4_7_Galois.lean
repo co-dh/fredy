@@ -42,12 +42,12 @@ variable {f : a.carrier → b.carrier} {g : b.carrier → a.carrier} {R : b ⟶ 
 /-- Both composites reduce pointwise: `(R ≫ (graph f)°) y x ↔ R y (f x)`. -/
 private theorem comp_graphf_recip (y : b.carrier) (x : a.carrier) :
     (R ≫ (graph f)°) y x ↔ R y (f x) :=
-  ⟨fun ⟨z, hR, hz⟩ => hz ▸ hR, fun hR => ⟨f x, hR, rfl⟩⟩
+  ⟨fun ⟨_, hR, hz⟩ => hz ▸ hR, fun hR => ⟨f x, hR, rfl⟩⟩
 
 /-- `(graph g ≫ S) y x ↔ S (g y) x`. -/
 private theorem graphg_comp (y : b.carrier) (x : a.carrier) :
     (graph g ≫ S) y x ↔ S (g y) x :=
-  ⟨fun ⟨w, hw, hS⟩ => hw ▸ hS, fun hS => ⟨g y, rfl, hS⟩⟩
+  ⟨fun ⟨_, hw, hS⟩ => hw ▸ hS, fun hS => ⟨g y, rfl, hS⟩⟩
 
 /-- AoPA `galois-equiv-⇒`: the pointwise connection implies the point-free one. -/
 theorem galois_equiv_mpr (gal : galois f g R S) : galoisPF f g R S :=

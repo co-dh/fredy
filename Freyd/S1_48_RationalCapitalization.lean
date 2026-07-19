@@ -318,8 +318,8 @@ theorem mono_of_comp_mono {A B C : 𝒞} {g : A ⟶ B} {f : B ⟶ C} (h : Monic 
     category `A[𝒟⁻¹]` below.  Sorry-free. -/
 def denseMonos (𝒞 : Type u) [Cat.{u} 𝒞] [HasTerminal 𝒞] [HasBinaryProducts 𝒞]
     [HasPullbacks 𝒞] : DenseClass 𝒞 where
-  mem {A B} f := Monic f
-  iso_mem f hf := mono_of_isIso hf
+  mem f := Monic f
+  iso_mem _ hf := mono_of_isIso hf
   comp_mem f g hf hg := mono_comp' f g hf hg
   pb_mem f g hf := mono_pullback g f hf (HasPullbacks.has g f)
 
@@ -1076,9 +1076,9 @@ instance pairsCat : Cat.{u} (PairObj 𝒞) where
 
 /-- The FORGETFUL functor `Â → A`, `(A,F) ↦ A`, `g ↦ g`.  Underlying-arrow extraction. -/
 instance pairForget : Functor (fun X : PairObj 𝒞 => X.A) where
-  map {X Y} a := a.g
+  map a := a.g
   map_id _ := rfl
-  map_comp a b := rfl
+  map_comp _ _ := rfl
 
 /-- **§1.547 full embedding `A ↪ Â`**, on objects: `A ↦ (A, ∅)` (no recorded factors). -/
 def pairEmbedObj (A : 𝒞) : PairObj 𝒞 where
@@ -1091,9 +1091,9 @@ def pairEmbedObj (A : 𝒞) : PairObj 𝒞 where
     factors, so compatibility is vacuous).  A genuine functor (`map_id`/`map_comp` by `PairHom.ext`).
     "A full embedding of `A` into `Â` is obtained by sending `A` to `(A,∅)`" (§1.547). -/
 instance pairEmbed : Functor (fun A : 𝒞 => pairEmbedObj A) where
-  map {A B} g := ⟨g, fun p hp => absurd hp List.not_mem_nil⟩
+  map g := ⟨g, fun _ hp => absurd hp List.not_mem_nil⟩
   map_id _ := PairHom.ext rfl
-  map_comp f g := PairHom.ext rfl
+  map_comp _ _ := PairHom.ext rfl
 
 /-- A `PairHom`'s codomain targets are a SUBSET of its domain targets (`Y° ⊆ X°`).  Immediate from
     compat: every `p ∈ Y.F` has a matching `q ∈ X.F` of the SAME target, so `p.1 = q.1 ∈ X°`. -/
@@ -1107,7 +1107,7 @@ theorem pairHom_targets_subset {X Y : PairObj 𝒞} (m : PairHom X Y) :
 /-- The §1.547 embedding `A ↪ Â` is an `Embedding` (faithful on homs): a `PairHom` is determined by
     its underlying `.g`, which is exactly the input arrow (`PairHom.ext`). -/
 theorem pairEmbed_embedding : Embedding (fun A : 𝒞 => pairEmbedObj A) :=
-  fun f g h => congrArg PairHom.g h
+  fun _ _ h => congrArg PairHom.g h
 
 /-- The §1.547 embedding `A ↪ Â` is FULL: every `Â`-arrow `(A,∅) → (B,∅)` is `pairEmbed.map` of its
     underlying `.g` (no compatibility constraints between empty factor sets). -/
@@ -1121,7 +1121,7 @@ theorem pairEmbed_faithful : Faithful (fun A : 𝒞 => pairEmbedObj A) :=
 /-- The forgetful functor `Â → A` is an `Embedding` (faithful on homs): a `PairHom` is
     determined by its `.g` (`PairHom.ext`). -/
 theorem pairForget_embedding : Embedding (fun X : PairObj 𝒞 => X.A) :=
-  fun a b h => PairHom.ext h
+  fun _ _ h => PairHom.ext h
 
 /-! ### §1.547  The refined DENSE class on `Â`
 
@@ -2493,7 +2493,7 @@ def pairTerminal : PairObj 𝒞 where
 /-- The unique `Â`-morphism `X → (1,∅)`: underlying `term`, compatibility vacuous (`F = ∅`). -/
 def pairToTerminal (X : PairObj 𝒞) : PairHom X pairTerminal where
   g := term X.A
-  compat p hp := absurd hp (List.not_mem_nil)
+  compat _ hp := absurd hp (List.not_mem_nil)
 
 /-- **§1.547 — `Â` has a terminal object** `(1,∅)`.  Uniqueness of `X → (1,∅)` is uniqueness of
     `X.A → 1` in `A` (`term_uniq`) lifted through `PairHom.ext` (a `PairHom` is its `.g`). -/
@@ -2758,10 +2758,10 @@ instance pairHasBinaryProducts [HasEqualizers 𝒞] [DecidableEq 𝒞] :
   prod := pairProdObj
   fst {X Y} := pairProjFst X Y
   snd {X Y} := pairProjSnd X Y
-  pair {Z X Y} a b := pairPair Z.distinct a b
-  fst_pair {Z X Y} a b := pairPair_fst Z.distinct a b
-  snd_pair {Z X Y} a b := pairPair_snd Z.distinct a b
-  pair_uniq {Z X Y} a b h h₁ h₂ :=
+  pair {Z _ _} a b := pairPair Z.distinct a b
+  fst_pair {Z _ _} a b := pairPair_fst Z.distinct a b
+  snd_pair {Z _ _} a b := pairPair_snd Z.distinct a b
+  pair_uniq {Z _ _} a b h h₁ h₂ :=
     pairProd_hom_ext h _
       (h₁.trans (pairPair_fst Z.distinct a b).symm)
       (h₂.trans (pairPair_snd Z.distinct a b).symm)
@@ -2858,7 +2858,7 @@ theorem pairEqLift_uniq {X Y : PairObj 𝒞} (a b : PairHom X Y) {Z : PairObj �
 /-- **§1.547 — `Â` HAS EQUALIZERS** (forgetful functor creates them).  The equalizer cone is
     `(E,e^*F)` with map `pairEqMap`; universal property from the underlying equalizer in `A`. -/
 instance pairHasEqualizers : HasEqualizers (PairObj 𝒞) where
-  eq X Y a b :=
+  eq _ _ a b :=
     { cone := ⟨pairEqObj a b, pairEqMap a b, pairEqMap_eq a b⟩
       lift := fun c => pairEqLift a b c.map c.eq
       fac := fun c => pairEqLift_fac a b c.map c.eq
@@ -2915,7 +2915,7 @@ theorem pullbackFactors_distinct {E : 𝒞} {X : PairObj 𝒞} {e : E ⟶ X.A} :
   exact congP f.2 f'.2 h (X.distinct f hf f' hf' h)
 
 /-- The lift object `(C, m^*Y.F)` for an `A`-monic `m : C → Y.A` into a `PairObj` `Y`. -/
-def liftObj {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (hm : Monic m) : PairObj 𝒞 where
+def liftObj {C : 𝒞} {Y : PairObj 𝒞} {m : C ⟶ Y.A} (_ : Monic m) : PairObj 𝒞 where
   A := C
   F := pullbackFactors m
   wsupp := pullbackFactors_wsupp m
@@ -3389,7 +3389,7 @@ theorem partHom_snd_proj (p : 𝒞 → Bool) (l : List 𝒞) (k : Fin l.length)
     listProdPartition_hom_inv, Cat.id_comp]
 
 /-- The reconstructed `dx.W`-coordinate: `survRecon ≫ dx.wg`. -/
-def wRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
+def wRecon {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (_ : Z ⟶ Y) (dx : PairDense x) :
     prod Z.A (listProd (dx.surv.filter (fun T => !collides Z T))) ⟶ dx.W :=
   survRecon x dx ≫ dx.wg
 
@@ -3760,7 +3760,7 @@ structure ApexIso {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairD
 theorem wellSupported_listProd' [PullbacksTransferCovers 𝒞] :
     ∀ {l : List 𝒞}, (∀ B ∈ l, WellSupported B) → WellSupported (listProd l)
   | [], _ => wellSupported_one'
-  | C :: l, h => wellSupported_prod' (h C (List.mem_cons_self))
+  | C :: _, h => wellSupported_prod' (h C (List.mem_cons_self))
       (wellSupported_listProd' (fun B hB => h B (List.mem_cons_of_mem _ hB)))
 
 /-- **§1.547 — the FIRST LEG of the canonical `Â`-pullback of `(g, x)` is DENSE.**  The absorption
@@ -3952,8 +3952,8 @@ theorem pairDense_pb [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞]
     `A* = Â[PairDense⁻¹]`. -/
 def pairDenseClass [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] : DenseClass (PairObj 𝒞) where
   mem x := Nonempty (PairDense x)
-  iso_mem x hx := pairDense_of_isIso hx
-  comp_mem x y hx hy := hx.elim (fun dx => hy.elim (fun dy => ⟨pairDense_comp dx dy⟩))
+  iso_mem _ hx := pairDense_of_isIso hx
+  comp_mem _ _ hx hy := hx.elim (fun dx => hy.elim (fun dy => ⟨pairDense_comp dx dy⟩))
   pb_mem x g hx := pairDense_pb x g hx
 
 /-- **R7 — `pairDenseClass` is a DENSE CLASS OF MONICS** (the book's §1.48/§1.481 hypothesis).  Every

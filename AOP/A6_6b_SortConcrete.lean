@@ -93,7 +93,7 @@ theorem hfus_concrete :
 theorem selection_sort_correct_concrete :
     sort (selectC R) ⊑ perm ≫ cataR (oalgC R) :=
   selection_sort_correct (selectC R) (oalgC R) perm
-    (hom_ext fun x y => ⟨fun h => Perm.symm h, fun h => Perm.symm h⟩)
+    (hom_ext fun _ _ => ⟨fun h => Perm.symm h, fun h => Perm.symm h⟩)
     (le_iff.mpr fun x y h => oalg_coref R x y h) (hfus_concrete R)
 
 end Freyd.Alg.RelSet.Sort

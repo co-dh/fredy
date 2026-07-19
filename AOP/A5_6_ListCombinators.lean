@@ -72,11 +72,11 @@ def prefixR : dList A ⟶ dList A := prefixP
 
 theorem prefixP.refl : ∀ x : ConsList Unit A, prefixP x x
   | ConsList.wrap _ => trivial
-  | ConsList.cons a x => ⟨rfl, prefixP.refl x⟩
+  | ConsList.cons _ x => ⟨rfl, prefixP.refl x⟩
 
 theorem prefixP.trans : ∀ {x y z : ConsList Unit A}, prefixP x y → prefixP y z → prefixP x z
   | ConsList.wrap _, _, _, _, _ => trivial
-  | ConsList.cons a x, ConsList.cons b y, ConsList.cons c z, ⟨hab, hxy⟩, ⟨hbc, hyz⟩ =>
+  | ConsList.cons _ _, ConsList.cons _ _, ConsList.cons _ _, ⟨hab, hxy⟩, ⟨hbc, hyz⟩ =>
       ⟨hab.trans hbc, prefixP.trans hxy hyz⟩
 
 /-- **`prefix` is transitive**. -/
@@ -96,12 +96,12 @@ def subseq : dList A ⟶ dList A := subseqP
 
 theorem subseqP.refl : ∀ x : ConsList Unit A, subseqP x x
   | ConsList.wrap _ => trivial
-  | ConsList.cons a x => Or.inl ⟨rfl, subseqP.refl x⟩
+  | ConsList.cons _ x => Or.inl ⟨rfl, subseqP.refl x⟩
 
 /-- Extending the larger list on the front preserves subsequence: `subseq x y → subseq x (b::y)`. -/
 theorem subseqP.weaken {b : A} : ∀ {x y : ConsList Unit A}, subseqP x y → subseqP x (ConsList.cons b y)
   | ConsList.wrap _, _, _ => trivial
-  | ConsList.cons a x, y, h => Or.inr h
+  | ConsList.cons _ _, _, h => Or.inr h
 
 /-- Dropping the front element of the smaller list preserves subsequence. -/
 theorem subseqP.of_cons {a : A} :
@@ -114,7 +114,7 @@ theorem subseqP.of_cons {a : A} :
 
 /-- **`subseq` is reflexive**. -/
 theorem subseq_reflexive : Cat.id (dList A) ⊑ subseq :=
-  le_iff.mpr fun x y hxy => hxy ▸ subseqP.refl x
+  le_iff.mpr fun x _ hxy => hxy ▸ subseqP.refl x
 
 /-! ## Sortedness `ordered : list A ← list A` (B&dM p.152, `ordered = ⦇[nil, cons·ok]⦈`) -/
 
@@ -132,7 +132,7 @@ def ordered : dList A ⟶ dList A := fun x y => x = y ∧ orderedP R x
 /-- **`ordered` is coreflexive** (`ordered ⊑ id`) — discharges the `hord` hypothesis of §6.6's
     `selection_sort_correct` for the concrete sortedness relation. -/
 theorem ordered_coreflexive : (ordered R : dList A ⟶ dList A) ⊑ Cat.id (dList A) :=
-  le_iff.mpr fun x y h => h.1
+  le_iff.mpr fun _ _ h => h.1
 
 /-! ## Partition `partition : list (list⁺ A) ← list A` (B&dM p.128, `partition = concat°`) -/
 
