@@ -86,28 +86,50 @@ variable {ι : Type u} {D : Directed ι}
   Identical OBJECT/`Cat`/FUNCTOR data to `Colim.CatSystem`, but the two coherence fields are
   natural ISOMORPHISMS instead of strict equalities.  `functF hij : Functor (F hij)` makes each
   transition a genuine functor; `F_refl_iso`/`F_trans_iso` are the pseudofunctor coherences. -/
-structure LaxCatSystem (ι : Type u) (D : Directed ι) where
+/-- The object/`Cat`/transition-functor data of a lax directed system (no coherences yet):
+    the object map `F` and morphism map `Fmap` of each transition, with the two functor laws.
+    Split out from `LaxCatSystem` so the bundled transition functor `functF` can be defined
+    before the pseudofunctor coherence isos that mention it. -/
+structure LaxCatSystemData (ι : Type u) (D : Directed ι) where
   /-- the stage categories' carriers -/
   A : ι → Type w
   /-- each stage is a category -/
   catA : ∀ i, Cat.{w} (A i)
   /-- the object map of each transition -/
   F : ∀ {i j}, D.le i j → A i → A j
-  /-- each transition is a functor -/
-  functF : ∀ {i j} (hij : D.le i j), @Functor (A i) (catA i) (A j) (catA j) (F hij)
+  /-- the morphism map of each transition -/
+  Fmap : ∀ {i j} (hij : D.le i j) {x y : A i},
+    @Cat.Hom (A i) (catA i) x y → @Cat.Hom (A j) (catA j) (F hij x) (F hij y)
+  Fmap_id : ∀ {i j} (hij : D.le i j) (x : A i),
+    Fmap hij (@Cat.id (A i) (catA i) x) = @Cat.id (A j) (catA j) (F hij x)
+  Fmap_comp : ∀ {i j} (hij : D.le i j) {x y z : A i}
+    (f : @Cat.Hom (A i) (catA i) x y) (g : @Cat.Hom (A i) (catA i) y z),
+    Fmap hij (@Cat.comp (A i) (catA i) x y z f g)
+      = @Cat.comp (A j) (catA j) (F hij x) (F hij y) (F hij z) (Fmap hij f) (Fmap hij g)
+
+attribute [instance] LaxCatSystemData.catA
+
+/-- The transition functor `A i → A j` as a bundled `Functor` (object action `F`, morphism
+    action `Fmap`); the pseudofunctor coherence isos below are stated over it. -/
+def LaxCatSystemData.functF (S : LaxCatSystemData ι D) {i j} (hij : D.le i j) :
+    Functor (S.A i) (S.A j) where
+  obj := S.F hij
+  map := S.Fmap hij
+  map_id := S.Fmap_id hij
+  map_comp := S.Fmap_comp hij
+
+/-- A directed system of categories with pseudofunctor (lax) coherences: the same object/functor
+    data as `Colim.CatSystem`, but the two coherence fields are natural ISOMORPHISMS instead of
+    strict equalities.  `functF hij` makes each transition a genuine functor; `F_refl_iso`/
+    `F_trans_iso` are the pseudofunctor coherences. -/
+structure LaxCatSystem (ι : Type u) (D : Directed ι) extends LaxCatSystemData ι D where
   /-- pseudo-identity: the reflexive transition is naturally isomorphic to the identity functor -/
-  F_refl_iso : ∀ {i}, @NatIso (A i) (catA i) (A i) (catA i)
-    (F (D.refl i)) (fun x => x) (functF (D.refl i)) (@idFunctor (A i) (catA i))
+  F_refl_iso : ∀ {i}, NatIso (toLaxCatSystemData.functF (D.refl i)) (@idFunctor (A i) (catA i))
   /-- pseudo-composition: a composite transition is naturally isomorphic to the composite of the
       two transition functors -/
   F_trans_iso : ∀ {i j k} (hij : D.le i j) (hjk : D.le j k),
-    @NatIso (A i) (catA i) (A k) (catA k)
-      (F (D.trans hij hjk)) (fun x => F hjk (F hij x))
-      (functF (D.trans hij hjk))
-      (@compFunctor (A i) (catA i) (A j) (catA j) (A k) (catA k) (F hij) (F hjk)
-        (functF hij) (functF hjk))
-
-attribute [instance] LaxCatSystem.catA
+    NatIso (toLaxCatSystemData.functF (D.trans hij hjk))
+      (compFunctor (toLaxCatSystemData.functF hij) (toLaxCatSystemData.functF hjk))
 
 /-! ## The object carrier of the pseudo-colimit: the bare Σ-type
 
@@ -138,10 +160,10 @@ variable {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
 /-- **Pointwise object-equality ⟹ natural iso.**  If two functors agree on objects pointwise and
     their morphism maps satisfy the `eqToHom` conjugation `G.map f = eqToHom (hpt X).symm ≫ F.map f
     ≫ eqToHom (hpt Y)`, the `eqToHom` family is a `NatIso F G`. -/
-def natIsoOfPointwise {F G : 𝒜 → ℬ} [hF : Functor F] [hG : Functor G]
-    (hpt : ∀ x, F x = G x)
+def natIsoOfPointwise {F G : Functor 𝒜 ℬ}
+    (hpt : ∀ x, F.obj x = G.obj x)
     (hmap : ∀ {X Y : 𝒜} (f : X ⟶ Y),
-      hG.map f = eqToHom (hpt X).symm ≫ hF.map f ≫ eqToHom (hpt Y)) :
+      G.map f = eqToHom (hpt X).symm ≫ F.map f ≫ eqToHom (hpt Y)) :
     NatIso F G where
   nat :=
     { app X := eqToHom (hpt X)
@@ -175,18 +197,17 @@ noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
   A := C.A
   catA := C.catA
   F := @C.F
-  functF := @C.functF
-  F_refl_iso {i} := natIsoOfPointwise (F := C.F (D.refl i)) (G := fun x => x)
-    (hF := C.functF (D.refl i)) (hG := @idFunctor (C.A i) (C.catA i))
+  Fmap := @C.Fmap
+  Fmap_id := @C.Fmap_id
+  Fmap_comp := @C.Fmap_comp
+  F_refl_iso {i} := natIsoOfPointwise (F := C.functF (D.refl i)) (G := @idFunctor (C.A i) (C.catA i))
     (fun x => C.F_refl x)
     (fun {X Y} f =>
       -- `idFunctor.map f = f`; `Coherent.refl_map f : HEq ((functF refl).map f) f` conjugates.
       heq_eqToHom_conj (C.F_refl X) (C.F_refl Y) (hC.refl_map f))
   F_trans_iso {i j k} hij hjk := natIsoOfPointwise
-    (F := C.F (D.trans hij hjk)) (G := fun x => C.F hjk (C.F hij x))
-    (hF := C.functF (D.trans hij hjk))
-    (hG := @compFunctor (C.A i) (C.catA i) (C.A j) (C.catA j) (C.A k) (C.catA k)
-      (C.F hij) (C.F hjk) (C.functF hij) (C.functF hjk))
+    (F := C.functF (D.trans hij hjk))
+    (G := compFunctor (C.functF hij) (C.functF hjk))
     (fun x => C.F_trans hij hjk x)
     (fun {X Y} f =>
       heq_eqToHom_conj (C.F_trans hij hjk X) (C.F_trans hij hjk Y) (hC.trans_map hij hjk f))
@@ -237,8 +258,8 @@ def pcF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) : pcObj P i → pcObj P 
   baseChangeObj (P.proj h)
 
 /-- The base-change transition is a functor (Sorry-free, `baseChangeFunctor`). -/
-instance pcFunctF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) :
-    @Functor (pcObj P i) (overCat (P.pr i)) (pcObj P j) (overCat (P.pr j)) (pcF P h) :=
+def pcFunctF (P : ProjSystem ι D 𝒞) {i j} (h : D.le i j) :
+    @Functor (pcObj P i) (pcObj P j) (overCat (P.pr i)) (overCat (P.pr j)) :=
   baseChangeFunctor (P.proj h)
 
 /-! ### The reflexive coherence iso is REAL — `baseChangeObj (id) ≅ id`
@@ -299,8 +320,7 @@ private theorem _idBwd_isIso (X : Over C) : @IsIso (Over C) _ _ _ (_idBwd X) := 
     `_idBwd_isIso`); naturality is the pullback square `w` (`π₁` commutes with the base-change map's
     `π₁`-leg, which is `lift_fst`).  This proves `PseudoBaseChange.refl_iso` is genuinely
     inhabitable — the reflexive coherence iso is NOT a hidden wall. -/
-def baseChangeIdNatIso : @NatIso (Over C) _ (Over C) _
-    (baseChangeObj (Cat.id C)) (fun X => X) (baseChangeFunctor (Cat.id C)) (@idFunctor (Over C) _) where
+def baseChangeIdNatIso : NatIso (baseChangeFunctor (Cat.id C)) (@idFunctor (Over C) _) where
   nat :=
     { app := _idBwd
       naturality {X Y} m := by
@@ -523,11 +543,8 @@ private theorem _transFwd_natf {X Y : Over D} (m : OverHom X Y) :
     the iterated-pullback / pullback-pasting isomorphism.  Components are `_transFwd` (iso by
     `_transFwd_isIso`); naturality is `_transFwd_natf` (pullback-lift uniqueness). -/
 def baseChangeTransNatIso :
-    @NatIso (Over D) _ (Over E) _
-      (baseChangeObj (g' ≫ g)) (baseChangeObj g' ∘ baseChangeObj g)
-      (baseChangeFunctor (g' ≫ g))
-      (@compFunctor (Over D) _ (Over C) _ (Over E) _
-        (baseChangeObj g) (baseChangeObj g') (baseChangeFunctor g) (baseChangeFunctor g')) where
+    NatIso (baseChangeFunctor (g' ≫ g))
+      (compFunctor (baseChangeFunctor g) (baseChangeFunctor g')) where
   nat :=
     { app := _transFwd g g'
       naturality {_ _} m := OverHom.ext (_transFwd_natf g g' m) }
@@ -587,22 +604,17 @@ end BaseChangeTransIso
     builds the §1.543 inner base-change `LaxCatSystem` outright (no hypothesis to discharge). -/
 structure PseudoBaseChange (P : ProjSystem ι D 𝒞) where
   trans_iso : ∀ {i j k : ι} (hij : D.le i j) (hjk : D.le j k),
-    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P k) (overCat (P.pr k))
-      (pcF P (D.trans hij hjk)) (fun X => pcF P hjk (pcF P hij X))
-      (pcFunctF P (D.trans hij hjk))
-      (@compFunctor (pcObj P i) _ (pcObj P j) _ (pcObj P k) _
-        (pcF P hij) (pcF P hjk) (pcFunctF P hij) (pcFunctF P hjk))
+    NatIso (pcFunctF P (D.trans hij hjk))
+      (compFunctor (pcFunctF P hij) (pcFunctF P hjk))
 
 /-- **The reflexive coherence iso of ANY base-change projection system is real.**  Transporting
     `baseChangeIdNatIso` along `P.proj_refl i : P.proj (D.refl i) = Cat.id (pr i)` discharges the
     `refl_iso` field for every `ProjSystem` — Sorry-free.  So `PseudoBaseChange` reduces to its
     `trans_iso` field alone: the reflexive half is NOT a blocker. -/
 def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
-    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P i) (overCat (P.pr i))
-      (pcF P (D.refl i)) (fun X => X) (pcFunctF P (D.refl i)) (@idFunctor (pcObj P i) _) := by
+    NatIso (pcFunctF P (D.refl i)) (@idFunctor (pcObj P i) (overCat (P.pr i))) := by
   -- `pcF P (D.refl i) = baseChangeObj (P.proj (D.refl i))`; rewrite the projection to `id`.
-  show @NatIso (Over (P.pr i)) _ (Over (P.pr i)) _
-    (baseChangeObj (P.proj (D.refl i))) _ (baseChangeFunctor (P.proj (D.refl i))) _
+  show NatIso (baseChangeFunctor (P.proj (D.refl i))) (@idFunctor (Over (P.pr i)) _)
   rw [P.proj_refl i]
   exact baseChangeIdNatIso
 
@@ -612,20 +624,12 @@ def projReflIso (P : ProjSystem ι D 𝒞) (i : ι) :
     pullback-pasting natural iso, instantiated at the projection composite.  So `PseudoBaseChange` is
     inhabited UNCONDITIONALLY (`pseudoBaseChange`): neither coherence half is a blocker. -/
 def projTransIso (P : ProjSystem ι D 𝒞) {i j k : ι} (hij : D.le i j) (hjk : D.le j k) :
-    @NatIso (pcObj P i) (overCat (P.pr i)) (pcObj P k) (overCat (P.pr k))
-      (pcF P (D.trans hij hjk)) (fun X => pcF P hjk (pcF P hij X))
-      (pcFunctF P (D.trans hij hjk))
-      (@compFunctor (pcObj P i) _ (pcObj P j) _ (pcObj P k) _
-        (pcF P hij) (pcF P hjk) (pcFunctF P hij) (pcFunctF P hjk)) := by
+    NatIso (pcFunctF P (D.trans hij hjk))
+      (compFunctor (pcFunctF P hij) (pcFunctF P hjk)) := by
   -- `pcF P (D.trans hij hjk) = baseChangeObj (P.proj (D.trans hij hjk))`; rewrite the projection to
   -- the composite `P.proj hjk ≫ P.proj hij` and apply `baseChangeTransNatIso`.
-  show @NatIso (Over (P.pr i)) _ (Over (P.pr k)) _
-    (baseChangeObj (P.proj (D.trans hij hjk)))
-    (baseChangeObj (P.proj hjk) ∘ baseChangeObj (P.proj hij))
-    (baseChangeFunctor (P.proj (D.trans hij hjk)))
-    (@compFunctor (Over (P.pr i)) _ (Over (P.pr j)) _ (Over (P.pr k)) _
-      (baseChangeObj (P.proj hij)) (baseChangeObj (P.proj hjk))
-      (baseChangeFunctor (P.proj hij)) (baseChangeFunctor (P.proj hjk)))
+  show NatIso (baseChangeFunctor (P.proj (D.trans hij hjk)))
+    (compFunctor (baseChangeFunctor (P.proj hij)) (baseChangeFunctor (P.proj hjk)))
   rw [P.proj_trans hij hjk]
   exact baseChangeTransNatIso (P.proj hij) (P.proj hjk)
 
@@ -645,7 +649,9 @@ def laxOfProjSystem (P : ProjSystem ι D 𝒞) (H : PseudoBaseChange P) : LaxCat
   A := pcObj P
   catA := fun i => overCat (P.pr i)
   F := fun h => pcF P h
-  functF := fun h => pcFunctF P h
+  Fmap := fun h => (pcFunctF P h).map
+  Fmap_id := fun h => (pcFunctF P h).map_id
+  Fmap_comp := fun h => (pcFunctF P h).map_comp
   F_refl_iso := fun {i} => projReflIso P i
   F_trans_iso := fun hij hjk => H.trans_iso hij hjk
 
@@ -691,26 +697,11 @@ theorem inv_isoInv_comp {𝒜 : Type w} [Cat.{w} 𝒜] {X Y : 𝒜} {f : X ⟶ Y
     F hkm (F hik x)`: the "source coercion" that the pushed morphism's domain needs. -/
 def transApp {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i) :
     L.F (D.trans hik hkm) x ⟶ L.F hkm (L.F hik x) :=
-  @NaturalTransformation.app (L.A i) (L.catA i) (L.A m) (L.catA m)
-    (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
-    (L.functF (D.trans hik hkm))
-    (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
-      (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
-    (@NatIso.nat (L.A i) (L.catA i) (L.A m) (L.catA m)
-      (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
-      (L.functF (D.trans hik hkm))
-      (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
-        (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
-      (L.F_trans_iso hik hkm)) x
+  (L.F_trans_iso hik hkm).nat.app x
 
 theorem transApp_isIso {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i) :
     IsIso (transApp L hik hkm x) :=
-  @NatIso.isIso (L.A i) (L.catA i) (L.A m) (L.catA m)
-    (L.F (D.trans hik hkm)) (fun x => L.F hkm (L.F hik x))
-    (L.functF (D.trans hik hkm))
-    (@compFunctor (L.A i) (L.catA i) (L.A k) (L.catA k) (L.A m) (L.catA m)
-      (L.F hik) (L.F hkm) (L.functF hik) (L.functF hkm))
-    (L.F_trans_iso hik hkm) x
+  (L.F_trans_iso hik hkm).isIso x
 
 /-- **Naturality of the `trans` coherence component.**  `transApp L hkm hmn (·)` is the component
     of the natural iso `F_trans_iso hkm hmn`, so for any `f : X ⟶ Y` in `L.A k` it intertwines the
@@ -719,25 +710,10 @@ theorem transApp_isIso {i k m : ι} (hik : D.le i k) (hkm : D.le k m) (x : L.A i
     `compFunctor` instance-head synthesis trap inside the base-change namespace.) -/
 theorem transApp_natural {k m n : ι} (hkm : D.le k m) (hmn : D.le m n)
     {X Y : L.A k} (f : X ⟶ Y) :
-    @Functor.map (L.A k) (L.catA k) (L.A n) (L.catA n)
-        (L.F (D.trans hkm hmn)) (L.functF (D.trans hkm hmn)) X Y f
-      ≫ transApp L hkm hmn Y
+    (L.functF (D.trans hkm hmn)).map f ≫ transApp L hkm hmn Y
     = transApp L hkm hmn X
-      ≫ @Functor.map (L.A k) (L.catA k) (L.A n) (L.catA n)
-          (fun z => L.F hmn (L.F hkm z))
-          (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
-            (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn)) X Y f :=
-  @NaturalTransformation.naturality (L.A k) (L.catA k) (L.A n) (L.catA n)
-    (L.F (D.trans hkm hmn)) (fun z => L.F hmn (L.F hkm z))
-    (L.functF (D.trans hkm hmn))
-    (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
-      (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn))
-    (@NatIso.nat (L.A k) (L.catA k) (L.A n) (L.catA n)
-      (L.F (D.trans hkm hmn)) (fun z => L.F hmn (L.F hkm z))
-      (L.functF (D.trans hkm hmn))
-      (@compFunctor (L.A k) (L.catA k) (L.A m) (L.catA m) (L.A n) (L.catA n)
-        (L.F hkm) (L.F hmn) (L.functF hkm) (L.functF hmn))
-      (L.F_trans_iso hkm hmn)) X Y f
+      ≫ (compFunctor (L.functF hkm) (L.functF hmn)).map f :=
+  (L.F_trans_iso hkm hmn).nat.naturality f
 
 /-- The lax hom-transition (the pseudo analogue of `castHom`-based `homTr`).  Given a stage-`k`
     morphism `g : F hik x ⟶ F hjk y` and `hkm : k ≤ m`, push it to a morphism
@@ -748,7 +724,7 @@ noncomputable def pushHom {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     (g : L.F hik x ⟶ L.F hjk y) :
     L.F (D.trans hik hkm) x ⟶ L.F (D.trans hjk hkm) y :=
   transApp L hik hkm x
-    ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g
+    ≫ (L.functF hkm).map g
     ≫ isoInv (transApp_isIso L hjk hkm y)
 
 /-- `pushHom` distributes over composition — the iso-conjugation analogue of `homTr_comp`.  The
@@ -760,7 +736,7 @@ theorem pushHom_comp {i j l : ι} (x : L.A i) (y : L.A j) (z : L.A l) {k m : ι}
     pushHom L x z hik hlk hkm (f ≫ g)
       = pushHom L x y hik hjk hkm f ≫ pushHom L y z hjk hlk hkm g := by
   unfold pushHom
-  rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ _ f g]
+  rw [(L.functF hkm).map_comp f g]
   -- collapse `inv (transApp y) ≫ transApp y = id` in the middle.
   simp only [Cat.assoc]
   rw [← Cat.assoc (isoInv (transApp_isIso L hjk hkm y)), inv_isoInv_comp, Cat.id_comp]
@@ -776,7 +752,7 @@ theorem pushHom_transApp {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
     (g : L.F hik x ⟶ L.F hjk y) :
     pushHom L x y hik hjk hkm g ≫ transApp L hjk hkm y
       = transApp L hik hkm x
-        ≫ @Functor.map (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm) _ _ g := by
+        ≫ (L.functF hkm).map g := by
   unfold pushHom
   rw [Cat.assoc, Cat.assoc, inv_isoInv_comp, Cat.comp_id]
 
@@ -785,8 +761,11 @@ theorem pushHom_transApp {i j : ι} (x : L.A i) (y : L.A j) {k m : ι}
 theorem pushHom_id {i : ι} (x : L.A i) {k m : ι} (hik : D.le i k) (hkm : D.le k m) :
     pushHom L x x hik hik hkm (Cat.id (L.F hik x)) = Cat.id (L.F (D.trans hik hkm) x) := by
   unfold pushHom
-  rw [@Functor.map_id (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm),
-    Cat.id_comp, isoInv_comp]
+  rw [(L.functF hkm).map_id]
+  rw [show (Cat.id ((L.functF hkm).obj (L.F hik x)) : L.F hkm (L.F hik x) ⟶ _)
+        ≫ isoInv (transApp_isIso L hik hkm x) = isoInv (transApp_isIso L hik hkm x)
+      from Cat.id_comp _]
+  exact isoInv_comp _
 
 /-! ### Pseudofunctor coherence of the lax hom-transition
 
@@ -830,13 +809,13 @@ noncomputable def nestApp3 {i b c d : ι}
     (hib : D.le i b) (hbc : D.le b c) (hcd : D.le c d) (x : L.A i) :
     L.F (D.trans (D.trans hib hbc) hcd) x ⟶ L.F hcd (L.F hbc (L.F hib x)) :=
   transApp L (D.trans hib hbc) hcd x
-    ≫ @Functor.map _ _ _ _ _ (L.functF hcd) _ _ (transApp L hib hbc x)
+    ≫ (L.functF hcd).map (transApp L hib hbc x)
 
 theorem nestApp3_isIso {i b c d : ι}
     (hib : D.le i b) (hbc : D.le b c) (hcd : D.le c d) (x : L.A i) :
     IsIso (nestApp3 L hib hbc hcd x) :=
   isIso_comp (transApp_isIso L (D.trans hib hbc) hcd x)
-    (@functor_preserves_iso _ _ _ _ _ (L.functF hcd) _ _ _ (transApp_isIso L hib hbc x))
+    (functor_preserves_iso (F := L.functF hcd) (transApp L hib hbc x) (transApp_isIso L hib hbc x))
 
 end LaxHom
 
@@ -1147,9 +1126,9 @@ variable {ι : Type u} {D : Directed ι}
     transporting `baseChangeObj b ≅ G` along `e : a = b` conjugates the component by the `eqToHom`
     of the pullback objects.  (The pullbacks coincide after `subst e`, so it is the identity.) -/
 theorem mpr_natiso_app {C E : 𝒞} {a b : E ⟶ C} (e : a = b)
-    {G : Over C → Over E} [hG : Functor G]
-    (N : @NatIso (Over C) _ (Over E) _ (baseChangeObj b) G _ hG) (X : Over C) :
-    ((Eq.mpr (congrArg (fun z => @NatIso (Over C) _ (Over E) _ (baseChangeObj z) G _ hG) e) N).nat.app
+    {G : Functor (Over C) (Over E)}
+    (N : NatIso (baseChangeFunctor b) G) (X : Over C) :
+    ((Eq.mpr (congrArg (fun z => NatIso (baseChangeFunctor z) G) e) N).nat.app
         X).f
       = (eqToHom (congrArg (fun z => baseChangeObj z X) e)).f ≫ (N.nat.app X).f := by
   subst e
@@ -1535,12 +1514,12 @@ theorem proj_pushHom_f_π₂ (P : ProjSystem ι D 𝒞)
   have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
         ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
       = (transApp (laxOfProjSystem' P) hik hkm x).f
-        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
+        ≫ (((laxOfProjSystem' P).functF hkm).map g).f :=
     congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
   have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₂) h
   simp only at h₂
   rw [Cat.assoc, Cat.assoc, transApp_f_π₂₀ P hjk hkm y,
-      show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
+      show (((laxOfProjSystem' P).functF hkm).map g)
         = baseChangeMap (P.proj hkm) g from rfl,
       baseChangeMap_f_π₂₀ (P.proj hkm) g, transApp_f_π₂₀ P hik hkm x] at h₂
   exact h₂
@@ -1563,12 +1542,12 @@ theorem proj_pushHom_f_π₁ (P : ProjSystem ι D 𝒞)
   have h : (pushHom (laxOfProjSystem' P) x y hik hjk hkm g).f
         ≫ (transApp (laxOfProjSystem' P) hjk hkm y).f
       = (transApp (laxOfProjSystem' P) hik hkm x).f
-        ≫ (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g).f :=
+        ≫ (((laxOfProjSystem' P).functF hkm).map g).f :=
     congrArg OverHom.f (pushHom_transApp (laxOfProjSystem' P) x y hik hjk hkm g)
   -- post-compose with the OUTER `π₁` (reaching `(F hjk y).dom = (bc (proj hjk) y).dom`).
   have h₂ := congrArg (· ≫ (_pb (P.proj hkm) (baseChangeObj (P.proj hjk) y)).cone.π₁) h
   simp only [Cat.assoc] at h₂
-  rw [show (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hkm) _ _ g)
+  rw [show (((laxOfProjSystem' P).functF hkm).map g)
         = baseChangeMap (P.proj hkm) g from rfl,
       baseChangeMap_f_π₁ (P.proj hkm) g] at h₂
   exact h₂
