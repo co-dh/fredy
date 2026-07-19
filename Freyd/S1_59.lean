@@ -40,7 +40,7 @@ namespace Freyd
   half-additive structure with the middle-two interchange law. -/
 
 /-- A ZERO OBJECT is simultaneously terminal and coterminal: 0 ≅ 1. -/
-def IsZeroObject (Z : 𝒞) [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] : Prop :=
+def IsZeroObject [ht : HasTerminal 𝒞] [hc : HasCoterminator 𝒞] : Prop :=
   hc.zero = ht.one
 
 /-! ### §1.591 Half-additive and additive categories
@@ -418,7 +418,7 @@ def cokernelMap [HasZeroObject 𝒞] [HasCoequalizers 𝒞] {A B : 𝒞} (x : A 
 /-! A subobject m : A ↣ B is NORMAL (§1.593) if m is the kernel of some f : B → C,
   i.e. there is a morphism h : A → Kernel f that is an iso with h ≫ kernelMap f = m. -/
 def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
-    (m : A ⟶ B) (hm : Monic m) : Prop :=
+    (m : A ⟶ B) : Prop :=
   ∃ (C : 𝒞) (f : B ⟶ C) (h : A ⟶ Kernel f), IsIso h ∧ h ≫ kernelMap f = m
 
 /-- An ABELIAN CATEGORY: regular, ADDITIVE (abelian-GROUP homs, not just monoid),
@@ -3217,7 +3217,7 @@ theorem relExact_intro [HasZeroObject 𝒞] [HasEqualizers 𝒞] [HasImages 𝒞
     cover `cov` (well-defined since `(image κ).arr` is mono and `cov ≫ m` agrees on the kernel
     pair), then cancel the cover `cov`. -/
 theorem mono_factors_image [HasImages 𝒞] [RegularCategory 𝒞]
-    {S T A₀ P : 𝒞} {m : S ⟶ T} (hm : Monic m) {κ : A₀ ⟶ T}
+    {S T A₀ P : 𝒞} {m : S ⟶ T} {κ : A₀ ⟶ T}
     {cov : P ⟶ S} (hcov : Cover cov) {x : P ⟶ A₀} (hcomm : cov ≫ m = x ≫ κ) :
     ∃ c : S ⟶ (image κ).dom, c ≫ (image κ).arr = m := by
   -- `x ≫ image.lift κ : P → (image κ).dom`; descend it along `cov`.
@@ -3775,7 +3775,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
         _ = x₁ ≫ (kernelMap α ≫ f) := Cat.assoc _ _ _
         _ = x₁ ≫ (κ_f ≫ kernelMap β) := by rw [hκf]
         _ = (x₁ ≫ κ_f) ≫ kernelMap β := (Cat.assoc _ _ _).symm
-    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono κ_g) hcov₁ hcomm₁
+    obtain ⟨cc, hcc⟩ := mono_factors_image hcov₁ hcomm₁
     exact relExact_intro hκfκg0 cc hcc
   · -- ====================== RelExact κ_g δ (exact at Kernel γ) ======================
     -- κ_g ≫ δ = 0.  Cover Kernel β by pulling the cover q back along the lift `lp` of
@@ -3889,7 +3889,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
         _ = xk ≫ (kernelMap β ≫ g) := Cat.assoc _ _ _
         _ = xk ≫ (κ_g ≫ kernelMap γ) := by rw [hκg]
         _ = (xk ≫ κ_g) ≫ kernelMap γ := (Cat.assoc _ _ _).symm
-    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono δ) hcovT hcomm₂
+    obtain ⟨cc, hcc⟩ := mono_factors_image hcovT hcomm₂
     exact relExact_intro hκgδ0 cc hcc
   · -- ====================== RelExact δ π_f (exact at Cokernel α) ======================
     -- δ ≫ π_f = 0  (cancel the cover c on the left; c ≫ δ = e, e ≫ π_f = (a'≫f')≫cokβ = 0).
@@ -4033,7 +4033,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
           _ = lQ ≫ e := by rw [hcδ]
           _ = (lQ ≫ a') ≫ cokernelMap α := by show lQ ≫ (a' ≫ cokernelMap α) = _; rw [Cat.assoc]
       rw [hL, hR, hbridge]
-    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_f) hcovT
+    obtain ⟨cc, hcc⟩ := mono_factors_image hcovT
       (show covT ≫ kernelMap π_f = (cov₄ ≫ xk) ≫ δ from hcomm₃)
     exact relExact_intro hδπf0 cc hcc
   · -- ====================== RelExact π_f π_g (exact at Cokernel β) ======================
@@ -4121,7 +4121,7 @@ theorem snake_lemma [AbelianCategory 𝒞]
           _ = e₄ ≫ ((e₃ ≫ e₂ ≫ pB') ≫ cokernelMap β) := by rw [hwcok]
           _ = e₄ ≫ e₃ ≫ e₂ ≫ (pB' ≫ cokernelMap β) := by simp only [Cat.assoc]
       rw [hL, hR]
-    obtain ⟨cc, hcc⟩ := mono_factors_image (kernelMap_mono π_g) hcovT hcomm₄
+    obtain ⟨cc, hcc⟩ := mono_factors_image hcovT hcomm₄
     exact relExact_intro hπfπg0 cc hcc
 
 end Freyd
