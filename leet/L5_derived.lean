@@ -38,7 +38,7 @@
   (`AOP/A7_4_Horner.lean`), consuming those two reused halves plus antisymmetry of `≤` — no
   optimality is re-proved here.
 
-  Mathlib-free (Lean core + `Fredy.*` only); headline axioms ⊆ {propext, Quot.sound}.
+  Mathlib-free (Lean core + `Freyd.*` only); headline axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_GenFold
 import AOP.A6_ConsList

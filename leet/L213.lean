@@ -37,7 +37,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner   -- `eq_A_comp_maxRel`: the `max (≤)·Λ spec` morphism-equation bridge
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

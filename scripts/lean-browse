@@ -1,5 +1,5 @@
 #!/bin/sh
-# lean-browse [initial-query] — fzf over the Fredy declaration graph (graph/*.tsv).
+# lean-browse [initial-query] — fzf over the Freyd declaration graph (graph/*.tsv).
 # keys: enter = open in helix   ^u = what it uses   ^r = what uses it   ^a = back to all
 # Regenerate the data:  lake env lean --run scripts/ExtractGraph.lean
 cd "$(dirname "$0")/.." || exit 1

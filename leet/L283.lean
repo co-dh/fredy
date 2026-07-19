@@ -4,7 +4,7 @@
   Problem: move all `0`s in `nums : List Int` to the end while keeping the relative order of the
   non-zero elements (a STABLE partition).
 
-  Same recipe as `leet/L238.lean` (`Fredy/leetcode.md` S0/S23): plain `List Int`, no `SnocList`
+  Same recipe as `leet/L238.lean` (`Freyd/leetcode.md` S0/S23): plain `List Int`, no `SnocList`
   engine needed — the program is a one-shot filter+append, not a scan/fold.
 
   1. **Data** — a plain `List Int`; the answer object is the SAME type.

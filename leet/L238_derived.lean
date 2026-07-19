@@ -38,7 +38,7 @@
   `derivedSolveFn = LC238.solveFn` on the nose, and `LC238.solveFn_correct`/`solve_correct`
   (`IsProductExceptSelf`) transfer unchanged — no new correctness proof about products is needed.
 
-  Mathlib-free (Lean core + `Fredy.*` only); headline axioms ⊆ {propext, Quot.sound}.
+  Mathlib-free (Lean core + `Freyd.*` only); headline axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_GenFold
 import AOP.A6_ConsList

@@ -17,7 +17,7 @@
   Mathlib-free; axioms ⊆ {propext}.
 -/
 import AOP.A6_1_RelSet
-import Fredy.S2_1  -- Reflexive / Transitive on `𝒜`
+import Freyd.S2_1  -- Reflexive / Transitive on `𝒜`
 
 universe u
 

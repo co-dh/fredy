@@ -1,4 +1,4 @@
-"""One-line wrapper THEOREMS in Fredy/*.lean: body is a single short term-mode expression
+"""One-line wrapper THEOREMS in Freyd/*.lean: body is a single short term-mode expression
 delegating to exactly one other repo declaration. Excludes defs/abbrevs (naming a concept is
 legitimate). Splits output: book-numbered statements (block mentions '§' — the deliverable,
 keep) vs plain helpers (inline+delete candidates), sorted by call-site count."""
@@ -8,7 +8,7 @@ from collections import defaultdict
 DECL = re.compile(r'^(?:@\[[^\]]*\]\s*)?(?:private\s+|protected\s+|noncomputable\s+|scoped\s+)*'
                   r'(theorem|lemma|def|abbrev|instance|structure|class|inductive)\s+([A-Za-z_][\w.\']*)')
 
-files = sorted(f for d in ('Fredy', 'AOP', 'leet', 'rel')
+files = sorted(f for d in ('Freyd', 'AOP', 'leet', 'rel')
                for f in glob.glob(d + '/**/*.lean', recursive=True))
 blocks = []
 for fp in files:

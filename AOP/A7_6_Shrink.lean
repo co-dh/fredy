@@ -10,7 +10,7 @@
   TRANSLATION (AoPA → this repo).  Composition is DIAGRAM order here, so every AoPA chain is
   read right-to-left: `X ○ Y ↦ Y ≫ X`, `R ˘ ↦ R°`, and AoPA right division `R / S`
   (`X ⊑ R / S ⟺ X ○ S ⊑ R`) mirrors to repo LEFT division `S \ R = leftDiv S R`
-  (`le_leftDiv_iff : X ⊑ (S \ R) ⟺ S ≫ X ⊑ R`, `Fredy.S2_3`).  Hence the AoPA definition
+  (`le_leftDiv_iff : X ⊑ (S \ R) ⟺ S ≫ X ⊑ R`, `Freyd.S2_3`).  Hence the AoPA definition
   `S ↾ R = S ⊓ (R / S˘)` becomes `S ∩ (S° \ R)`.
 
   COHERENCE with §7.  In an `UnguardedPowerLCDA` the shrink is exactly Bird & de Moor's

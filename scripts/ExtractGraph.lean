@@ -1,4 +1,4 @@
-/- Extract the declaration graph of the Fredy library.
+/- Extract the declaration graph of the Freyd library.
    Run from repo root:  lake env lean --run scripts/ExtractGraph.lean
    Output: graph/decls.tsv  (name  kind  file  line  type  doc-first-line)
            graph/deps.tsv   (src  dst)
@@ -9,7 +9,7 @@
    only root-level names left as-is are the `Cat` typeclass fields and the tool `main`.
    Edges are true proof-level dependencies (constants of the elaborated type + proof term,
    the same data `#print axioms` walks), not import-level or syntactic references.
-   Orphan modules (not imported by the root `Fredy`) are loaded each in its own
+   Orphan modules (not imported by the root `Freyd`) are loaded each in its own
    environment — two orphans may define the same constant name, so they cannot
    share one environment. Core-only: reads the already-built .olean files. -/
 import Lean
@@ -74,7 +74,7 @@ def cleanHeader (line next : String) : Option String :=
   else none
 
 /-- Nearest `/-! ### … -/` section-header title at or above 1-indexed `line` in `lines`.
-    Fredy documents groups of lemmas with these blocks rather than a per-lemma `/-- -/`, so this
+    Freyd documents groups of lemmas with these blocks rather than a per-lemma `/-- -/`, so this
     recovers the section context for the ~26% of decls that carry no docstring of their own. -/
 partial def sectionHeader (lines : Array String) (line : Nat) : Option String :=
   let rec go (i : Nat) : Option String :=
@@ -109,18 +109,18 @@ def annotate (env : Environment) (rows : Array Row) : IO (Array (Row × String �
 /-- Rows and edges for the declarations of `env` living in modules satisfying `wanted`. -/
 def extract (env : Environment) (wanted : Name → Bool) :
     Array Row × Array (Name × Name) := Id.run do
-  let fredyMod? (n : Name) : Option Name := do
+  let freydMod? (n : Name) : Option Name := do
     let idx ← env.getModuleIdxFor? n
     let m := env.header.moduleNames[idx.toNat]!
-    if `Fredy |>.isPrefixOf m then some m else none
-  -- pass 1: user-written declarations in Fredy modules (targets for edges). Fold directly over the
+    if `Freyd |>.isPrefixOf m then some m else none
+  -- pass 1: user-written declarations in Freyd modules (targets for edges). Fold directly over the
   -- constant `SMap` instead of `env.constants.toList` — that list (~100k entries, core Lean
   -- included) was a needless transient allocation built once per imported environment.
   let kept : Std.HashMap Name (String × Name × Nat) :=
     env.constants.fold (fun kept n ci => Id.run do
       if n.isInternalDetail then return kept
       let some kind := kindOf ci | return kept
-      let some m := fredyMod? n | return kept
+      let some m := freydMod? n | return kept
       -- compiler-generated helpers (injEq, noConfusion, …) carry no declaration range
       let some r := declRangeExt.find? env n | return kept
       -- `instance` declarations are `.defnInfo` too (kindOf → "def"); relabel via the
@@ -152,8 +152,8 @@ def extract (env : Environment) (wanted : Name → Bool) :
           match ci' with
           | .ctorInfo _ | .recInfo _ => stack := n.getPrefix :: stack
           | _ =>
-            -- expand aux constants (match_, proof_, eq lemmas, …) but only inside Fredy
-            if (fredyMod? n).isSome then
+            -- expand aux constants (match_, proof_, eq lemmas, …) but only inside Freyd
+            if (freydMod? n).isSome then
               stack := (ci'.type.getUsedConstants
                 ++ (ci'.value?.map (·.getUsedConstants)).getD #[]).toList ++ stack
   return (rows, edges)
@@ -161,15 +161,15 @@ def extract (env : Environment) (wanted : Name → Bool) :
 -- loadExts := true on the imports below: without it, environment-extension state (incl. the
 -- instance registry `Meta.instanceExtension` used by `isInstanceCore` in `extract`) is left unloaded.
 
-/-- Import the root `Fredy` closure, extract its rows/edges, annotate. Wrapped in its own function
+/-- Import the root `Freyd` closure, extract its rows/edges, annotate. Wrapped in its own function
     so `envRoot` (the whole-library environment — the single biggest object here) is freed when this
     returns, BEFORE the orphan loop imports anything. Previously `envRoot` stayed live as a `main`
     local across the whole orphan loop, so root + orphan environments coexisted — roughly doubling
     peak memory, a direct OOM contributor. -/
 def processRoot : IO (Array (Row × String × String) × Array (Name × Name) × Std.HashSet Name) := do
-  let envRoot ← importModules #[{ module := `Fredy }] {} (trustLevel := 1024) (loadExts := true)
+  let envRoot ← importModules #[{ module := `Freyd }] {} (trustLevel := 1024) (loadExts := true)
   let done : Std.HashSet Name :=
-    .ofArray (envRoot.header.moduleNames.filter (`Fredy |>.isPrefixOf ·))
+    .ofArray (envRoot.header.moduleNames.filter (`Freyd |>.isPrefixOf ·))
   let (rows, edges) := extract envRoot done.contains
   return (← annotate envRoot rows, edges, done)
 
@@ -179,11 +179,11 @@ def processOrphan (m : Name) (done : Std.HashSet Name) :
     IO (Array (Row × String × String) × Array (Name × Name) × Array Name) := do
   let env ← importModules #[{ module := m }] {} (trustLevel := 1024) (loadExts := true)
   let mods := env.header.moduleNames.filter fun x =>
-    (`Fredy |>.isPrefixOf x) && !done.contains x
+    (`Freyd |>.isPrefixOf x) && !done.contains x
   let (r, e) := extract env (Std.HashSet.ofArray mods).contains
   return (← annotate env r, e, mods)
 
-/-- Parse `import Fredy.X failed, environment already contains …` → the module `Fredy.X` to isolate. -/
+/-- Parse `import Freyd.X failed, environment already contains …` → the module `Freyd.X` to isolate. -/
 def parseOffender (msg : String) : Option Name :=
   match (msg.splitOn " ").dropWhile (· != "import") with
   | _ :: modStr :: _ => some modStr.toName
@@ -212,7 +212,7 @@ partial def importOrphans (mods : Array Name) : IO (Environment × Array Name) :
 
 def main : IO Unit := do
   initSearchPath (← findSysroot)
-  let all ← collectMods "Fredy" `Fredy
+  let all ← collectMods "Freyd" `Freyd
   let mut built := #[]
   let mut skipped := #[]
   for m in all do
@@ -234,12 +234,12 @@ def main : IO Unit := do
     let (batchEnv, isolated) ← importOrphans orphanMods
     orphans := 1
     let fresh : Std.HashSet Name := .ofArray
-      (batchEnv.header.moduleNames.filter fun x => (`Fredy |>.isPrefixOf x) && !done.contains x)
+      (batchEnv.header.moduleNames.filter fun x => (`Freyd |>.isPrefixOf x) && !done.contains x)
     let (r, e) := extract batchEnv fresh.contains
     rows := rows ++ (← annotate batchEnv r)
     edges := edges ++ e
     done := batchEnv.header.moduleNames.foldl
-      (fun d x => if `Fredy |>.isPrefixOf x then d.insert x else d) done
+      (fun d x => if `Freyd |>.isPrefixOf x then d.insert x else d) done
     -- the few isolated (name-colliding) orphans, each in its own environment
     for m in isolated do
       if done.contains m then continue

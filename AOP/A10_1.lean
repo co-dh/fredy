@@ -15,7 +15,7 @@
   (`inter_lb_left` for membership, `recip_eps_comp_minRel_le` for the lower bound) in place of
   the `powerRel`/`leftDiv` detour.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; conventions as in `AOP.A9_1`):
+  MIRRORING (diagram order, B&dM `X·Y` = Freyd `Y ≫ X`; conventions as in `AOP.A9_1`):
   - B&dM `M = min R·ΛH` is `A H ≫ minRel R`; the greedy body `h·FX·min Q·ΛT°` is
     `A (T°) ≫ minRel Q ≫ F.map X ≫ h`.
   - the hypothesis `Q` satisfies `h·FH·Q° ⊆ R°·h·FH` mirrors to

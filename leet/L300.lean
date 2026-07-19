@@ -5,7 +5,7 @@
   STRICTLY increasing subsequence (elements need not be contiguous, but must keep their relative
   order and strictly increase in value).
 
-  Same recipe as `leet/L53.lean` / `leet/L198.lean` (see `Fredy/leetcode.md`, skill S0/S1/S4):
+  Same recipe as `leet/L53.lean` / `leet/L198.lean` (see `Freyd/leetcode.md`, skill S0/S1/S4):
 
   1. **Data** — the array is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
      (`AOP.A6_SnocList`); `wrap x` is a single-element array, `snoc xs p` appends an element.
@@ -40,7 +40,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

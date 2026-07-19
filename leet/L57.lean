@@ -6,7 +6,7 @@
   the result is again valid, sorted, and pairwise-disjoint (`GapSorted`), covering exactly the
   union of `ivs`'s points and `new`'s points.
 
-  Route (DRY, per `Fredy/leetcode.md` S22): `leet.L56`'s `mergeFn` already sorts-then-merges an
+  Route (DRY, per `Freyd/leetcode.md` S22): `leet.L56`'s `mergeFn` already sorts-then-merges an
   ARBITRARY interval list — inserting is nothing but merging `new :: ivs`. No bespoke 3-phase
   O(n) "binary-search the gap, splice, merge overlapping" implementation is needed; reusing
   `mergeFn` costs an O(n log n) sort (vs. LeetCode's typical O(n) pass) but gives the CORRECT

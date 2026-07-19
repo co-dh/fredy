@@ -1,4 +1,4 @@
-# fredy
+# freyd
 
 ## GitHub configuration
 

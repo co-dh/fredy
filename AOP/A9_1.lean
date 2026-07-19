@@ -10,7 +10,7 @@
   optimality) — the least fixed point `μX. min R · P(h·FX) · ΛT°`.  **Theorem 9.1**: if `h` is
   monotonic on `R` (and `R` transitive), the recursion refines the specification.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; B&dM `R/S` = Fredy `(S \ R)`):
+  MIRRORING (diagram order, B&dM `X·Y` = Freyd `Y ≫ X`; B&dM `R/S` = Freyd `(S \ R)`):
   - B&dM `H = ⦇h⦈·⦇T⦈°` is `(relCata I T)° ≫ relCata I h : b ⟶ a` (`h : F.obj a ⟶ a`,
     `T : F.obj b ⟶ b`); the fixed-point equation `H = h·FH·T°` is `AOP.A6_3`'s `hylo_fixed`:
     `T° ≫ F.map H ≫ h = H`.

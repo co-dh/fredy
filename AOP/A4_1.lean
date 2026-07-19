@@ -1,15 +1,15 @@
 /-
   Bird & de Moor, *Algebra of Programming* §4.1  Allegories.
 
-  Only the facts NOT already present in Freyd §2.1 (`Fredy.S2_1`) are added here.
+  Only the facts NOT already present in Freyd §2.1 (`Freyd.S2_1`) are added here.
   Composition, reciprocation, intersection and the order are exactly Freyd's
   (`≫`, `°`, `∩`, `⊑`); B&dM's right-to-left composition has already been mirrored
   into this diagram-order convention by the caller — every statement below is
   taken over verbatim, not re-derived from the book's own notation.
 -/
 
-import Fredy.S2_1
-import Fredy.S1_38
+import Freyd.S2_1
+import Freyd.S1_38
 
 universe v u
 

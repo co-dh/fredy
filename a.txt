@@ -1,4 +1,4 @@
-Mathlib migration (worktree /tmp/fredy-mathlib-migration, branch mathlib-migration-spike) — review and argument
+Mathlib migration (worktree /tmp/freyd-mathlib-migration, branch mathlib-migration-spike) — review and argument
 ================================================================================================================
 
 FINDINGS

@@ -5,7 +5,7 @@
   `Nat`-valued), return `true` iff the last index is reachable from index `0`, where from index
   `i` you may jump to any index `j` with `i < j ≤ i + nums[i]`.
 
-  Same recipe as `leet/L20.lean`/`leet/L217.lean` (`Fredy/leetcode.md`, skill S0), for a
+  Same recipe as `leet/L20.lean`/`leet/L217.lean` (`Freyd/leetcode.md`, skill S0), for a
   DECISION problem (answer = `Bool`, correctness = a plain `Iff`, no extremum):
 
   1. **Data** — the array is the initial algebra `SnocList ℕ ℕ` (`AOP.A6_SnocList`); `wrap x` is
@@ -43,7 +43,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

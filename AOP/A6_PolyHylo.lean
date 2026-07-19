@@ -16,7 +16,7 @@
   (`hylo-post⊑pre`/`hylo-unique`/`hylo-refine` and the functional `hylo`) requires relational
   well-founded recursion — `Acc`/`acc-fold` over `ε F ○ g` (Membership's `ε_wpre_*`), the factor
   `⋱`/`⍀`, and the coreflexive-based induction of `Relations.WellFound`.  None of that transfinite
-  machinery exists in this mathlib-free repo (only `Fredy.WellOrdering`, for a different purpose), so
+  machinery exists in this mathlib-free repo (only `Freyd.WellOrdering`, for a different purpose), so
   those items are precise infrastructure gaps, not proof difficulties.  Composition is diagram order.
 -/
 import AOP.A6_PolyFold

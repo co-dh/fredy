@@ -5,10 +5,10 @@
   For `R : a ⟶ a`, B&dM define `min R = ∈ ∩ (R/∋) : A ← PA` — a minimum of `x` under `R`
   is an element of `x` that is also an `R`-lower bound of `x`.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`):
-  - B&dM `∈ : A ← PA` is Fredy's `∋ a : powerObj a ⟶ a`; B&dM `∋ = ∈°` is Fredy `(∋ a)°`.
-  - B&dM division `R/S` (UP: `X ⊆ R/S ⟺ X·S ⊆ R`) mirrors to Fredy `(S \ R)`
-    (`le_leftDiv_iff : T ⊑ (S \ R) ↔ S ≫ T ⊑ R`); B&dM `S\R` mirrors to Fredy `R / S`.
+  MIRRORING (diagram order, B&dM `X·Y` = Freyd `Y ≫ X`):
+  - B&dM `∈ : A ← PA` is Freyd's `∋ a : powerObj a ⟶ a`; B&dM `∋ = ∈°` is Freyd `(∋ a)°`.
+  - B&dM division `R/S` (UP: `X ⊆ R/S ⟺ X·S ⊆ R`) mirrors to Freyd `(S \ R)`
+    (`le_leftDiv_iff : T ⊑ (S \ R) ↔ S ≫ T ⊑ R`); B&dM `S\R` mirrors to Freyd `R / S`.
   - Hence `min R = ∈ ∩ (R/∋)` mirrors to `minRel R = ∋ a ∩ (((∋ a)°) \ R)`.
 
   Setting: `UnguardedPowerLCDA` (`AOP.A6_2`) — the chapter-6/7 ambient class giving the
@@ -24,7 +24,7 @@ namespace Freyd.Alg
 variable {𝒜 : Type u} [UnguardedPowerLCDA 𝒜] {a b : 𝒜}
 
 -- (The generic laws `leftDiv_id`, `leftDiv_comp`, `leftDiv_inter` were hoisted to their
--- canonical home `Fredy.S2_3` at collection.)
+-- canonical home `Freyd.S2_3` at collection.)
 
 /-! ## `min R` and `max R` (book p.166) -/
 
@@ -271,7 +271,7 @@ theorem minRel_simple_of_antisymmetric {R : a ⟶ a} (h : AntiSymmetric R) : Sim
 /-! ## Ex 7.1/7.2: the subset relation (book p.169) -/
 
 /-- **B&dM p.169**: `subset = ∈\∈`, mirrored `(∋ a) / (∋ a)` — which is LITERALLY Freyd's
-    `powerOrder` (§2.442, `Fredy.S2_4`); `subsetRel` is the B&dM-facing alias for it, kept
+    `powerOrder` (§2.442, `Freyd.S2_4`); `subsetRel` is the B&dM-facing alias for it, kept
     definitional so every lemma transfers both ways for free. -/
 def subsetRel (a : 𝒜) : PowerAllegory.powerObj a ⟶ PowerAllegory.powerObj a := powerOrder
 
@@ -423,7 +423,7 @@ theorem powerRel_minRel_le_bigUnion {R : a ⟶ a} (htrans : R ≫ R ⊑ R) :
 -- Ex 7.3/7.4/7.16/7.17 and the rest of well-boundedness build on that pairing or on
 -- `existsImage = powerRel` restricted to maps (unproven here); (7.12)/(7.8)/(7.9) likewise
 -- chain through the tabulation-dependent facts.  All left as future work once a tabular
--- unitary layer (as in `Fredy.S2_218_Tabular`) is threaded through chapter 7.
+-- unitary layer (as in `Freyd.S2_218_Tabular`) is threaded through chapter 7.
 
 /-! ## Ex 7.19/7.20: minimal elements -/
 

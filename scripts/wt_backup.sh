@@ -4,10 +4,10 @@
 # + UNTRACKED files, WITHOUT ever touching the worktree's real index/working tree. Tags are permanent
 # refs => nothing can be lost to GC/prune. Idempotent (tag -f).
 set -u
-cd /home/dh/repo/fredy || exit 1
+cd /home/dh/repo/freyd || exit 1
 tmp="${TMPDIR:-/tmp}/wtbackup.idx"
 git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt; do
-  [ "$wt" = "/home/dh/repo/fredy" ] && continue
+  [ "$wt" = "/home/dh/repo/freyd" ] && continue
   [ -d "$wt" ] || continue
   dirty=$(git -C "$wt" status --porcelain 2>/dev/null | grep -c .)
   ahead=$(git -C "$wt" rev-list --count master..HEAD 2>/dev/null)

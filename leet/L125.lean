@@ -6,7 +6,7 @@
   before comparing; that is a routine pre-pass on the input list and is SKIPPED here — we solve
   the core decision "is this sequence a palindrome?", chars as `Int`.)
 
-  Same data/program recipe as `leet/L217.lean` (`AOP.A6_SnocList`, `Fredy/leetcode.md` S0/S5):
+  Same data/program recipe as `leet/L217.lean` (`AOP.A6_SnocList`, `Freyd/leetcode.md` S0/S5):
   this is a DECISION problem, so correctness is a plain `iff`, not a refinement+domination
   extremum.
 
@@ -26,7 +26,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

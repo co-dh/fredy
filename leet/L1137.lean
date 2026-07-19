@@ -3,7 +3,7 @@
 
   Problem: `T 0 = 0`, `T 1 = 1`, `T 2 = 1`, `T (n+3) = T(n+2) + T(n+1) + T n`. Return `T n`.
 
-  Same recipe as `leet/L70.lean` (`Fredy/leetcode.md`, skill S6): the naive textbook recurrence
+  Same recipe as `leet/L70.lean` (`Freyd/leetcode.md`, skill S6): the naive textbook recurrence
   is already the exact answer, exponential-time only because it re-expands into THREE recursive
   calls at every step. The fix is again tupling/linearization — but here the carried state is a
   TRIPLE `(T n, T(n+1), T(n+2))` instead of `L70`'s pair, one dimension up (the `L91`/S9
@@ -21,7 +21,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

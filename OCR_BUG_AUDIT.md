@@ -1,7 +1,7 @@
 # Audit: does the Lean formalization inherit any Chapter-1 OCR bugs?
 
 Date: 2026-06-30. Triggered by: "you've identified many bugs in chapter 1 [of the
-OCR pipeline]. The `~/repo/fredy/Fredy/*.lean` is actually based on the buggy
+OCR pipeline]. The `~/repo/freyd/Freyd/*.lean` is actually based on the buggy
 version. Check your diff, find the corresponding Lean theorem, save those you
 think are wrong, and why, and what the correct version should be."
 
@@ -36,7 +36,7 @@ Each substitution in that diff was classified:
   **Every one of these was checked directly against the Lean source below.**
 
 For each content-changing fix: find the book section number, find the Lean
-file(s) at/near that number (`Fredy/S1_XX.lean`, named after the book's own
+file(s) at/near that number (`Freyd/S1_XX.lean`, named after the book's own
 subsection numbers per `CLAUDE.md`), and read the actual theorem/definition to
 see whether it encodes the pre-fix (buggy) or post-fix (correct) reading.
 
@@ -56,12 +56,12 @@ see whether it encodes the pre-fix (buggy) or post-fix (correct) reading.
 | §1.9 finding 1 (`∋`→`∃` in "internally defined union", §1.949: `μ(∃∩(F×A))` → `μ(∋∩(F×A))`) | `S1_94.lean`, `interUnion` | **Correct already.** Docstring/definition: "a ∈ ∪F iff **∃** f ∈ F, a **∈** f" — uses both the quantifier and the membership relation correctly, matching the corrected reading, not the OCR-swapped one. |
 | §1.9 findings (χ misOCR'd as bare Latin `x` — characteristic maps) | `S1_94_InterIntersection.lean`, `S1_913_ToposCoversEpis.lean` (`χ_{A'}`, `classify`, `classify_sq`) | **Notation only, and correct already.** χ is the standard, unambiguous name for a subobject's characteristic map; the Lean files already use `χ`/`classify` throughout. |
 | §1.10 (headline theorem 1.(10)1: dropped hat on `Â`, "A is a slice of A" tautology → "A is a slice of **Â**") | `S1_10.lean` (comment stub, June 24 commit — predates my fix, made 2026-06-30) | **Correct already**, and instructively so: the June-24 comment reads "Every category A with a terminator is a slice of an exacting category **Â**" — already matching my fix almost verbatim, a week before I made it. The scaffolding tool that generated these stubs reads headline *italic* theorem text via PDF font runs (see `typst-book/sections.py`), a separate, more reliable extraction path than the general MinerU OCR pipeline that had the "hat dropped in prose-mode" bug. |
-| §1.4 ("poset of values of Val(Y)" — a *genuine math error* in the pre-fix text, a double-application since `Val` never takes a bare `(Y)` argument elsewhere; this session reverted it back to the untouched "poset of values of ℋ(Y)") | *(none)* | **Not formalized.** `Val`/`PosetOfValues`/"poset of values" do not appear anywhere in `Fredy/*.lean` — the general poset-of-values theory (§1.4x) isn't ported to Lean at all yet, so there's nothing for the double-application error to have corrupted. This is the one content-changing Chapter-1 fix that is a real math error rather than an OCR-glyph swap, which makes it the highest-risk row in this table — checked directly rather than inferred. |
+| §1.4 ("poset of values of Val(Y)" — a *genuine math error* in the pre-fix text, a double-application since `Val` never takes a bare `(Y)` argument elsewhere; this session reverted it back to the untouched "poset of values of ℋ(Y)") | *(none)* | **Not formalized.** `Val`/`PosetOfValues`/"poset of values" do not appear anywhere in `Freyd/*.lean` — the general poset-of-values theory (§1.4x) isn't ported to Lean at all yet, so there's nothing for the double-application error to have corrupted. This is the one content-changing Chapter-1 fix that is a real math error rather than an OCR-glyph swap, which makes it the highest-risk row in this table — checked directly rather than inferred. |
 
 ## Reverse check: grep the Lean source for the *buggy* readings directly
 
 Rather than rely solely on "I read the code and judged it correct" for every
-row above, the buggy token itself was grepped across all of `Fredy/*.lean`
+row above, the buggy token itself was grepped across all of `Freyd/*.lean`
 for the highest-risk cases:
 
 - `Val(Y)` / `ValY` / `Val_Y` (the §1.4 double-application): **zero matches**
@@ -74,7 +74,7 @@ for the highest-risk cases:
   correct direction.
 - Any single-sorted partial-composition / "directed equality" (`≍`/`asymp`)
   model, which the whole §1.1 venturi-tube class of fixes depends on existing
-  to matter: **zero matches** — `Fredy/S1_1.lean`'s `Cat` is the only
+  to matter: **zero matches** — `Freyd/S1_1.lean`'s `Cat` is the only
   category model in the repo, and it's the typed, object-centric one, not the
   book's single-sorted algebra.
 

@@ -9,7 +9,7 @@
   MONOTONIC on the preorder `R°`, then greedily filtering at each unfold step refines the
   same computation done by filtering only once, at the end, on the plain catamorphism `⦇S⦈`.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`):
+  MIRRORING (diagram order, B&dM `X·Y` = Freyd `Y ≫ X`):
   - B&dM `S·FR ⊆ R·S` (monotonicity of the algebra `S` w.r.t. `R`) mirrors to
     `F.map R ≫ S ⊑ S ≫ R`.
   - B&dM `f·FR·f° ⊆ R` mirrors to `f° ≫ F.map R ≫ f ⊑ R`; B&dM `FR ⊆ f°·R·f` mirrors to

@@ -33,7 +33,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound} (fully constructive, no `Classical.choice`).
 -/
 import AOP.A6_1_RelSet
-import Fredy.Exacts
+import Freyd.Exacts
 
 namespace Freyd.Alg.RelSet.LC11
 

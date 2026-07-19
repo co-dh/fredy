@@ -5,7 +5,7 @@
   constraint `0 ≤ starti < endi`, the same STRICT validity as `leet/L435.lean`), decide whether a
   single person can attend ALL of them — i.e. no two meetings genuinely overlap.  Touching
   endpoints are allowed (`[5,10]`/`[10,20]` are attendable): `NoOverlap a b := a.2 ≤ b.1 ∨ b.2 ≤ a.1`.
-  This is a DECISION problem (`Fredy/leetcode.md` S5), not an optimum — no `max(≤)·Λ`.
+  This is a DECISION problem (`Freyd/leetcode.md` S5), not an optimum — no `max(≤)·Λ`.
 
   Same recipe as `leet/L56.lean` (Merge Intervals) and `leet/L435.lean` (Non-overlapping
   Intervals): sort by START (`leet.L56`'s `isort`/`Sorted`, reused verbatim — no re-derivation),

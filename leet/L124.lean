@@ -35,7 +35,7 @@
 -/
 import AOP.A6_TreeBin
 import AOP.A7_4_Horner
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

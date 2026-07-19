@@ -29,7 +29,7 @@
     * `runStart_P1` / `runStart_P2` + `run_start_exists` — a bounded backward walk locates, for any `s ∈ S`,
       the genuine run-start `t ≤ s` of the run through `s` (fuel exhaustion is ruled out by `pigeon`).
     * `hash_ach` / `hash_dom` — `hashLongest nums` achieves a value-run of its own length and dominates
-      every value-run present in `nums` (the `Fredy/leetcode.md` S0 refinement + domination pair).
+      every value-run present in `nums` (the `Freyd/leetcode.md` S0 refinement + domination pair).
   `hashLongest = LC128.longestConsecFn` then follows by antisymmetry (`derivedSolve_eq_solve`), so the
   derived O(n) program is the SAME relation as `LC128.solve`, and the headline reuses the packaging.
 

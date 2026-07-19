@@ -9,11 +9,11 @@
   right-to-left composition after mirroring (`X·Y` there = `Y ≫ X` here).  Every
   statement below is already in the mirrored form; do not re-translate.
 
-  Setting: a TABULAR UNITARY DIVISION ALLEGORY (`Fredy.S2_3`), which supplies `topMor`
+  Setting: a TABULAR UNITARY DIVISION ALLEGORY (`Freyd.S2_3`), which supplies `topMor`
   (the maximal arrow `⊤ : a → b`, via the unit projections) and full tabulation
   (`TabularAllegory.tabular`).
 
-  Investigated `Fredy.S2_147_MapCat`'s `mapHasBinaryProducts` (binary products of
+  Investigated `Freyd.S2_147_MapCat`'s `mapHasBinaryProducts` (binary products of
   `Map(𝒜)`, built as a pullback over the terminal/unit object): conceptually this is
   the SAME universal apex as tabulating `topMor a b` (pulling back the two unit maps
   `p_a, p_b` IS tabulating `p_a ≫ p_b° = topMor a b`), confirming `RelProd` needs no new
@@ -24,7 +24,7 @@
   more code than mirroring `S2_3.topTab`'s direct `TabularAllegory.tabular (topMor a b)`
   pattern, which is what `relProd` below does.
 -/
-import Fredy.S2_3
+import Freyd.S2_3
 import AOP.A4_2
 import AOP.A5_1
 

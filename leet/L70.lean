@@ -15,7 +15,7 @@
 
   Also unlike `L121`/`L53`/`L152`, the data object is not a `SnocList` — it is `ℕ` itself, the
   initial algebra of `G X = 1 + X` (`zero`/`succ`), imported wholesale from `AOP.A6_SnocList`'s
-  companion `Fredy.Exacts` for the `RelSet`/`graph`/`Map`/`hom_ext` machinery.
+  companion `Freyd.Exacts` for the `RelSet`/`graph`/`Map`/`hom_ext` machinery.
 
   1. **Spec** — `spec : ℕ ⟶ ℕ` relates `n` to `climb n`, the naive recurrence (`Λ⁻¹ spec`).
   2. **Program** — `solve : ℕ ⟶ ℕ` is the `Map` (graph of a function) `graph solveFn`, where
@@ -28,7 +28,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

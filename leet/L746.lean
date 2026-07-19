@@ -9,7 +9,7 @@
   virtual pad `minCost[-1] = 0` BEFORE the array (encoding "start at index 1 for free"). Answer =
   `min(minCost[n-1], minCost[n-2])` — you may step off from either of the last two steps.
 
-  Same recipe as `leet/L198.lean` (see `Fredy/leetcode.md`, skill S4), the paired-state DP
+  Same recipe as `leet/L198.lean` (see `Freyd/leetcode.md`, skill S4), the paired-state DP
   template FLIPPED to `min`:
 
   1. **Data** — `SnocList ℤ ℤ` (`AOP.A6_SnocList`); `wrap x` = a single step of cost `x`, `snoc
@@ -36,7 +36,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

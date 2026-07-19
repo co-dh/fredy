@@ -6,8 +6,8 @@
   every element of `y` has a `Q`-lower bound in `x` — keep a representative collection of
   partial solutions without losing the possibility of a future minimum.
 
-  MIRRORING (diagram order, B&dM `X·Y` = Fredy `Y ≫ X`; B&dM `R/S` = Fredy `(S \ R)`;
-  B&dM `S\R` = Fredy `R / S`):
+  MIRRORING (diagram order, B&dM `X·Y` = Freyd `Y ≫ X`; B&dM `R/S` = Freyd `(S \ R)`;
+  B&dM `S\R` = Freyd `R / S`):
   - B&dM `∈\∈` is `subsetRel a` (= Freyd's `powerOrder`, `AOP.A7_1`).
   - B&dM `∋·Q` (`Q` then `∋ = ∈°`) is `Q ≫ (∋ a)°`, and `(∋·Q)/∋` is
     `(((∋ a)°) \ (Q ≫ (∋ a)°))`.

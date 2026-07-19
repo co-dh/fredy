@@ -4,7 +4,7 @@
   Problem: two strings are anagrams iff they have the same multiset of characters.
 
   Same data/program recipe as `leet/L217.lean`/`leet/L125.lean` (`AOP.A6_SnocList`,
-  `Fredy/leetcode.md` S0/S5): this is a DECISION problem, so correctness is a plain `iff`, not a
+  `Freyd/leetcode.md` S0/S5): this is a DECISION problem, so correctness is a plain `iff`, not a
   refinement+domination extremum.
 
   1. **Data** — each string is the initial algebra `SnocList Int Int` (chars as `Int`); the
@@ -31,7 +31,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

@@ -1,20 +1,20 @@
 This project explain the book Categories, Allegories of Freyd.
 
 ## Directory layout (reorg 2026-07-10) — four Lean lib roots, siblings at repo root
-- `Fredy/`  — the Freyd book core: `Sa_bc.lean` book sections + support (`Locale`, `WellOrdering`,
-  `RelCat`, `MapCat`, `Slice*`, `Capitalization*`, `Exacts`, …). Modules `Fredy.*`.
+- `Freyd/`  — the Freyd book core: `Sa_bc.lean` book sections + support (`Locale`, `WellOrdering`,
+  `RelCat`, `MapCat`, `Slice*`, `Capitalization*`, `Exacts`, …). Modules `Freyd.*`.
 - `AOP/`    — the Bird & de Moor Algebra-of-Programming layer: chapter files `A<ch>_*.lean`
   (`A4_*`..`A10_*`) + infra (`A6_GenFold`, `A6_GenHylo`, `A6_ConsList`, `A6_HashMap`, `A6_Heap`,
   `A6_BinSearch`, `A6_1_RelSet`, …) + `Deriv*`. Modules `AOP.*`.
 - `leet/`   — LeetCode case studies `L<n>.lean` and derivations `L<n>_derived.lean`. Modules `leet.*`.
 - `rel/`    — the relation-algebra interpreter `RelInterp` + case studies (`UnixPipe`, `ShellCommands`)
   + the auto-derivation drivers (`AutoDerive*`). Modules `rel.*`.
-- `Fredy/note/` — the author's own `.typ`/`.pdf` section notes and diagrams (non-Lean).
+- `Freyd/note/` — the author's own `.typ`/`.pdf` section notes and diagrams (non-Lean).
 Imports cross libs freely within the one Lake package (e.g. `leet.L20` imports `AOP.A6_GenFold`).
-lakefile: `AOP`/`leet`/`rel` are glob'd (all their files are in the default build); `Fredy` keeps the
-curated `Fredy.lean` aggregator (no glob — do not force-build the deliberately un-imported orphan core).
+lakefile: `AOP`/`leet`/`rel` are glob'd (all their files are in the default build); `Freyd` keeps the
+curated `Freyd.lean` aggregator (no glob — do not force-build the deliberately un-imported orphan core).
 
-You should should any 3+ digits sections of the book into `Fredy/Sa_bc.lean`. e.g. section 1.123 in Fredy/S1_12.lean.
+You should should any 3+ digits sections of the book into `Freyd/Sa_bc.lean`. e.g. section 1.123 in Freyd/S1_12.lean.
 The code should follow the book's terminology, wording, convension.
 Write composition in diagram order, by juxtaposition: `xy` means first x then y (the book's convention).
 Use the global book notation `𝟙 A` for the categorical identity `Cat.id A`; do not spell identities
@@ -26,9 +26,9 @@ If a proof used theorem from other section but not defined yet, prove them in $a
 Make the prove constructive: do not use atom of choice unless unavoidable.
 feel free to copy ideas from Mathlib, but do not bring in them as dependency.
   STRICTLY MATHLIB-FREE, NO EXCEPTIONS. The repo has ZERO external dependencies:
-  `lake-manifest.json` lists no packages and no `Fredy/*.lean` imports anything outside
-  Lean 4 core (`Init`) and `Fredy.*`. The §1.543 transfinite-recursion work that once
-  earmarked mathlib's ordinals was hand-built instead (`Fredy/WellOrdering.lean`, Zermelo
+  `lake-manifest.json` lists no packages and no `Freyd/*.lean` imports anything outside
+  Lean 4 core (`Init`) and `Freyd.*`. The §1.543 transfinite-recursion work that once
+  earmarked mathlib's ordinals was hand-built instead (`Freyd/WellOrdering.lean`, Zermelo
   from `Classical.choice`); order/lattice/Frame machinery is hand-rolled too (`Locale.lean`,
   `S1_72`). Never add a `require` and never `import Mathlib`/`Batteries`/`Aesop`/`Std` — keep
   the repo self-contained so builds stay fast and clones stay tiny.
@@ -71,6 +71,6 @@ out ("the one-object category of `ℤ/2`") unless the term has already been intr
 ## Searching the book text
 The greppable book prose lives in `/home/dh/anki/typst-book/chapters/<a.b>/section-<a.b>.typ`
 (and the `section-*.fixed.md` siblings — cleaned OCR). ALWAYS grep there.
-`/home/dh/repo/fredy/book-all.typ` is only a 63-line wrapper that `#include`s those chapter
+`/home/dh/repo/freyd/book-all.typ` is only a 63-line wrapper that `#include`s those chapter
 files — grepping it alone finds NOTHING. To search the whole book:
 `grep -rni "<term>" /home/dh/anki/typst-book/chapters/`.

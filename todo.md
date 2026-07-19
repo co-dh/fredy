@@ -42,7 +42,7 @@ bridged one-way → `LocallyComplete` (`extends` would create a `HasImages` inst
   would need a `HasIndexedCoproduct` per-family structure first; only do it if a consumer appears.
 
 - ~~**Preorder-level order theory, the book-faithful unification (§1.51's own move)**~~ — ✅ DONE
-  2026-07-04 (merge `1469202`, build 269 jobs). New zero-import leaf `Fredy/S1_51_Order.lean` over a
+  2026-07-04 (merge `1469202`, build 269 jobs). New zero-import leaf `Freyd/S1_51_Order.lean` over a
   bare `le : α → α → Prop` (refl/trans as explicit hyps, no per-carrier order class):
   `GaloisConnection le₁ le₂ f g`, `IsSup` (+`unique`), `IsClosureOp` (+`idem_eq`), `GaloisConnection`
   `.monotone_l/_u`/`.map_isSup`. Retrofitted 4½ of 5 carriers: (a) A4_4 `GaloisConn` DELETED → generic
@@ -268,7 +268,7 @@ Clean precision needs a structure-aware type check or a proof-term hash.
   `RatCapHcanon`/`RatCapPreReg`/`LaxGermPullbacks` under `LaxColim`, primed names):
   - ✅ `Colim.isIso_of_product_up` ~ `LaxColim.isIso_of_product_up'` — DONE: kept `Colim.isIso_of_product_up`
     (`S1_543_CatColimitRegular`), `isIso_of_product_up'` now `:= Colim.isIso_of_product_up p₁ p₂ hup`
-    (`S1_543_RatCapHcanon.lean`, needed `import Fredy.S1_543_CatColimitRegular`).
+    (`S1_543_RatCapHcanon.lean`, needed `import Freyd.S1_543_CatColimitRegular`).
   - ✅ `Colim.pullback_of_equalizer` ~ `LaxColim.pullback_of_equalizer'` — DONE: same forward. The `Colim`
     original is stated at two INDEPENDENT universes `{𝒟 : Type u} [Cat.{v} 𝒟]`; the `LaxColim` copy is the
     single-universe (`w`) specialization — a valid instantiation, not a generalization, so the forward
@@ -296,7 +296,7 @@ Clean precision needs a structure-aware type check or a proof-term hash.
   - ✅ `Alg.AllegoryFunctor.mono` (`S2_51`) ~ `Alg.AllegoryFunctor.map_mono` (`S2_156_PartitionRep`) — DONE:
     kept `AllegoryFunctor.mono` (§2.51, the natural book-section home), `map_mono` now
     `:= AllegoryFunctor.mono F h` (kept as a name since `F.map_mono` dot-notation is used 3× locally in
-    `S2_156_PartitionRep.lean`; added `import Fredy.S2_51`, no cycle).
+    `S2_156_PartitionRep.lean`; added `import Freyd.S2_51`, no cycle).
   - ⏭ SKIPPED: `exists_ultrafilter_excluding` (`S1_75`) ~ `PreLogosHorn.Stalk.exists_ultrafilter_excluding`
     (`S1_62`) — genuine universe-generality mismatch, not a safe forward either direction. `S1_75`'s copy is
     stated at two INDEPENDENT universes (`variable {𝒞 : Type u} [Cat.{v} 𝒞]`, `v` and `u` unconnected —

@@ -23,7 +23,7 @@
 -/
 import AOP.A6_9_TreeTupling
 import leet.L543
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

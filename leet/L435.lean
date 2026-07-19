@@ -9,7 +9,7 @@
   overlap is the STRICT `a.lo < b.hi ∧ b.lo < a.hi`.
 
   Same recipe as `leet/L56.lean` (Merge Intervals) and the greedy-scan family (`leet/L55.lean`,
-  `leet/L213.lean`, `Fredy/leetcode.md` S22/S19):
+  `leet/L213.lean`, `Freyd/leetcode.md` S22/S19):
 
   1. **Data** — `List (Int × Int)`, `.1` = lo, `.2` = hi (no `SnocList` engine needed, as L56).
 

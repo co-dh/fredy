@@ -6,7 +6,7 @@
   number of jumps to reach the last index `n-1`.  LC guarantees the last index is always
   reachable, so we do not need an "unreachable" case.
 
-  Same recipe as `leet/L121.lean`/`leet/L53.lean` (see `Fredy/leetcode.md`), but a MIN-extremum
+  Same recipe as `leet/L121.lean`/`leet/L53.lean` (see `Freyd/leetcode.md`), but a MIN-extremum
   (like the greedy theorem 7.2, `AOP/A7_2.lean`) rather than a max-extremum:
 
   1. **Data** — `nums` is the initial algebra `SnocList ℕ ℕ` of `F X = ℕ + X × ℕ`
@@ -32,7 +32,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

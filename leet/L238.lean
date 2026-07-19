@@ -4,8 +4,8 @@
   Problem: given `nums : List Int`, return `out` with `out[i] = ∏_{j≠i} nums[j]` (no division —
   some inputs contain `0`, so "divide by `nums[i]`" is unsound).
 
-  Same recipe as `leet/L56.lean`/`Fredy/leetcode.md` S0, with a two-pass twist from S1/S10
-  (`Fredy/leetcode.md`): the classic solution is prefix-product × suffix-product.
+  Same recipe as `leet/L56.lean`/`Freyd/leetcode.md` S0, with a two-pass twist from S1/S10
+  (`Freyd/leetcode.md`): the classic solution is prefix-product × suffix-product.
 
   1. **Data** — a plain `List Int` (the recipe's data object; no `SnocList` machinery needed,
      as in `L56`). The answer object is the SAME type, same length.

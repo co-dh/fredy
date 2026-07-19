@@ -5,10 +5,10 @@
   digit sequence reads the same forwards and backwards.  Negative numbers are NEVER palindromes
   (the leading `-` breaks the symmetry).
 
-  Same DECISION-problem recipe as `leet/L217.lean`/`leet/L125.lean` (`Fredy/leetcode.md` S5):
+  Same DECISION-problem recipe as `leet/L217.lean`/`leet/L125.lean` (`Freyd/leetcode.md` S5):
   correctness is a plain `iff`, not a refinement+domination extremum.  Unlike those two, the
   input here is a bare `Int`, not a `SnocList` — the digit SEQUENCE is extracted internally by a
-  fuel-guarded value-recursion (`Fredy/leetcode.md` S13), since peeling `n / 10` decreases a
+  fuel-guarded value-recursion (`Freyd/leetcode.md` S13), since peeling `n / 10` decreases a
   second, independently-shrinking argument and so does not compile to plain structural
   recursion.
 
@@ -80,7 +80,7 @@ theorem solve_map : Map solve := graph_map isPalinNumFn
 
 /-- **`isPalinNumFn` decides the digit-palindrome property**: `n` is a palindrome iff it is
     non-negative and its digit sequence is its own reverse.  The DECISION-problem correctness
-    shape (`Fredy/leetcode.md` S5) — a plain `iff`, not an extremum. -/
+    shape (`Freyd/leetcode.md` S5) — a plain `iff`, not an extremum. -/
 theorem palin_correct (n : Int) :
     isPalinNumFn n = true ↔ (0 ≤ n ∧ toDigits n.toNat = (toDigits n.toNat).reverse) := by
   unfold isPalinNumFn

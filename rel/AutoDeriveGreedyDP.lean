@@ -10,7 +10,7 @@
   pointwise readback of the abstract spec.  None of that plumbing is problem-specific.
 
   `GreedyDP L E S W` discharges it ONCE, generically, over the cons-shaped pattern functor
-  `F X = L + E × X` (`Fredy.A6_ConsList`): a problem state `S` either bottoms out at a leaf
+  `F X = L + E × X` (`Freyd.A6_ConsList`): a problem state `S` either bottoms out at a leaf
   `L` or decomposes into a choice `E` plus a smaller state.  The bundle's CREATIVE inputs are
 
   * `baseP`/`stepP`    — the decomposition relation `T` (the search space);
@@ -55,7 +55,7 @@ open Freyd
 
 /-! ## The sum birelator `G(Y, X) = L + Y × X`
 
-  The concrete `Birelator` (B&dM p.223, `Fredy.A9_1`) whose left slot carries the greedy
+  The concrete `Birelator` (B&dM p.223, `Freyd.A9_1`) whose left slot carries the greedy
   CHOICE and whose right slot carries the residual state; `G.fixLeft ⟨E⟩` is exactly the
   cons-list pattern functor `CL.F L E` (`sumBirel_fixLeft_map`), which is what lets
   Proposition 9.4 discharge `greedy_dp`'s `hQ` on cons-shaped problems. -/

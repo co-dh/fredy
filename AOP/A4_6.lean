@@ -2,13 +2,13 @@
   Bird & de Moor, *Algebra of Programming* §4.6  Power allegories.
 
   B&dM's power allegory (universal property `f = ΛR ≡ ∈·f = R` for functions `f`) is exactly
-  Fredy's `UnguardedPowerAllegory` (Fredy/S2_4.lean): power object `powerObj b`, membership
+  Freyd's `UnguardedPowerAllegory` (Freyd/S2_4.lean): power object `powerObj b`, membership
   `∋ b : powerObj b ⟶ b` (from the power object TO `b`), power transpose `A R : a ⟶ powerObj b`
   for `R : a ⟶ b` (`A R := R /ₛ ∋ b`), unconditionally a map with `A R ≫ ∋ b = R`
   (`A_is_map'`, `A_eps_eq'`).  Composition throughout is diagram order (`≫`).
 
-  Two of B&dM's book formulas are ALREADY Fredy's definitions/theorems and are not restated:
-  - p.107 `ΛR = (∈\R) ∩ (R\∈)°` is literally Fredy's `A R := R /ₛ ∋ b` (symmetric division
+  Two of B&dM's book formulas are ALREADY Freyd's definitions/theorems and are not restated:
+  - p.107 `ΛR = (∈\R) ∩ (R\∈)°` is literally Freyd's `A R := R /ₛ ∋ b` (symmetric division
     unfolds to exactly this meet, §2.331/§2.41).
   - Ex 4.48 `(ΛR)°·ΛS = (R\S) ∩ (S\R)°` is `symm_div_eq_A_comp` in `S2_4.lean`.
 
@@ -16,7 +16,7 @@
   copies were deduped at collection.
 -/
 
-import Fredy.S2_4
+import Freyd.S2_4
 import AOP.A4_4  -- map_comp_div (and, via A4_2, the shunting rules)
 
 universe u
@@ -81,7 +81,7 @@ theorem A_eps_reflection {b : 𝒜} : A (∋ b) = Cat.id (PowerAllegory.powerObj
 /-! ## Existential image `E` (B&dM p.104-105)
 
     Restricted to maps `f`, `existsImage f` is B&dM's power functor `P`
-    (`Pf x = {f a | a ∈ x}`).  `E` and `P` are written with the same symbol here since Fredy
+    (`Pf x = {f a | a ∈ x}`).  `E` and `P` are written with the same symbol here since Freyd
     embeds `Map(𝒜)` in `𝒜`. -/
 
 /-- The existential-image map `E R : [a] ⟶ [b]` for `R : a ⟶ b` (B&dM p.104-105). -/
@@ -125,7 +125,7 @@ theorem singletonMap_natural {a b : 𝒜} {f : a ⟶ b} (hf : Map f) :
 
 /-! ## The powerset monad (B&dM p.106: "union `μ = E∈`")
 
-    `bigUnion` (Fredy's `⋃`) IS the powerset-monad multiplication `μ`; these are exactly the
+    `bigUnion` (Freyd's `⋃`) IS the powerset-monad multiplication `μ`; these are exactly the
     monad laws for the nondeterminism monad.  Kleisli arrows `a ⟶ [b]` are B&dM's set-valued
     functions and `A` is the isomorphism between relations and Kleisli arrows. -/
 

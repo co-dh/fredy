@@ -1,6 +1,6 @@
 # WALL LEDGER — schema-supplied vs hand-invented correctness in the AOP derivation corpus
 
-Measured at worktree `wt-ledger` (detached at master `4f0c51c`).  Corpus: all 71 `Fredy/L*_derived.lean`
+Measured at worktree `wt-ledger` (detached at master `4f0c51c`).  Corpus: all 71 `Freyd/L*_derived.lean`
 files plus the driver instances `L53_auto.lean`, `L322_dp.lean`, `L279.lean`, and the knapsack demo
 (`A8_4_Knapsack.lean` abstract + `AutoDeriveThin.lean` `namespace Knapsack` concrete).  All are sorry-free.
 

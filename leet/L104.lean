@@ -3,7 +3,7 @@
 
   Problem: given a binary tree, return the length of the longest root-to-`nil` path (depth).
 
-  This is the SEED example for the Tree block of `Fredy/leetcode.md`, built on the new reusable
+  This is the SEED example for the Tree block of `Freyd/leetcode.md`, built on the new reusable
   engine `AOP.A6_TreeBin` (the tree-shaped counterpart of `A6_SnocList`'s `SnocList`/`cataFold`):
 
   1. **Data** — a binary tree is `Tree A` (`A6_TreeBin`), the initial algebra of
@@ -26,7 +26,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_TreeBin
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

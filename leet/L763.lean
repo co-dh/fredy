@@ -4,7 +4,7 @@
   Problem: partition a string into as many pieces as possible so that each character appears in
   at most one piece; return the list of piece sizes.
 
-  Same recipe as `leet/L53.lean`/`leet/L20.lean` (`Fredy/leetcode.md`, skill S0), for a greedy
+  Same recipe as `leet/L53.lean`/`leet/L20.lean` (`Freyd/leetcode.md`, skill S0), for a greedy
   scan whose invariant references the WHOLE input, not just the scanned prefix:
 
   1. **Data** — the string is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
@@ -31,7 +31,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 
@@ -437,7 +437,7 @@ SUBSET of the `reach`-triggered closing points `scanFn` finds, which are its EAR
 cuts. Formalizing "any valid partition's cuts are a superset-of-positions of the greedy ones" needs
 an induction comparing an ARBITRARY `parts` against `scanFn`'s own trace — the same "which piece is
 position `i` in" bookkeeping this file avoided (see the file header, S1/S3 note in
-`Fredy/leetcode.md`) by routing everything through the incremental `scan_inv` invariant instead of a
+`Freyd/leetcode.md`) by routing everything through the incremental `scan_inv` invariant instead of a
 prefix-sum piece-index. Reach for that indexing (or a "greedy cuts are a subset of any valid cuts"
 lemma by simultaneous induction on `parts` and the scan) if resuming this file. -/
 

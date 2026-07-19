@@ -5,7 +5,7 @@
   guarantees such a value exists), return it. The classic O(n) O(1)-space solution is the
   Boyer–Moore voting algorithm.
 
-  Recipe (`Fredy/leetcode.md` S0): data is a plain `List Int` (as in `L56`/`L242`, no `SnocList`
+  Recipe (`Freyd/leetcode.md` S0): data is a plain `List Int` (as in `L56`/`L242`, no `SnocList`
   engine needed — the accumulator-fold shape is exactly `List.foldl`, which is structural/`rfl`-
   transparent, `Init/Data/List/Basic.lean`'s `List.foldl_cons`).
 

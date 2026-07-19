@@ -3,7 +3,7 @@ cate*.pdf
 # Third-party copyrighted reference material — kept locally only, NEVER commit (copyright).
 # The books: Freyd "Categories, Allegories" (book-all/book-color) and Bird & de Moor
 # "Algebra of Programming" (algprog); plus downloaded papers. Own typst work (AllegoryStringDiagrams.*,
-# Fredy/S*.pdf) is NOT listed here and stays tracked.
+# Freyd/S*.pdf) is NOT listed here and stays tracked.
 algprog.pdf
 book-all.pdf
 book-all.typ

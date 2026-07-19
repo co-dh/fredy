@@ -1,5 +1,5 @@
 /-
-  LeetCode 139 — Word Break — as an ALLEGORY PROGRAM (a DECISION problem, `Fredy/leetcode.md`
+  LeetCode 139 — Word Break — as an ALLEGORY PROGRAM (a DECISION problem, `Freyd/leetcode.md`
   skills S5/S13/S16).
 
   Problem: given a string `s` and a dictionary `dict` of words, return `true` iff `s` can be

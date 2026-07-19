@@ -1,10 +1,10 @@
 /-
   Bird & de Moor, *Algebra of Programming* §4.4  Locally complete allegories.
 
-  All statements are in Fredy conventions: diagram-order composition `R ≫ S` (first R then S),
-  converse `R°`, meet `∩`, order `⊑`, union `R ∪ S`, zero `𝟘`.  We build on `Fredy.S2_3`
+  All statements are in Freyd conventions: diagram-order composition `R ≫ S` (first R then S),
+  converse `R°`, meet `∩`, order `⊑`, union `R ∪ S`, zero `𝟘`.  We build on `Freyd.S2_3`
   (`DistributiveAllegory`/`DivisionAllegory`/`LocallyCompleteDistributiveAllegory`, division)
-  and `Fredy.S2_147_MapCat` (`dom_union`, `dom_zero`, the `TabularUnitary*` classes).
+  and `Freyd.S2_147_MapCat` (`dom_union`, `dom_zero`, the `TabularUnitary*` classes).
 
   Contents:
   §A  Meets as joins (`Inf`, Ex 4.28).
@@ -16,8 +16,8 @@
   §G  Galois connections (Ex 4.36–4.40).
 -/
 
-import Fredy.S2_3
-import Fredy.S2_147_MapCat
+import Freyd.S2_3
+import Freyd.S2_147_MapCat
 import AOP.A4_2  -- modular_sym/modular_le_right (via A4_1), map_shunt_left/right, entire_id_le
 
 universe v u
@@ -56,7 +56,7 @@ theorem antisymm_of_le_iff {a b : 𝒜} {A B : a ⟶ b} (h : ∀ X, X ⊑ A ↔ 
   Galois connections are the engine of program calculation (thinning/greedy theorems later
   in B&dM).  Freyd's "adjoint pair of functions between posets" (§1.51) and the monotonicity of
   both legs are the GENERIC `Freyd.GaloisConnection` / `GaloisConnection.monotone_l` /
-  `monotone_u` (Fredy/S1_51_Order), instantiated here at hom-sets with the allegory order `⊑`
+  `monotone_u` (Freyd/S1_51_Order), instantiated here at hom-sets with the allegory order `⊑`
   (reflexivity `le_refl`, transitivity `le_trans`); the join-preservation facts are in the
   `LocallyCompleteDistributiveAllegory` section below.  No hom-set-specific `GaloisConn` is
   re-defined. -/
@@ -327,7 +327,7 @@ theorem thenRel_topHom {a : 𝒜} (R : a ⟶ a) : R ⨾ (topHom a a) = R := by
 
 /-! ### §G  Galois connections, LCDA part (B&dM Ex 4.36–4.40)
 
-  Instances of the generic `Freyd.GaloisConnection` (Fredy/S1_51_Order) at allegory hom-sets,
+  Instances of the generic `Freyd.GaloisConnection` (Freyd/S1_51_Order) at allegory hom-sets,
   ordered by `⊑`; `Sup` is the hom-set's join, which is the `IsSup` for that family
   (`⟨le_Sup, Sup_le⟩`). -/
 

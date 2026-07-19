@@ -6,6 +6,6 @@ cd "$(dirname "$0")/.." || exit 1
 [ -r graph/decls.tsv ] || { echo "no graph/decls.tsv — run: lake env lean --run scripts/ExtractGraph.lean" >&2; exit 1; }
 PORT=${1:-8777}
 URL="http://localhost:$PORT/graph/viz/index.html"
-echo "serving Fredy graph on $URL   (Ctrl-C to stop)"
+echo "serving Freyd graph on $URL   (Ctrl-C to stop)"
 ( sleep 1; command -v xdg-open >/dev/null 2>&1 && xdg-open "$URL" >/dev/null 2>&1 ) &
 exec python3 -m http.server "$PORT" --bind 127.0.0.1

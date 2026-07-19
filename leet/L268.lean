@@ -4,7 +4,7 @@
   Problem: given a `SnocList Nat Nat` of `n` DISTINCT numbers drawn from `{0,…,n}` (one is
   missing), return the missing one.
 
-  Same recipe as `leet/L121.lean`/`leet/L191.lean` (see `Fredy/leetcode.md`, skill S0/S8):
+  Same recipe as `leet/L121.lean`/`leet/L191.lean` (see `Freyd/leetcode.md`, skill S0/S8):
 
   1. **Data** — the numbers form the initial algebra `SnocList ℕ ℕ` of `F X = ℕ + X×ℕ`
      (`AOP.A6_SnocList`); `wrap x` is a single number, `snoc xs p` appends one.
@@ -41,7 +41,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

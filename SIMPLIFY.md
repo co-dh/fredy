@@ -1,9 +1,9 @@
 # Simplification instructions for the `S1_*.lean` series
 
-Scope: `Fredy/S1_1`, `S1_41`, `S1_42`, `S1_44`, `S1_45`, `S1_51`, `S1_52`, `S1_53`.
+Scope: `Freyd/S1_1`, `S1_41`, `S1_42`, `S1_44`, `S1_45`, `S1_51`, `S1_52`, `S1_53`.
 Out of scope: `S1_18.lean` (work in progress), `525.lean`, `Tau.lean`, `Basic.lean`.
 
-Build a single file with `lake env lean Fredy/<name>.lean` (exit 0 = clean). After any
+Build a single file with `lake env lean Freyd/<name>.lean` (exit 0 = clean). After any
 cross-file change, rebuild the changed file **and every file that imports it**. The import
 DAG is: `S1_1` → {`S1_41`, `S1_44`}; `S1_41` → `S1_42`, `S1_51`, `S1_18`; `S1_42` →
 `S1_45`, `S1_52`, `S1_53`; `S1_45`/`S1_51` → `S1_52`, `S1_53`; `S1_44` → `S1_53`.
@@ -181,7 +181,7 @@ After all edits, rebuild the whole series in dependency order:
 
 ```
 printf '%s\n' S1_1 S1_41 S1_42 S1_44 S1_45 S1_51 S1_52 S1_53 \
-  | xargs -I {} sh -c 'echo "=== {} ==="; lake env lean Fredy/{}.lean 2>&1 | head -8'
+  | xargs -I {} sh -c 'echo "=== {} ==="; lake env lean Freyd/{}.lean 2>&1 | head -8'
 ```
 
 All eight must exit 0 with no errors. Then confirm the axiom footprint is unchanged:

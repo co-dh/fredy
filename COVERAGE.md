@@ -1,7 +1,7 @@
 # Book → Lean coverage audit (Freyd & Scedrov, *Categories, Allegories*)
 
 Regenerated **2026-06-29** at master **0bb431b** by a 10-way parallel audit of the book
-(`/home/dh/anki/typst-book/chapters/<a.b>/section-<a.b>.fixed.md`) against `Fredy/*.lean`.
+(`/home/dh/anki/typst-book/chapters/<a.b>/section-<a.b>.fixed.md`) against `Freyd/*.lean`.
 Status is by **content search across all files**, not by filename (the `Sa_bc.lean` convention is
 not reliably followed — e.g. §1.281 lives in `S1_39.lean`, §1.438 in `FunctorReflects.lean`).
 

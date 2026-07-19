@@ -34,7 +34,7 @@
      `[1, (inorder t).length]`, `kthSmallestFn t k` is a genuine `some`.
 
   Honesty level achieved: FULL — sortedness (strict) + completeness (membership bridge) + rank
-  (exact count-less-than) + totality on the valid range, per `Fredy/leetcode.md`'s "count-of-
+  (exact count-less-than) + totality on the valid range, per `Freyd/leetcode.md`'s "count-of-
   elements-`< v`" bar (not the weaker index-only fallback).
 
   Mathlib-free; axioms ⊆ {propext, Quot.sound} (no `Classical.choice` — every step is either

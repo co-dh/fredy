@@ -1,7 +1,7 @@
 /-
   Bird & de Moor, *Algebra of Programming* §5.3  Relational coproducts (+ Ex 5.17 guards).
 
-  Builds on `Fredy.S2_2` (`Coproduct`, the five equations of §2.214), `AOP.A4_5` (the
+  Builds on `Freyd.S2_2` (`Coproduct`, the five equations of §2.214), `AOP.A4_5` (the
   Boolean layer: negation `∼`, `BooleanAllegory`), and `AOP.A5_1` (the `Relator` structure).
 
   We reuse `Freyd.Alg.Coproduct` (§2.214) directly rather than redefining coproducts: for
@@ -9,8 +9,8 @@
   `inr`), and the five equations are `C.u₁_self_comp_recip`, `C.u₁_u₂_recip`, `C.u₂_u₁_recip`,
   `C.u₂_self_comp_recip`, `C.recip_union_eq_id`.
 
-  Statements are in Fredy's diagram-order convention: B&dM's composition `X·Y` (right to left)
-  is Fredy's `Y ≫ X` (first Y then X).  In particular B&dM's junc `[R,S] = (R·inl°) ∪ (S·inr°)`
+  Statements are in Freyd's diagram-order convention: B&dM's composition `X·Y` (right to left)
+  is Freyd's `Y ≫ X` (first Y then X).  In particular B&dM's junc `[R,S] = (R·inl°) ∪ (S·inr°)`
   becomes `(C.u₁° ≫ R) ∪ (C.u₂° ≫ S)`.
 
   Contents:
@@ -20,7 +20,7 @@
   §4  Ex 5.12.
   §5  Guards and conditionals (Ex 5.17).
 -/
-import Fredy.S2_2
+import Freyd.S2_2
 import AOP.A4_5
 import AOP.A5_1
 
@@ -37,7 +37,7 @@ section Junc
 variable {𝒜 : Type u} [DistributiveAllegory 𝒜]
 
 /-- **B&dM 5.9**: the junc (case) morphism `[R,S] : s ⟶ c` induced by a coproduct
-    `C : Coproduct s a₁ a₂` together with `R : a₁ ⟶ c`, `S : a₂ ⟶ c`, in Fredy's diagram order:
+    `C : Coproduct s a₁ a₂` together with `R : a₁ ⟶ c`, `S : a₂ ⟶ c`, in Freyd's diagram order:
     `[R,S] = (u₁°≫R) ∪ (u₂°≫S)`. -/
 def junc {s a₁ a₂ c : 𝒜} (C : Coproduct s a₁ a₂) (R : a₁ ⟶ c) (S : a₂ ⟶ c) : s ⟶ c :=
   (C.u₁° ≫ R) ∪ (C.u₂° ≫ S)

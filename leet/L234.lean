@@ -20,7 +20,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import leet.L206
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

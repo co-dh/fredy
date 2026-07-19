@@ -33,7 +33,7 @@
   `derivedSumRangeFn = LC303.sumRangeFn` on the nose, and `LC303.sumRange_correct`/`solve_correct`
   transfer unchanged — no new correctness proof about prefix sums is needed.
 
-  Mathlib-free (Lean core + `Fredy.*` only); headline axioms ⊆ {propext, Quot.sound}.
+  Mathlib-free (Lean core + `Freyd.*` only); headline axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_GenFold
 import AOP.A6_ConsList

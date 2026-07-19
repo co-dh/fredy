@@ -1,23 +1,23 @@
 /-
   Bird & de Moor, *Algebra of Programming* §5.4  The power relator.
 
-  Composition throughout is diagram order (`≫`), matching Fredy's convention (the book's
+  Composition throughout is diagram order (`≫`), matching Freyd's convention (the book's
   `X·Y` is `Y ≫ X` here — already applied to every formula transcribed below).
 
   `powerRel R : [a] ⟶ [b]` is B&dM's `PR` (p.119): the Egli–Milner lifting of `R : a ⟶ b`
-  to the power objects.  It is built from the two division operations of `Fredy.S2_3`
+  to the power objects.  It is built from the two division operations of `Freyd.S2_3`
   (`/`, right division, and `\` = `leftDiv`, left division) applied to the membership `∋`
-  of `Fredy.S2_4`.  Only the hard direction of functoriality (`powerRel_comp`) needs a
+  of `Freyd.S2_4`.  Only the hard direction of functoriality (`powerRel_comp`) needs a
   tabulation; every other fact holds in a bare `UnguardedPowerAllegory`.
 
   Ex 5.16 (`powerRel (dom R) ≫ existsImage R ⊑ powerRel R`) is DROPPED — see the report;
   the natural attempt needs `R` a map to shunt, which it is not in general.
 -/
 
-import Fredy.S2_4
+import Freyd.S2_4
 import AOP.A4_6
 import AOP.A4_2
-import Fredy.S2_41b
+import Freyd.S2_41b
 
 universe u
 
@@ -31,7 +31,7 @@ section PowerRelDef
 
 variable {𝒜 : Type u} [UnguardedPowerAllegory 𝒜]
 
-/-- **B&dM §5.4 p.119** (the POWER RELATOR `PR`, mirrored to Fredy's diagram order): for
+/-- **B&dM §5.4 p.119** (the POWER RELATOR `PR`, mirrored to Freyd's diagram order): for
     `R : a ⟶ b`, `powerRel R : [a] ⟶ [b]` relates `X` to `Y` (the Egli–Milner order) when
     EVERY element of `X` `R`-reaches into `Y` (term₁, via left division `\`: "each element
     of the input set `R`-reaches into the output set") AND every element of `Y` is
@@ -126,7 +126,7 @@ end PowerRelDef
   The `⊒` direction (`powerRel_comp_le`) needs only the two universal properties, so it is
   proved under a bare `[UnguardedPowerAllegory 𝒜]`.  The `⊑` direction needs a TABULATION of
   `powerRel (R ≫ S)`, so it is proved under the merged class `TabularUnitaryUnguardedPowerAllegory`
-  (`Fredy.S2_41b`) — the smallest existing class combining `TabularAllegory`-strength
+  (`Freyd.S2_41b`) — the smallest existing class combining `TabularAllegory`-strength
   tabulation with the `A4_6` power-allegory calculus over a single shared `Allegory` base. -/
 
 section PowerRelCompEasy

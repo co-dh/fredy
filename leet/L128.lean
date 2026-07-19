@@ -5,7 +5,7 @@
   length of the longest run of CONSECUTIVE integers (by VALUE, not position) all present in
   `nums`.  E.g. `[100,4,200,1,3,2] ↦ 4` (the run `1,2,3,4`).  Empty list ↦ `0`.
 
-  Same recipe as `leet/L56.lean`/`leet/L435.lean` (`Fredy/leetcode.md` S0/S22/S24): the data
+  Same recipe as `leet/L56.lean`/`leet/L435.lean` (`Freyd/leetcode.md` S0/S22/S24): the data
   object is a plain `List Int`, and we REUSE `leet.L242`'s hand-rolled insertion sort
   (`isort`/`Sorted`/`linsert`/`countL`/`countL_isort`) rather than re-deriving sorting machinery.
 
@@ -18,7 +18,7 @@
   2. **Specification** — membership-based, NOT position-based (LeetCode's problem is about the
      VALUE-SET of `nums`, and sorting/scanning is only an algorithmic device): a length-`L`
      consecutive block starting at `s` is present iff `∀ i < L, (s + i) ∈ nums`.  Correctness is
-     the `L121`-style refinement + domination pair (`Fredy/leetcode.md` S0):
+     the `L121`-style refinement + domination pair (`Freyd/leetcode.md` S0):
        - achievability: `∃ s, ∀ i < longestConsecFn nums, (s + i) ∈ nums`;
        - domination:   `∀ s L, (∀ i < L, (s + i) ∈ nums) → L ≤ longestConsecFn nums`.
 
@@ -41,7 +41,7 @@
      `isort nums` matches the membership-spec over `nums` directly.
 
   Mathlib-free.  Axioms `{propext, Quot.sound}` (target; verified below) — every `omega` call is
-  on a PLAIN conjunction/hypothesis (never a negated conjunction, cf. `Fredy/leetcode.md` S3/S24),
+  on a PLAIN conjunction/hypothesis (never a negated conjunction, cf. `Freyd/leetcode.md` S3/S24),
   so no `Classical.choice`.
 -/
 import leet.L242
@@ -272,7 +272,7 @@ theorem scanAux_inv (l : List Int) : ∀ (t : List Int) (prev : Int) (runLen bes
 /-! ## Base case: seed the scan from `l`'s first (= minimum) element -/
 
 /-- **The scan is honest**: on a `Sorted` list, `scanFn` achieves a value-run of its own length,
-    and dominates every value-run present in `l` — the refinement + domination pair (`Fredy/leetcode.md`
+    and dominates every value-run present in `l` — the refinement + domination pair (`Freyd/leetcode.md`
     S0), stated directly over `l` (before the sort-membership bridge to the original `nums`). -/
 theorem scanFn_spec (l : List Int) (hSorted : Sorted l) :
     (∃ s : Int, ∀ i : Nat, i < scanFn l → s + (i : Int) ∈ l) ∧
@@ -330,7 +330,7 @@ theorem scanFn_spec (l : List Int) (hSorted : Sorted l) :
 
 /-! ## The bridge to `nums`: membership over `isort nums` = membership over `nums` -/
 
-/-- **The allegory-program correctness statement** (`Fredy/leetcode.md` S0's refinement +
+/-- **The allegory-program correctness statement** (`Freyd/leetcode.md` S0's refinement +
     domination pair): `longestConsecFn nums` achieves a value-run of its own length and dominates
     every value-run present in `nums`. -/
 theorem longestConsec_correct (nums : List Int) :

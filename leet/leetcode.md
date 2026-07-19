@@ -534,7 +534,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `ConsList` and is a `Map` (hence executable/`decide`-able) only when the order is a STRICT total
   order; a plain `≤` comparator with ties is not, so it cannot feed a concrete merge fold without extra
   determinism work. Concrete insertion sort is the route whenever the downstream fold must actually RUN.
-- **Trap: `exacts [...]` is a repo-custom tactic (`Fredy/Exacts.lean`), not Lean core** — using it
+- **Trap: `exacts [...]` is a repo-custom tactic (`Freyd/Exacts.lean`), not Lean core** — using it
   without that import gives a PARSE-level "unknown tactic" with a confusing, misattributed goal dump.
   Same for `tauto` (still unavailable, reconfirming S16). Watch for the "unknown tactic" error shape.
 - **`rw [h]` with `h : jv = cur` does NOT auto-close a leftover `cur.1 ≤ cur.1`** — unlike an `Eq`
@@ -854,7 +854,7 @@ Status: `·` todo, `▷` in progress, `✓` done (file). Do `★★★` first.
   `imax a 0 = 0` (last candidate discarded to nothing) needs `Area ≥ 0` to force `a = 0`; without
   nonnegativity the two-pointer is not correct. **Traps:** `subst` on `i = lo` deletes `lo` — `rw [hieq] at
   hij ⊢` (rewrite the HYP too, the discard lemma needs it). `imax_eq_or`'s `exacts` needs
-  `import Fredy.Exacts` (S22). Vacuous cases `exfalso; omega` prophylactically (S33).
+  `import Freyd.Exacts` (S22). Vacuous cases `exfalso; omega` prophylactically (S33).
 
 ### S39 — L19 (Remove Nth From End) — take/drop splice, `min` is omega-transparent
 - **`removeNthFn xs n := xs.take (xs.length-n) ++ xs.drop (xs.length-n+1)`** — no recursion, no fuel.

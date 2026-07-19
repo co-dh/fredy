@@ -5,7 +5,7 @@
 
   Unlike `leet/L121.lean`/`leet/L53.lean` (an OPTIMUM `max(≤)·Λ spec`), this is a DECISION problem:
   the answer object is `Bool`, and correctness is a plain `iff`, `solveFn xs = true ↔ dupP xs`, not an
-  extremum.  Same data/program recipe otherwise (`AOP.A6_SnocList`, `Fredy/leetcode.md` skill S0):
+  extremum.  Same data/program recipe otherwise (`AOP.A6_SnocList`, `Freyd/leetcode.md` skill S0):
 
   1. **Data** — the array is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`; `wrap x` is a
      single-element array, `snoc xs p` appends `p`.
@@ -26,7 +26,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

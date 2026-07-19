@@ -2,7 +2,7 @@
   Bird & de Moor, *Algebra of Programming* §4.3  Tabular allegories.
 
   This file adds only the facts B&dM §4.3 states that Freyd's own development
-  (Fredy/S2_1.lean §2.14-§2.15) does not already cover: the unit-is-terminal-in-Map
+  (Freyd/S2_1.lean §2.14-§2.15) does not already cover: the unit-is-terminal-in-Map
   property and its converse (p.94-95), and the three tabulation-leg exercises
   4.21-4.23 relating simplicity/entirety/mapness of `R` to properties of its
   tabulating legs.
@@ -13,7 +13,7 @@
   own version is tracked (unproved) as §2.148/§2.154 in S2_1.lean.
 -/
 
-import Fredy.S2_1
+import Freyd.S2_1
 import AOP.A4_2  -- entire_id_le
 
 universe v u

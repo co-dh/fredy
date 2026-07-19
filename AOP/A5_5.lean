@@ -9,15 +9,15 @@
 
   B&dM's construction: `(|R|) = ∈ · (|Λ(R·F∈)|)`, i.e. transpose the relational algebra
   `R : F c ⟶ c` through the power object of `c` to the MAP algebra
-  `Λ(R·F∈) : F [c] ⟶ [c]` (Fredy: `A (F.map (∋ c) ≫ R) : F.obj (powerObj c) ⟶ powerObj c`),
+  `Λ(R·F∈) : F [c] ⟶ [c]` (Freyd: `A (F.map (∋ c) ≫ R) : F.obj (powerObj c) ⟶ powerObj c`),
   take the ordinary (map) catamorphism of that, and compose with `∈` to come back down
-  to `c`.  All composition is diagram order (Fredy `≫`), mirroring B&dM's `·`.
+  to `c`.  All composition is diagram order (Freyd `≫`), mirroring B&dM's `·`.
 
   Needs Lemma 5.1 ("relators preserve maps": `Map f → Map (F f) ∧ F(f°) = (F f)°`) — its
   canonical home is `A5_1.lean` (added by a parallel wave); a private copy is proved here
   from `recip_of_comp_id` (A4_2) so this file does not block on that landing.
 -/
-import Fredy.S2_4
+import Freyd.S2_4
 import AOP.A4_6
 import AOP.A4_2
 import AOP.A5_1

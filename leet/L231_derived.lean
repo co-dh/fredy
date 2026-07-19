@@ -2,7 +2,7 @@
   LeetCode 231 — Power of Two — DERIVED as a relational HYLOMORPHISM (O(log n)).
 
   `leet/L231.lean` decides the property by `pow2Fuel fuel m`, recursing on a separate FUEL
-  argument (`Fredy/leetcode.md` S13) rather than on `m` itself, because `m / 2` is a second,
+  argument (`Freyd/leetcode.md` S13) rather than on `m` itself, because `m / 2` is a second,
   independently-shrinking argument and so does not compile to plain structural recursion.  Fuel is
   scaffolding, not the algorithm: the real halving descent is well-founded on `m` alone (`m / 2 <
   m` for `m ≠ 0`), which is exactly a RECURSIVE COALGEBRA `c : S → L + E×S` in the sense of

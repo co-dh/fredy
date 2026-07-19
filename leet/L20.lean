@@ -12,7 +12,7 @@
   bracket kind, and add "the popped kind matches" to the close step. The depth-scan core (this
   file) is unchanged by that extension.
 
-  Same recipe as `leet/L121.lean` (`Fredy/leetcode.md`, skill S0), but for a decision, not an
+  Same recipe as `leet/L121.lean` (`Freyd/leetcode.md`, skill S0), but for a decision, not an
   optimum:
 
   1. **Data** — the sequence is the initial algebra `SnocList Bool Bool` (`AOP.A6_SnocList`);
@@ -36,7 +36,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

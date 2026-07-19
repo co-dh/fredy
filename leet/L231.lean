@@ -4,14 +4,14 @@
   Problem: given an integer `n`, decide whether it is a power of two, i.e. whether `n = 2^k` for
   some `k : Nat`.  `n` must be positive (`0` and negatives are never powers of two).
 
-  Same DECISION-problem recipe as `leet/L9.lean`/`leet/L217.lean` (`Fredy/leetcode.md` S5):
+  Same DECISION-problem recipe as `leet/L9.lean`/`leet/L217.lean` (`Freyd/leetcode.md` S5):
   correctness is a plain `iff`, not a refinement+domination extremum.  Like `L9`, the input is a
   bare `Int`, not a `SnocList` — no list-datatype engine is needed here at all.
 
   1. **Data** — the input object is `Int` directly; the answer object is `Bool`.
 
   2. **Program (fuel).** `pow2Fuel fuel m` repeatedly halves `m` while it is even, recursing on
-     FUEL (`Fredy/leetcode.md` S13) rather than on `m` itself, since `m / 2` decreases a second,
+     FUEL (`Freyd/leetcode.md` S13) rather than on `m` itself, since `m / 2` decreases a second,
      independently-shrinking argument and so does not compile to plain structural recursion:
      `m = 1` accepts; `m = 0` or `m` odd `> 1` rejects; otherwise recurse on `m / 2` with one less
      fuel.  `isPow2Fn n := if n ≤ 0 then false else pow2Fuel n.toNat n.toNat` — fuel `n.toNat` is
@@ -137,7 +137,7 @@ theorem pow2Fuel_to_exists : ∀ (fuel m : Nat), pow2Fuel fuel m = true → ∃ 
 
 /-- **`isPow2Fn` decides the power-of-two property**: `n` is a power of two iff it is positive and
     equals `2 ^ k` for some natural `k` — LeetCode 231's definition, verbatim.  The DECISION-problem
-    correctness shape (`Fredy/leetcode.md` S5): a plain `iff`, not an extremum. -/
+    correctness shape (`Freyd/leetcode.md` S5): a plain `iff`, not an extremum. -/
 theorem pow2_correct (n : Int) :
     isPow2Fn n = true ↔ (0 < n ∧ ∃ k : Nat, n = (2 : Int) ^ k) := by
   unfold isPow2Fn

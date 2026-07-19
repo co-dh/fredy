@@ -4,7 +4,7 @@
   Problem: given a `.`-sorted `xs : List Int` (may contain negatives), return the sorted list of
   the squares.
 
-  Same recipe as `leet/L56.lean`/`leet/L242.lean` (`Fredy/leetcode.md` S0/S22/S24/S28): the data
+  Same recipe as `leet/L56.lean`/`leet/L242.lean` (`Freyd/leetcode.md` S0/S22/S24/S28): the data
   object is a plain `List Int` (no `SnocList` engine needed — a one-shot map+sort, not a scan).
   The clean allegory route is NOT the O(n) two-pointer merge; it is "square then sort", reusing
   `leet.L242`'s hand-rolled insertion sort verbatim (as `L128`'s `longestConsecFn` already reuses

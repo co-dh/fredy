@@ -31,8 +31,8 @@
   relational DIVISION query, LC 207 cycle detection, the LC 121 spec/fold runs — live in
   `rel/RelInterpDemo.lean` (`#eval` + `by decide`).
 -/
-import Fredy.S2_3
-import Fredy.S2_4
+import Freyd.S2_3
+import Freyd.S2_4
 
 set_option linter.unusedVariables false
 
@@ -403,7 +403,7 @@ example {a : FinObj} : eval (.eps a) = ∋ a := rfl
 
 /-! ### The B&dM spec vocabulary as DERIVED syntax (book definitions verbatim) -/
 
-/-- Left division `S\R = (R°/S°)°` (§2.312, `Fredy.S2_3.leftDiv` verbatim). -/
+/-- Left division `S\R = (R°/S°)°` (§2.312, `Freyd.S2_3.leftDiv` verbatim). -/
 def leftDivE {a b c : FinObj} (S : RE a b) (R : RE a c) : RE b c :=
   .conv (.div (.conv R) (.conv S))
 

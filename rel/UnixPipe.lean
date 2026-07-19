@@ -41,11 +41,11 @@
   formalises Bird–de Moor §6.6 `sort ⊆ ordered · perm`; our program side is one concrete
   refinement (insertion sort by the size key) of that specification.
 
-  STRICTLY mathlib-free / Std-free; imports are `Fredy.*` + Lean core only.
+  STRICTLY mathlib-free / Std-free; imports are `Freyd.*` + Lean core only.
   Sorry-free; every theorem's `#print axioms` ⊆ {propext, Quot.sound}.  Never `native_decide`.
 -/
 import rel.RelInterp
-import Fredy.S2_1
+import Freyd.S2_1
 import AOP.A4_2
 import AOP.A6_6_Sort
 

@@ -3,7 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["numpy", "scipy"]
 # ///
-"""Graph-based duplicate-lemma detector for the Fredy dependency graph.
+"""Graph-based duplicate-lemma detector for the Freyd dependency graph.
 
 Candidate generation: nearest neighbours in the SVD embedding of the hub-removed dependency matrix.
 Each declaration's row (what it uses) is compressed to a K-D fingerprint; duplicates have near-identical

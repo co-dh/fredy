@@ -44,7 +44,7 @@
   is trivial — the statement degenerates to Theorem 9.1, so this strictly generalizes B&dM.
 
   Setting and proof skeleton: `UnguardedPowerLCDA`, mirroring `dp_prefixed`'s min-universal-
-  property argument (`AOP.A9_1`).  Composition is diagram order (B&dM `X·Y` = Fredy
+  property argument (`AOP.A9_1`).  Composition is diagram order (B&dM `X·Y` = Freyd
   `Y ≫ X`).  The instantiation re-deriving `leet.L322`'s `coinSpec` correctness from this
   theorem is `leet.L322_dp`.
 -/

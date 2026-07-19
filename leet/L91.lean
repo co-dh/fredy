@@ -7,7 +7,7 @@
     - two consecutive digits forming `10..26`.
   Every digit must belong to exactly one group.
 
-  Same recipe as `leet/L70.lean` (see `Fredy/leetcode.md`, skill S6) rather than the
+  Same recipe as `leet/L70.lean` (see `Freyd/leetcode.md`, skill S6) rather than the
   refinement-of-an-order recipe of `L121`/`L198`/`L53`: Decode Ways is a COUNTING problem, not an
   optimisation one, so there is no `≤`-extremum to refine into — the specification IS the exact
   answer, and the only job is to show an O(n) fold computes it.
@@ -32,7 +32,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

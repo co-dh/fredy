@@ -13,7 +13,7 @@
 #let dep(x) = box(fill: bg, inset: (x: 2pt, y: 0pt), outset: (y: 2pt), radius: 2pt, raw(x))
 
 #align(center, block(fill: blue, inset: 10pt, radius: 4pt, width: 100%)[
-  #text(16pt, weight: "bold", fill: white)[The SVD of the Fredy dependency matrix] \
+  #text(16pt, weight: "bold", fill: white)[The SVD of the Freyd dependency matrix] \
   #text(9pt, fill: white.darken(8%))[9135 declarations · 126 847 dependency edges · computed 2026-07-03]
 ])
 

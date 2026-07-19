@@ -5,7 +5,7 @@
   negative), choose a subset of houses with NO TWO ADJACENT indices, maximising the sum of the
   chosen values.  Robbing nothing (the empty selection, sum `0`) is always allowed.
 
-  Same recipe as `leet/L53.lean` / `leet/L121.lean` (see `Fredy/leetcode.md`, skill S0/S1):
+  Same recipe as `leet/L53.lean` / `leet/L121.lean` (see `Freyd/leetcode.md`, skill S0/S1):
 
   1. **Data** — the array is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
      (`AOP.A6_SnocList`); `wrap x` is a single house, `snoc xs p` appends a house.
@@ -32,7 +32,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

@@ -3,10 +3,10 @@ import Mathlib.CategoryTheory.Endofunctor.Algebra
 
 /-!
 Experimental vertical slice: B&dM p.138 directly over Mathlib's `RelCat`.
-This deliberately does not import or modify Fredy's custom category hierarchy.
+This deliberately does not import or modify Freyd's custom category hierarchy.
 -/
 
-namespace FredyMathlibSpike
+namespace FreydMathlibSpike
 
 open CategoryTheory
 open SetRel
@@ -287,4 +287,4 @@ theorem val_converse_eq :
           rw [hq.1, hq.2, ← hx, ← hd] at hp
           exact hp
 
-end FredyMathlibSpike
+end FreydMathlibSpike

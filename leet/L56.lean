@@ -5,7 +5,7 @@
   touching: `[1,3]`/`[3,5]` merge into `[1,5]`, using `≤` for the overlap test) intervals and
   return the non-overlapping result sorted by `lo`.
 
-  Same recipe as `leet/L121.lean`/`leet/L20.lean` (`Fredy/leetcode.md` S0), but the data object
+  Same recipe as `leet/L121.lean`/`leet/L20.lean` (`Freyd/leetcode.md` S0), but the data object
   is a plain `List (Int × Int)` (the recipe explicitly allows this — "or a SnocList/ConsList of
   pairs" is optional machinery, not needed here):
 

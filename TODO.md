@@ -33,7 +33,7 @@ Note this also applies the `isPullback → pullback` book-wording cleanup (item 
 
 **Scope.** 9 files. Regenerate the exact list with:
 ```
-grep -rlE 'SliceForget|sliceForget|sliceConeForget' Fredy/*.lean
+grep -rlE 'SliceForget|sliceForget|sliceConeForget' Freyd/*.lean
 ```
 (Currently: `S1_44`, `S1_53`, `SliceRegular`, `SliceTopos`, `SlicePreTopos`, `SliceDeltaCartesian`,
 plus the §1.53/capitalization users — confirm via the grep.)
@@ -45,7 +45,7 @@ plus the §1.53/capitalization users — confirm via the grep.)
 3. `lake build` must stay green (166 jobs).
 4. Spot-check axioms unchanged: `#print axioms Freyd.sigma_reflects_pullback` (etc.) — should match
    the pre-rename `#print axioms`.
-5. `grep -rn 'sorry' Fredy/` count must not increase (lowercase `sorry` only).
+5. `grep -rn 'sorry' Freyd/` count must not increase (lowercase `sorry` only).
 
 ## 2. `isPullback` → `pullback` in lemma names (book wording)
 

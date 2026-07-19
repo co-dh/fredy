@@ -5,7 +5,7 @@
   An object is a Lean type (bundled as `RelSet.mk` so it is a genuinely distinct type from
   `Type u` — otherwise the ambient `Cat (Type u)` instance would shadow this one), and a morphism
   `a ⟶ b` is an ordinary binary relation `a.carrier → b.carrier → Prop`.  Composition is in
-  DIAGRAM ORDER (`R ≫ S` = first `R` then `S`), matching the whole Fredy/AoP development.
+  DIAGRAM ORDER (`R ≫ S` = first `R` then `S`), matching the whole Freyd/AoP development.
 
   This file assembles Rel(Set) as an instance of the full allegory stack the concrete case
   studies need — `Allegory`, `DistributiveAllegory`, `DivisionAllegory`,

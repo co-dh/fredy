@@ -2,20 +2,20 @@
   Bird & de Moor, *Algebra of Programming* Ex 5.20 (book pp. 124, 126): power transposes
   of the relational-product relator, `cup` and `cap`, and the general "cp"-pattern.
 
-  Setting: `Λ` (Fredy's `A`, the power transpose) needs an `UnguardedPowerAllegory`
-  (`Fredy.S2_4`/`AOP.A4_6`); the relational product `RelProd`/`topMor` (§5.2, `AOP.A5_2`)
-  needs a `TabularUnitaryDivisionAllegory` (`Fredy.S2_3`).  Both classes already share
+  Setting: `Λ` (Freyd's `A`, the power transpose) needs an `UnguardedPowerAllegory`
+  (`Freyd.S2_4`/`AOP.A4_6`); the relational product `RelProd`/`topMor` (§5.2, `AOP.A5_2`)
+  needs a `TabularUnitaryDivisionAllegory` (`Freyd.S2_3`).  Both classes already share
   `DivisionAllegory` as a common ancestor (`UnguardedPowerAllegory → PowerAllegory →
   DivisionAllegory ← TabularUnitaryDivisionAllegory`), so merging them into ONE class —
-  exactly `Fredy.S2_41b`'s `TabularUnitaryPowerAllegory` pattern, but merged one level
+  exactly `Freyd.S2_41b`'s `TabularUnitaryPowerAllegory` pattern, but merged one level
   deeper (at `DivisionAllegory` instead of `DistributiveAllegory`, since A5_2 needs
   `topMor`, genuine division-allegory data, not just distributivity) — collapses the
   `Allegory` diamond to a single instance.
 -/
 import AOP.A5_2
-import Fredy.S2_4
+import Freyd.S2_4
 import AOP.A4_6
-import Fredy.S2_41b
+import Freyd.S2_41b
 
 universe u
 
@@ -24,7 +24,7 @@ namespace Freyd.Alg
 /-- Merge class for Ex 5.20: a tabular unitary DIVISION allegory (gives `topMor`/`RelProd`,
     `AOP.A5_2`) whose power-object membership is additionally UNGUARDED (gives `A`/`∋`
     unconditionally, `AOP.A4_6`'s calculus).  Diamond-safe by the same structure-inheritance
-    merge as `Fredy.S2_41b.TabularUnitaryPowerAllegory`. -/
+    merge as `Freyd.S2_41b.TabularUnitaryPowerAllegory`. -/
 class TabularUnitaryUnguardedDivisionPowerAllegory (𝒜 : Type u) extends
     TabularUnitaryDivisionAllegory 𝒜, UnguardedPowerAllegory 𝒜
 

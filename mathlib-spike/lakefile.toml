@@ -1,4 +1,4 @@
-name = "fredy_mathlib_spike"
+name = "freyd_mathlib_spike"
 version = "0.1.0"
 defaultTargets = ["MathlibDigits"]
 

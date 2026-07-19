@@ -4,7 +4,7 @@
   Problem: given a non-empty string `x₀,…,x_{n-1}` of characters, find the length of the longest
   contiguous substring all of whose characters are pairwise distinct.
 
-  Same recipe as `leet/L53.lean` / `leet/L300.lean` (see `Fredy/leetcode.md`, skill S0/S1):
+  Same recipe as `leet/L53.lean` / `leet/L300.lean` (see `Freyd/leetcode.md`, skill S0/S1):
 
   1. **Data** — the string is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
      (`AOP.A6_SnocList`, characters encoded as `Int`); `wrap x` is a single-character string,
@@ -41,7 +41,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner   -- `eq_A_comp_maxRel`: the `max (≤)·Λ spec` morphism-equation bridge
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

@@ -4,7 +4,7 @@
   Problem: given a SORTED list `xs : List Int`, remove duplicates, returning the sorted list of
   distinct values (adjacent dedup — sortedness means every duplicate is adjacent).
 
-  Same recipe as `leet/L56.lean`/`leet/L242.lean` (`Fredy/leetcode.md` S0): the data object is a
+  Same recipe as `leet/L56.lean`/`leet/L242.lean` (`Freyd/leetcode.md` S0): the data object is a
   plain `List Int` (no `SnocList` needed — this is a one-pass structural transform, not a fold with
   auxiliary state). Reuses `LC242.Sorted : List Int → Prop` verbatim (`import leet.L242`), the DRY
   win the recipe already flags for `Sorted`/`isort` reuse on a bare `List Int` (S22/S24/S29).
@@ -65,7 +65,7 @@ theorem LtHead_nil (x : Int) : LtHead x [] := fun _ h => nomatch h
 
 /-! ## Crux: `dedupFn` on a sorted list preserves membership, stays sorted, has no duplicates, and
     its head strictly bounds its tail — proved as ONE conjunction by structural recursion mirroring
-    `dedupFn`'s own three cases (`Fredy/leetcode.md` S3: one conjunction, no mutual theorems). -/
+    `dedupFn`'s own three cases (`Freyd/leetcode.md` S3: one conjunction, no mutual theorems). -/
 
 theorem dedup_inv : ∀ xs : List Int, LC242.Sorted xs →
     (∀ v, v ∈ dedupFn xs ↔ v ∈ xs) ∧ LC242.Sorted (dedupFn xs) ∧ Pairwise (· ≠ ·) (dedupFn xs) ∧

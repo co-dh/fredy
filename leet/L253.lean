@@ -6,7 +6,7 @@
   rooms required — equivalently, the MAXIMUM number of meetings that overlap at any single instant.
 
   Same recipe family as `leet/L56.lean` (Merge Intervals) and `leet/L252.lean` (Meeting Rooms),
-  but the honest spec is a genuine EXTREMUM (`Fredy/leetcode.md` S0), not a decision or a
+  but the honest spec is a genuine EXTREMUM (`Freyd/leetcode.md` S0), not a decision or a
   structural output.
 
   Route (no event sweep, no sort needed): the maximum overlap over ALL instants is attained AT SOME

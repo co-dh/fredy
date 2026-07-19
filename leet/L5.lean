@@ -5,7 +5,7 @@
   reads the same forwards and backwards (a palindrome).  Empty string → 0; any single character
   → 1.  We prove the honest scalar invariant (the length), not a witness substring.
 
-  Same recipe as `leet/L53.lean` (`Fredy/leetcode.md` S0/S1): correctness is refinement
+  Same recipe as `leet/L53.lean` (`Freyd/leetcode.md` S0/S1): correctness is refinement
   (achievability) + domination of an extremum spec, `solve = max (≤) · Λ IsPalinSubstr`.
 
   1. **Spec vocabulary.**  `isPalin xs := xs = xs.reverse`; a contiguous substring is
@@ -38,7 +38,7 @@
   every arithmetic step is `omega` on plain `Nat` (in)equalities, no negated conjunctions).
 -/
 import AOP.A6_1_RelSet
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

@@ -1,7 +1,7 @@
 /-
   LeetCodeRunTree — TREE-shaped LeetCode problems RUN in the relation-algebra interpreter.
 
-  `Fredy.RelInterp`'s `ProgEval` fragment (ground maps `fn`, diagram-order `comp`, recursion
+  `Freyd.RelInterp`'s `ProgEval` fragment (ground maps `fn`, diagram-order `comp`, recursion
   schemes) now has a binary-tree former `cataT`, evaluated by the structural fold `foldTB` —
   the tree counterpart of `cata`/`foldSL`.  Here every tree L-file's solution is re-wired as a
   `Prog` TERM whose recursion lives in `cataT` (the algebras are the L-files' own, transcribed

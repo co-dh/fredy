@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Report each worktree's live-ness: uncommitted changes + commits not reachable from master.
 set -u
-cd /home/dh/repo/fredy || exit 1
+cd /home/dh/repo/freyd || exit 1
 git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt; do
-  [ "$wt" = "/home/dh/repo/fredy" ] && continue
+  [ "$wt" = "/home/dh/repo/freyd" ] && continue
   if [ ! -d "$wt" ]; then
     printf 'GONE      %s\n' "$wt"
     continue

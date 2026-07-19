@@ -4,7 +4,7 @@
   Problem: given a non-empty bit-list (`Bool`, `true` = a `1`-bit), return its Hamming weight —
   the number of `true` bits.
 
-  This reuses the `L121` recipe (`Fredy/leetcode.md`) but with a NEW element type: the data is a
+  This reuses the `L121` recipe (`Freyd/leetcode.md`) but with a NEW element type: the data is a
   `SnocList Bool Bool` (a non-empty list of bits, `A6_SnocList`'s engine instantiated at `L = E =
   Bool`), and the fold's running state is exactly the answer (a running bit-count), so no
   projection is needed after the catamorphism: `solve = cataR alg` on the nose.
@@ -27,7 +27,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_SnocList
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

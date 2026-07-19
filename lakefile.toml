@@ -1,7 +1,7 @@
-name = "fredy"
+name = "freyd"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["Fredy", "AOP", "leet", "rel"]
+defaultTargets = ["Freyd", "AOP", "leet", "rel"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -11,7 +11,7 @@ weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
 
 [[lean_lib]]
-name = "Fredy"           # book core: curated aggregator Fredy.lean stays the single root (no glob,
+name = "Freyd"           # book core: curated aggregator Freyd.lean stays the single root (no glob,
                          # to avoid force-building the deliberately un-imported orphan scaffolding)
 
 [[lean_lib]]
@@ -28,5 +28,5 @@ globs = ["rel.+"]
 
 [[lean_exe]]
 name = "lean-refactor"
-root = "Fredy.tool.LeanRefactor"
+root = "Freyd.tool.LeanRefactor"
 supportInterpreter = true

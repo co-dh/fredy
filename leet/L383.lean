@@ -6,7 +6,7 @@
   containment.  Letters are modelled as `List Int` (character codes), reusing `leet/L242.lean`'s
   `countL : List Int → Int → Nat` (the "Valid Anagram" count fold) rather than re-deriving it.
 
-  Same DECISION shape as `L217`/`L242`/`L125` (`Fredy/leetcode.md` S5): correctness is a plain
+  Same DECISION shape as `L217`/`L242`/`L125` (`Freyd/leetcode.md` S5): correctness is a plain
   `iff`, not a refinement+domination extremum.
 
   1. **Data** — the input is a *pair* of letter lists `⟨(List Int) × (List Int)⟩ ⟶ ⟨Bool⟩`.
@@ -31,7 +31,7 @@
   Mathlib-free; axioms ⊆ {propext, Quot.sound}.
 -/
 import leet.L242
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 

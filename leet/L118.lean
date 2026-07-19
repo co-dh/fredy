@@ -5,7 +5,7 @@
   `[1]`; each next row starts and ends with `1`, and every interior entry is the sum of the two
   entries above it.
 
-  Same recipe as `leet/L62.lean`/`Fredy/leetcode.md` S10: a DP row is folded down, one
+  Same recipe as `leet/L62.lean`/`Freyd/leetcode.md` S10: a DP row is folded down, one
   transition per row, structural recursion on the ROW COUNT (not on a shrinking pair of
   independently-recursive indices), so no well-founded-recursion trap. Unlike `L62` (which folds
   a SCALAR/single row and keeps only the LAST value), `L118` must return every intermediate row,

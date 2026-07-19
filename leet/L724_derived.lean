@@ -38,7 +38,7 @@
   `O(1)` work each — so the derived program is `O(n)`, same order as the original, now packaged as the
   catamorphism the fold-uniqueness law forces it to be.
 
-  Mathlib-free (Lean core + `Fredy.*` only); headline axioms ⊆ {propext, Quot.sound}.
+  Mathlib-free (Lean core + `Freyd.*` only); headline axioms ⊆ {propext, Quot.sound}.
 -/
 import AOP.A6_GenFold
 import AOP.A6_ConsList

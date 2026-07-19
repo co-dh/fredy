@@ -7,7 +7,7 @@
   product after one more negative multiplicand.  The sweep must therefore track BOTH the running
   minimum and the running maximum product ending at the last element.
 
-  Same recipe as `leet/L53.lean` (sum) and `leet/L121.lean` (see `Fredy/leetcode.md`, skill S0),
+  Same recipe as `leet/L53.lean` (sum) and `leet/L121.lean` (see `Freyd/leetcode.md`, skill S0),
   with `*` in place of `+` and a two-sided (min, max) running state instead of one:
 
   1. **Data** — the array is the initial algebra `SnocList ℤ ℤ` of `F X = ℤ + X × ℤ`
@@ -40,7 +40,7 @@
 -/
 import AOP.A6_SnocList
 import AOP.A7_4_Horner
-import Fredy.Exacts
+import Freyd.Exacts
 
 set_option linter.unusedVariables false
 
