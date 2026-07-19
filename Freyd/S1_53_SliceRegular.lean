@@ -114,8 +114,8 @@ instance overHasBinaryProducts (B : 𝒞) : HasBinaryProducts (Over B) where
   prod := overProdPt
   fst {X Y} := overProdFst X Y
   snd {X Y} := overProdSnd X Y
-  pair {W X Y} a b := overProdPair a b
-  fst_pair {W X Y} a b := OverHom.ext ((_prodPB X Y).lift_fst _)
+  pair a b := overProdPair a b
+  fst_pair {_ X Y} _ _ := OverHom.ext ((_prodPB X Y).lift_fst _)
   snd_pair {_ X Y} _ _ := OverHom.ext ((_prodPB X Y).lift_snd _)
   pair_uniq := fun a b h h₁ h₂ => overProdPair_uniq a b h h₁ h₂
 
