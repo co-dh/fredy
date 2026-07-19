@@ -50,7 +50,8 @@ variable [ht : HasTerminal 𝒞] [hp : HasBinaryProducts 𝒞] [hpull : HasPullb
     `f` to `pair (fst ≫ f) snd`. -/
 def prodRight (B : 𝒞) : 𝒞 → 𝒞 := fun C => prod C B
 
-instance prodRightFunctor (B : 𝒞) : Functor (prodRight B) where
+def prodRightFunctor (B : 𝒞) : Functor 𝒞 𝒞 where
+  obj := prodRight B
   map {C D} f := pair (fst ≫ f) snd
   map_id C := by
     show pair (fst ≫ Cat.id C) snd = Cat.id (prod C B)
@@ -69,7 +70,7 @@ instance prodRightFunctor (B : 𝒞) : Functor (prodRight B) where
     along `fst` gives `fst ≫ f = fst ≫ g`; and `fst : C×B → C` is a cover
     (`prod_fst_cover`), hence epic (`cover_epi`), so `f = g`. -/
 theorem slice_embedding_separates [PullbacksTransferCovers 𝒞] (B : 𝒞) (hws : WellSupported B) :
-    Embedding (prodRight B) := by
+    Embedding (prodRightFunctor B) := by
   intro C D f g h
   have e1 : (prodRightFunctor B).map f ≫ (fst : prod D B ⟶ D) = (fst : prod C B ⟶ C) ≫ f :=
     fst_pair ((fst : prod C B ⟶ C) ≫ f) snd
