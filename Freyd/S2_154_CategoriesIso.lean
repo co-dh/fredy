@@ -250,7 +250,7 @@ theorem mapIsPullback_tabulates {a b c : MapObj A}
     congrArg Subtype.val (@Cone.w _ (mapCat (𝒜 := A)) a b c f g cone)
   -- hm : cpt → p mediates the cone into the tabulation.
   obtain ⟨hm, hm_map, hm1, hm2, _⟩ :=
-    tab_pullback_UMP f.property g.property ht cπ₁.property cπ₂.property hcw
+    tab_pullback_UMP g.property ht cπ₁.property cπ₂.property hcw
   -- The canonical tabulation is itself a cone; u : p → cpt from the pullback UMP.
   let cone0 : @Cone (MapObj A) (mapCat (𝒜 := A)) a b c f g :=
     @Cone.mk (MapObj A) (mapCat (𝒜 := A)) a b c f g p ⟨π₁, ht.1⟩ ⟨π₂, ht.2.1⟩
@@ -282,7 +282,7 @@ theorem mapIsPullback_tabulates {a b c : MapObj A}
     rw [h1, h2]
   have hvu' : hm ≫ u.val = Cat.id cpt := congrArg Subtype.val hvu
   -- hm is a map-iso: hm°≫hm = 1_p from the retraction u (map_retr_leg); hm° = u.
-  have hleg : hm° ≫ hm = Cat.id p := map_retr_leg hm_map u.property huv
+  have hleg : hm° ≫ hm = Cat.id p := map_retr_leg hm_map huv
   have hmo_eq_u : hm° = u.val := by
     calc hm° = hm° ≫ Cat.id cpt := (Cat.comp_id _).symm
       _ = hm° ≫ (hm ≫ u.val) := by rw [hvu']
@@ -309,7 +309,7 @@ theorem mapTabulates_isPullback {a b c : MapObj A}
   have hdw : dπ₁.val ≫ f.val = dπ₂.val ≫ g.val :=
     congrArg Subtype.val (@Cone.w _ (mapCat (𝒜 := A)) a b c f g d)
   obtain ⟨hm, hm_map, hm1, hm2, huniq⟩ :=
-    tab_pullback_UMP f.property g.property ht dπ₁.property dπ₂.property hdw
+    tab_pullback_UMP g.property ht dπ₁.property dπ₂.property hdw
   refine ⟨⟨hm, hm_map⟩, ⟨Subtype.ext hm1, Subtype.ext hm2⟩, ?_⟩
   intro v hv1 hv2
   exact Subtype.ext (huniq v.val v.property

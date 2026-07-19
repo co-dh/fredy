@@ -405,7 +405,7 @@ theorem mapClassify_pullback {C a : 𝒜}
     (UnitaryAllegory.unit_obj : 𝒜) (mapOmega (𝒜 := 𝒜)) (mapClassifyChi m hm) (mapTrue (𝒜 := 𝒜)) d)
   obtain ⟨hlift, hlift_map, h1, h2, huniq⟩ :=
     tab_pullback_UMP (f := (mapClassifyChi m hm).val) (g := (mapTrue (𝒜 := 𝒜)).val)
-      (mapClassifyChi m hm).property (mapTrue (𝒜 := 𝒜)).property htab
+      (mapTrue (𝒜 := 𝒜)).property htab
       dπ₁.property dπ₂.property hcone_val
   refine ⟨⟨hlift, hlift_map⟩, ⟨Subtype.ext h1, Subtype.ext h2⟩, ?_⟩
   intro v hv1 hv2
