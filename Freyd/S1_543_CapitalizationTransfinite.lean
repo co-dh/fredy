@@ -66,13 +66,13 @@ universe u
 
 /-- **The points-acquisition obligation of a capitalizing successor.**  Given a `CapStep S` whose next
     stage is `st.T`, this asserts that for every well-supported object `A` of `S`, its image
-    `st.step A` is **well-pointed** in `st.T` (the book's `WellPointed`, S1_52.lean).  This is the
+    `st.stepFun.obj A` is **well-pointed** in `st.T` (the book's `WellPointed`, S1_52.lean).  This is the
     field `CapStep` lacks; the concrete `nextStep` satisfies it only when its inner enumeration is
     cofinal over the well-supported objects (obstruction (2)). -/
 def StepWellPoints {S : Type u} [Cat.{u} S] [PreRegularCategory S] (st : CapStep S) : Prop :=
   letI : Cat st.T := st.catT
   letI : PreRegularCategory st.T := st.preT
-  ∀ A : S, WellSupported A → WellPointed (st.step A)
+  ∀ A : S, WellSupported A → WellPointed (st.stepFun.obj A)
 
 /-- **A cofinal capitalizing successor** — the data the §1.543 fixpoint genuinely consumes: the
     uniform `CapStep` successor (exactly `nextStep`'s content, already Sorry-free in
