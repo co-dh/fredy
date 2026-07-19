@@ -17,6 +17,8 @@ curated `Fredy.lean` aggregator (no glob — do not force-build the deliberately
 You should should any 3+ digits sections of the book into `Fredy/Sa_bc.lean`. e.g. section 1.123 in Fredy/S1_12.lean.
 The code should follow the book's terminology, wording, convension.
 Write composition in diagram order, by juxtaposition: `xy` means first x then y (the book's convention).
+Use the global book notation `𝟙 A` for the categorical identity `Cat.id A`; do not spell identities
+as `Cat.id A` in new code.
 Always prefer the book's definition over ad-hoc simplifications — even if the
 book version requires more typeclasses (e.g., `Entire R := 1_A ≤ R°R` via
 `compose` rather than `∃ h, h ≫ R.colA = id_A`).

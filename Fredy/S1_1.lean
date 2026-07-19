@@ -22,6 +22,7 @@ class Cat.{w, z} (𝒞 : Type z) : Type (max z (w + 1)) where
 namespace Freyd
 scoped infixr:25 " ⟶ "  => Cat.Hom
 scoped infixr:80 " ≫ "  => Cat.comp
+/-- The book's identity morphism `1_A`, with the object explicit for reliable elaboration. -/
+scoped notation:max "𝟙" A:max => Cat.id A
 end Freyd
-
 

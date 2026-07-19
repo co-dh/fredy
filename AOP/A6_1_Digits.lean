@@ -25,6 +25,22 @@ namespace Freyd.Alg.RelSet.Digits
 
 open Freyd
 
+/- Bird and de Moor's product-bifunctor notation.  Lean can overload the same `×` token used for
+   products of types because here the operands elaborate as relations. -/
+local infixr:70 " × " => rprodMap
+
+/-- The canonical coproduct action of two relations in `Rel(Set)`.  It hides the chosen
+    `Sum` coproducts so calculations can use Bird and de Moor's `R + S` notation. -/
+def rsumMap {a a' b b' : RelSet.{0}} (R : a ⟶ a') (S : b ⟶ b') :
+    (⟨a.carrier ⊕ b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier ⊕ b'.carrier⟩ :=
+  sumMap (sumCop a b) (sumCop a' b') R S
+
+/-- Bird and de Moor's coproduct-bifunctor `+` on relations. -/
+instance {a a' b b' : RelSet.{0}} :
+    HAdd (a ⟶ a') (b ⟶ b')
+      ((⟨a.carrier ⊕ b.carrier⟩ : RelSet.{0}) ⟶ ⟨a'.carrier ⊕ b'.carrier⟩) where
+  hAdd := rsumMap
+
 /-! ## Datatypes and their objects in `Rel(Set)` (universe 0) -/
 
 /-- The ten decimal digits `{0,…,9}`. -/
@@ -151,7 +167,7 @@ theorem cataFold_functional {c : RelSet.{0}} (f : Fobj c ⟶ c) (hf : Map f) :
 theorem cataFold_map {c : RelSet.{0}} (f : Fobj c ⟶ c) (hf : Map f) :
     Map (a := dDec) (b := c) (cataFold f) := by
   refine ⟨?_, ?_⟩
-  · show dom (cataFold f) = Cat.id dDec
+  · show dom (cataFold f) = 𝟙 dDec
     apply hom_ext; intro dec dec'
     refine ⟨fun h => h.1, fun (h : dec = dec') => ⟨h, ?_⟩⟩
     subst h
@@ -277,7 +293,7 @@ def snoc : (⟨Decimal × Digit⟩ : RelSet.{0}) ⟶ dDec := graph (fun p => Dec
 
 /-- `α` is a cover: `α° ≫ α = 1` (`con` is surjective — every decimal is a `wrap` or a `snoc`).
     Cancels the constructor in the fold square, giving the fixed-point form below. -/
-theorem con_recip_con : (graph con)° ≫ graph con = Cat.id dDec := by
+theorem con_recip_con : (graph con)° ≫ graph con = 𝟙 dDec := by
   apply hom_ext; intro dec dec'
   constructor
   · intro h; obtain ⟨u, h1, h2⟩ := h; exact h1.trans h2.symm
@@ -292,7 +308,7 @@ theorem con_recip_con : (graph con)° ≫ graph con = Cat.id dDec := by
 theorem cata_fix {c : RelSet.{0}} (φ : Fobj c ⟶ c) :
     ⦇φ⦈ = (graph con)° ≫ (F.map ⦇φ⦈ ≫ φ) :=
   calc ⦇φ⦈
-      = Cat.id dDec ≫ ⦇φ⦈ := (Cat.id_comp _).symm
+      = 𝟙 dDec ≫ ⦇φ⦈ := (Cat.id_comp _).symm
     _ = ((graph con)° ≫ graph con) ≫ ⦇φ⦈ := by rw [con_recip_con]
     _ = (graph con)° ≫ (graph con ≫ ⦇φ⦈) := Cat.assoc _ _ _
     _ = (graph con)° ≫ (F.map ⦇φ⦈ ≫ φ) := by rw [cata_square]
@@ -301,7 +317,7 @@ theorem cata_fix {c : RelSet.{0}} (φ : Fobj c ⟶ c) :
     concrete coproducts `sumCop` — the raw material of the "{definition of F}" step. -/
 theorem Fmap_eq_sumMap {c c' : RelSet.{0}} (R : c ⟶ c') :
     F.map R = sumMap (sumCop dDigitP ⟨c.carrier × Digit⟩) (sumCop dDigitP ⟨c'.carrier × Digit⟩)
-      (Cat.id dDigitP) (rprodMap R (Cat.id dDigit)) := by
+      (𝟙 dDigitP) (R × 𝟙 dDigit) := by
   apply hom_ext; intro u v
   constructor
   · intro h
@@ -321,7 +337,7 @@ theorem Fmap_eq_sumMap {c c' : RelSet.{0}} (R : c ⟶ c') :
     as used on p.138 (the functor applied to the conversed fold). -/
 theorem Fmap_recip {c c' : RelSet.{0}} (R : c ⟶ c') :
     (F.map R)° = sumMap (sumCop dDigitP ⟨c'.carrier × Digit⟩) (sumCop dDigitP ⟨c.carrier × Digit⟩)
-      (Cat.id dDigitP) (rprodMap R° (Cat.id dDigit)) := by
+      (𝟙 dDigitP) (R° × 𝟙 dDigit) := by
   rw [Fmap_eq_sumMap, sumMap_recip, recip_id, rprodMap_recip]
   -- `rw [recip_id]` cannot key-match this last `(Cat.id dDigit)°`: its `Cat` instance sits
   -- behind `Allegory.toCat`, so apply the same law by congruence instead.
@@ -364,7 +380,7 @@ theorem alg_eq_junc {c : RelSet.{0}} (φ : Fobj c ⟶ c) :
 theorem cata_converse_eq {c : RelSet.{0}} (g : dDigitP ⟶ c)
     (h : (⟨c.carrier × Digit⟩ : RelSet.{0}) ⟶ c) :
     ⦇⁅g, h⁆⦈° = g° ≫ wrap
-      ∪ h° ≫ rprodMap ⦇⁅g, h⁆⦈° (Cat.id dDigit) ≫ snoc :=
+      ∪ h° ≫ (⦇⁅g, h⁆⦈° × 𝟙 dDigit) ≫ snoc :=
   calc ⦇⁅g, h⁆⦈°
       -- {catamorphisms}: `⦇φ⦈ = α° ≫ F⦇φ⦈ ≫ φ`
     _ = ((graph con)° ≫ (F.map ⦇⁅g, h⁆⦈ ≫ ⁅g, h⁆))° := by rw [← cata_fix]
@@ -372,18 +388,19 @@ theorem cata_converse_eq {c : RelSet.{0}} (g : dDigitP ⟶ c)
     _ = ⁅g, h⁆° ≫ ((F.map ⦇⁅g, h⁆⦈)° ≫ graph con) := by
         rw [Allegory.recip_comp, Allegory.recip_comp, Allegory.recip_recip, Cat.assoc]
       -- {definition of F}: `(F⦇φ⦈)° = id + (⦇φ⦈° × id)`
-    _ = ⁅g, h⁆° ≫ (sumMap (sumCop dDigitP ⟨c.carrier × Digit⟩) (sumCop dDigitP ⟨Decimal × Digit⟩)
-          (Cat.id dDigitP) (rprodMap ⦇⁅g, h⁆⦈° (Cat.id dDigit)) ≫ graph con) := by
+    _ = ⁅g, h⁆° ≫ (((𝟙 dDigitP) + (⦇⁅g, h⁆⦈° × 𝟙 dDigit)) ≫ graph con) := by
+        dsimp only [HAdd.hAdd, rsumMap]
         rw [Fmap_recip]
       -- {α = ⁅wrap, snoc⁆}
-    _ = ⁅g, h⁆° ≫ (sumMap (sumCop dDigitP ⟨c.carrier × Digit⟩) (sumCop dDigitP ⟨Decimal × Digit⟩)
-          (Cat.id dDigitP) (rprodMap ⦇⁅g, h⁆⦈° (Cat.id dDigit)) ≫ ⁅wrap, snoc⁆) := by
+    _ = ⁅g, h⁆° ≫ (((𝟙 dDigitP) +
+          (⦇⁅g, h⁆⦈° × 𝟙 dDigit)) ≫ ⁅wrap, snoc⁆) := by
         rw [con_eq_junc]
       -- {coproduct fusion}: `(R + S) ≫ [P, Q] = [R ≫ P, S ≫ Q]`
-    _ = ⁅g, h⁆° ≫ ⁅wrap, rprodMap ⦇⁅g, h⁆⦈° (Cat.id dDigit) ≫ snoc⁆ := by
+    _ = ⁅g, h⁆° ≫ ⁅wrap, (⦇⁅g, h⁆⦈° × 𝟙 dDigit) ≫ snoc⁆ := by
+        dsimp only [HAdd.hAdd, rsumMap]
         rw [sumMap_junc, Cat.id_comp]
       -- {coproduct (5.11)}: `⁅g, h⁆° ≫ ⁅P, Q⁆ = (g° ≫ P) ∪ (h° ≫ Q)`
-    _ = g° ≫ wrap ∪ h° ≫ rprodMap ⦇⁅g, h⁆⦈° (Cat.id dDigit) ≫ snoc :=
+    _ = g° ≫ wrap ∪ h° ≫ (⦇⁅g, h⁆⦈° × 𝟙 dDigit) ≫ snoc :=
         junc_recip_junc (sumCop dDigitP ⟨c.carrier × Digit⟩)
 
 /-! ## The `val`uation catamorphism and its recursion (book p.138)
@@ -406,7 +423,7 @@ def val : dDec ⟶ dNat := ⦇⁅embed, op⁆⦈
 /-- **§6.1 (B&dM p.138)** for the actual valuation: `val°` satisfies the recursive equation
     `val° = (wrap·embed°) ∪ (snoc·(val°×id)·op°)` — a direct instance of `cata_converse_eq`. -/
 theorem val_converse_eq :
-    val° = embed° ≫ wrap ∪ op° ≫ rprodMap val° (Cat.id dDigit) ≫ snoc :=
+    val° = embed° ≫ wrap ∪ op° ≫ (val° × 𝟙 dDigit) ≫ snoc :=
   cata_converse_eq embed op
 
 end Freyd.Alg.RelSet.Digits
