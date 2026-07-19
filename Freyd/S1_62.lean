@@ -645,7 +645,7 @@ omit [PreLogos 𝒞] in
     DBC path).  Dropping the ambient `PreLogos` leaves a single coherent instance. -/
 theorem decompose_via_coproduct [DisjointBinaryCoproduct 𝒞] {A B₁ B₂ : 𝒞}
     (f : A ⟶ HasBinaryCoproducts.coprod B₁ B₂) :
-    ∃ (A₁ A₂ : 𝒞) (f₁ : A₁ ⟶ B₁) (f₂ : A₂ ⟶ B₂), Isomorphic A (HasBinaryCoproducts.coprod A₁ A₂) := by
+    ∃ (A₁ A₂ : 𝒞) (_ : A₁ ⟶ B₁) (_ : A₂ ⟶ B₂), Isomorphic A (HasBinaryCoproducts.coprod A₁ A₂) := by
   -- A₁ := f#(inl), A₂ := f#(inr) as subobjects of A; f₁, f₂ are the pullback legs into B₁, B₂.
   let Inl := inlSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inl_mono
   let Inr := inrSub (𝒞 := 𝒞) (A := B₁) (B := B₂) inr_mono
@@ -3911,7 +3911,7 @@ noncomputable def suppExt {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (m : Z �
     suppApp (suppExt m) = m := by
   funext z
   show (suppExt m) i (supp.inj i z) = m z
-  simp only [suppExt, dif_pos (rfl : i = i)]
+  simp only [suppExt]
   show m (supp.prj i ((rfl : i = i) ▸ supp.inj i z)) = m z
   rw [show ((rfl : i = i) ▸ supp.inj i z) = supp.inj i z from rfl, supp.prj_inj]
 
@@ -3923,7 +3923,7 @@ theorem suppExt_suppApp {i : 𝒞} {Z : Type u} {X : 𝒞 → Type u} (φ : supp
   by_cases h : i = j
   · subst h
     show (suppExt (suppApp φ)) i zz = φ i zz
-    simp only [suppExt, dif_pos (rfl : i = i)]
+    simp only [suppExt]
     show suppApp φ (supp.prj i ((rfl : i = i) ▸ zz)) = φ i zz
     rw [show ((rfl : i = i) ▸ zz) = zz from rfl]
     simp only [suppApp, supp.inj_prj]

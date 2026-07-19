@@ -337,13 +337,13 @@ instance instDistributiveAllegoryMat : DistributiveAllegory (MatObj 𝒜) :=
     union_assoc := fun M N P => by
       funext i j; simp [matUnion, DistributiveAllegory.union_assoc]
     union_inter_absorb := fun M N => by
-      funext i j; simp only [matUnion, matInter]; exact DistributiveAllegory.union_inter_absorb _ _
+      funext i j; simp only [matUnion]; exact DistributiveAllegory.union_inter_absorb _ _
     inter_union_absorb := fun M N => by
       funext i j; show matInter (matUnion M N) M i j = M i j
       simp only [matUnion, matInter]; exact DistributiveAllegory.inter_union_absorb _ _
     comp_union_distrib := matComp_union_distrib
     inter_union_distrib := fun M N P => by
-      funext i j; simp only [matUnion, matInter]; exact DistributiveAllegory.inter_union_distrib _ _ _
+      funext i j; simp only [matUnion]; exact DistributiveAllegory.inter_union_distrib _ _ _
     zero_union := fun M => by
       funext i j; simp only [matUnion, matZero]; exact DistributiveAllegory.zero_union _ }
 
@@ -389,13 +389,13 @@ noncomputable def matDiv {X Y Z : MatObj 𝒜} (R : MatHom X Z) (S : MatHom Y Z)
   fun i j =>
     match h : Z.n with
     | 0     => Cat.id (X.objs i) / (𝟘 : Y.objs j ⟶ X.objs i)
-    | n + 1 => finMeet (fun k => R i (h ▸ k) / S j (h ▸ k))
+    | _ + 1 => finMeet (fun k => R i (h ▸ k) / S j (h ▸ k))
 
 theorem matDiv_le_div {X Y Z : MatObj 𝒜} (T : X ⟶ Y) (R : X ⟶ Z) (S : Y ⟶ Z)
     (h : T ≫ S ⊑ R) : T ⊑ matDiv R S := by
   cases Z with | mk zn zobjs =>
   rw [matLe_iff] at h ⊢; intro i j
-  simp only [Cat.comp, instCatMatObj, matComp] at h
+  simp only [Cat.comp, matComp] at h
   simp only [matDiv]
   cases zn with
   | zero => rw [le_div_iff, DistributiveAllegory.comp_zero]; exact zero_le _
@@ -403,14 +403,14 @@ theorem matDiv_le_div {X Y Z : MatObj 𝒜} (T : X ⟶ Y) (R : X ⟶ Z) (S : Y �
     apply le_finMeet; intro k
     rw [le_div_iff]
     -- The cast in S j (· ▸ k) is rfl after cases Z, so it's identity
-    simp only [eq_mpr_eq_cast, cast_eq]
+    simp only
     exact le_trans (show (fun j => T i j ≫ S j k) j ⊑ finJoin (fun j => T i j ≫ S j k) from le_listJoin' (List.mem_ofFn.mpr ⟨j, rfl⟩)) (h i k)
 
 theorem le_matDiv_comp {X Y Z : MatObj 𝒜} (R : X ⟶ Z) (S : Y ⟶ Z) :
     (matDiv R S : X ⟶ Y) ≫ S ⊑ R := by
   cases Z with | mk zn zobjs =>
   rw [matLe_iff]; intro i k
-  simp only [Cat.comp, instCatMatObj, matComp, matDiv]
+  simp only [Cat.comp, matComp, matDiv]
   cases zn with
   | zero => exact Fin.elim0 k
   | succ m =>
@@ -454,8 +454,8 @@ theorem embed1_injective {a b : 𝒜} {R S : a ⟶ b} (h : embed1 R = embed1 S) 
 /-- `embed1` preserves composition. -/
 theorem embed1_comp {a b c : 𝒜} (R : a ⟶ b) (S : b ⟶ c) :
     embed1 (R ≫ S) = matComp (embed1 R) (embed1 S) := by
-  funext i k; simp only [embed1, matComp, finJoin, List.ofFn_succ, List.ofFn_zero,
-    listJoin'_cons, listJoin'_nil, Fin.fin_one_eq_zero, union_zero]
+  funext i k; simp only [embed1, matComp, finJoin, List.ofFn_succ, List.ofFn_zero, listJoin'_cons,
+    listJoin'_nil, union_zero]
 
 /-- `embed1` preserves reciprocation. -/
 theorem embed1_recip {a b : 𝒜} (R : a ⟶ b) :
@@ -485,7 +485,7 @@ theorem embed1_div {a b c : 𝒜} (R : a ⟶ c) (S : b ⟶ c) :
   simp only [embed1, matDiv, unitObj]
   -- Z.n = 1 = 0.succ, so the match hits | succ m with m = 0
   -- finMeet (fun k : Fin 1 => R (rfl ▸ k) / S (rfl ▸ k)) = R ⟨0,..⟩ / S ⟨0,..⟩ = R / S
-  simp only [finMeet, List.ofFn_succ, List.ofFn_zero, listMeet', Fin.fin_one_eq_zero]
+  simp only [finMeet, List.ofFn_succ, List.ofFn_zero, listMeet']
 
 end Embed1Div
 

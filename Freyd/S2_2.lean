@@ -618,7 +618,7 @@ def DowndealHom.close {a b : 𝒜} (P : (a ⟶ b) → Prop)
     -- 𝟘 ∈ ↓P: take any x ∈ P, 𝟘 ⊑ x.
     (let ⟨x, hx⟩ := hne; ⟨x, hx, zero_le x⟩),
     -- ∪-closed: T₁ ⊑ x, T₂ ⊑ y, x∪y ⊑ z ∈ P, so T₁∪T₂ ⊑ x∪y ⊑ z.
-    fun R S ⟨x, hx, hRx⟩ ⟨y, hy, hSy⟩ =>
+    fun _ _ ⟨x, hx, hRx⟩ ⟨y, hy, hSy⟩ =>
       let ⟨z, hz, hxyz⟩ := hdir x y hx hy
       ⟨z, hz, le_trans (union_lub (le_trans hRx (le_union_left x y))
         (le_trans hSy (le_union_right x y))) hxyz⟩⟩

@@ -434,7 +434,7 @@ def IsNormalSubobject [HasZeroObject 𝒞] [HasEqualizers 𝒞] {A B : 𝒞}
 class AbelianCategory (𝒞 : Type u) [Cat.{v} 𝒞]
     extends RegularCategory 𝒞, AdditiveCategory 𝒞, HasZeroObject 𝒞,
             HasEqualizers 𝒞, HasCoequalizers 𝒞 where
-  all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m
+  all_normal : ∀ {A B : 𝒞} (m : A ⟶ B) (_ : Monic m), IsNormalSubobject m
 
 /-- **Exactness, as a predicate on a FIXED zero/equalizer/coequalizer structure** (§1.597).
   This is the body of `ExactCategory.exact`, but stated as a `Prop` that reads the *ambient*
@@ -604,7 +604,7 @@ theorem abelian_iff_regular_additive_all_normal
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [RegularCategory 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞]
     [HasEqualizers 𝒞] [HasCoequalizers 𝒞] :
-    (∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m) ↔
+    (∀ {A B : 𝒞} (m : A ⟶ B) (_ : Monic m), IsNormalSubobject m) ↔
     IsExactStructure 𝒞 := by
   constructor
   · -- (→) all monics normal ⟹ IsExactStructure.  CLOSED representation-free: the coimage→image
@@ -1095,7 +1095,7 @@ open HalfAdditiveCategory in
 theorem effective_regular_additive_is_abelian
     (𝒞 : Type u) [Cat.{v} 𝒞]
     [EffectiveRegular 𝒞] [AdditiveCategory 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] :
-    ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m := by
+    ∀ {A B : 𝒞} (m : A ⟶ B) (_ : Monic m), IsNormalSubobject m := by
   intro A B m hm
   -- Ambient products stay the ADDITIVE ones throughout (the table `A⊕B`, `add`/`neg`, every
   -- `fst/snd/pair` below).  The `EffectiveRegular.effective` field is stated with the REGULAR
@@ -1530,7 +1530,7 @@ class ExactCategory (𝒞 : Type u) [Cat.{v} 𝒞]
   the kernel of q.  (Follows from the exact factorization.) -/
 theorem monic_kernel_of_cokernel {𝒞 : Type u} [Cat.{v} 𝒞] [ExactCategory 𝒞] {A B : 𝒞}
     (x : A ⟶ B) (hx : Monic x) :
-    let Q := Cokernel x
+    let _ := Cokernel x
     let q := cokernelMap x
     ∃ (h : A ⟶ Kernel q), IsIso h ∧ h ≫ kernelMap q = x := by
   intro Q q
@@ -1995,7 +1995,7 @@ theorem abelian_iff_exact_additive
 
 /-- LEFT-NORMAL: every subobject is normal (= kernel of some morphism). -/
 def IsLeftNormal (𝒞 : Type u) [Cat.{v} 𝒞] [HasZeroObject 𝒞] [HasEqualizers 𝒞] : Prop :=
-  ∀ {A B : 𝒞} (m : A ⟶ B) (hm : Monic m), IsNormalSubobject m
+  ∀ {A B : 𝒞} (m : A ⟶ B) (_ : Monic m), IsNormalSubobject m
 
 /-- RIGHT-NORMAL: every cover (Cover e) is a cokernel of some morphism,
   i.e. e = cokernelMap f for some f (up to the cokernel object being B).

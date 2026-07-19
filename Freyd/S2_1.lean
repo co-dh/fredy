@@ -683,7 +683,7 @@ theorem entire_of_comp_entire {a b c : 𝒜} {R : a ⟶ b} {S : b ⟶ c} (h : En
   have h_one_le : Cat.id a ⊑ (R ≫ S) ≫ (R ≫ S)° := by
     dsimp [Entire, dom] at h; rw [← h]; exact inter_lb_right _ _
   have heq : (R ≫ S) ≫ (R ≫ S)° = R ≫ S ≫ S° ≫ R° := by
-    rw [Allegory.recip_comp]; simp [Cat.assoc, Allegory.recip_comp]
+    rw [Allegory.recip_comp]; simp [Cat.assoc]
   have h_rss_r : Cat.id a ⊑ R ≫ S ≫ S° ≫ R° := heq ▸ h_one_le
   -- h_mod: ((RSS°)≫R°) ∩ 1 ⊑ ((RSS°) ∩ R)≫R°
   have h_mod := modular_le (R ≫ S ≫ S°) R° (Cat.id a)

@@ -40,7 +40,7 @@ namespace Freyd
 
 /-- Subobjects have binary unions (join). -/
 class HasSubobjectUnions (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞] where
-  union : ∀ {B : 𝒞} (S T : Subobject 𝒞 B), Subobject 𝒞 B
+  union : ∀ {B : 𝒞} (_ _ : Subobject 𝒞 B), Subobject 𝒞 B
   union_left  : ∀ {B} (S T : Subobject 𝒞 B), S.le (union S T)
   union_right : ∀ {B} (S T : Subobject 𝒞 B), T.le (union S T)
   union_min   : ∀ {B} (S T U : Subobject 𝒞 B), S.le U → T.le U → (union S T).le U

@@ -1030,7 +1030,7 @@ theorem reflective_exponential_ideal_iff_refl_preserve_products
     [HasBinaryProducts 𝒜']
     (I : 𝒜' → 𝒜) [Functor I]
     (hFull : Full I) (hEmb : Embedding I)
-    (hRepl : RepleteSubcategory I)
+
     (hRefl : ReflectiveSubcategory I) :
     letI : Functor hRefl.reflection := hRefl.refl_functor
     ExponentialIdeal I ↔

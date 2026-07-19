@@ -98,7 +98,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
 /-- f##(A') is the right adjoint of f#: the maximal B' ⊆ B such that
     f#(B') ⊆ A'.  Satisfies: f#(B') ⊆ A' ⇔ B' ⊆ f##(A'). -/
 class HasRightAdjointImage (𝒞 : Type u) [Cat.{v} 𝒞] extends HasImages 𝒞, HasPullbacks 𝒞 where
-  rightAdj : ∀ {A B : 𝒞} (f : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
+  rightAdj : ∀ {A B : 𝒞} (_ : A ⟶ B), Subobject 𝒞 A → Subobject 𝒞 B
   /-- The adjunction `f# ⊣ f##`, stated as the generic `Freyd.GaloisConnection`
       (Freyd/S1_51_Order): the inverse image `f#` is left adjoint to `rightAdj f`, between the
       subobject preorders of `B` and `A`.  Unfolds to
@@ -277,7 +277,7 @@ variable [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasIma
 def logos_implies_preLogos [L : Logos 𝒞] : PreLogos 𝒞 where
   toRegularCategory    := L.toRegularCategory
   toHasSubobjectUnions := L.toHasSubobjectUnions
-  invImage_preserves_union {A B} f S T := logos_invImage_pres_union f S T
+  invImage_preserves_union {_ _} f S T := logos_invImage_pres_union f S T
   -- §1.61/§1.711: the logos's lattice supplies the bottom (empty join); f# being a
   -- left adjoint preserves it (logos_invImage_pres_bottom).
   bottom                       := L.bottom

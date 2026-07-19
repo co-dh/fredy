@@ -236,18 +236,18 @@ instance functorCat_hasPullbacks [HasPullbacks 𝒮] : HasPullbacks (FunctorObj 
       pt := pbFunObj α β
       π₁ := {
         app        := fun A => (HasPullbacks.has (α.app A) (β.app A)).cone.π₁
-        naturality := fun {A B} f => pbLift_fst α β f
+        naturality := fun {_ _} f => pbLift_fst α β f
       }
       π₂ := {
         app        := fun A => (HasPullbacks.has (α.app A) (β.app A)).cone.π₂
-        naturality := fun {A B} f => pbLift_snd α β f
+        naturality := fun {_ _} f => pbLift_snd α β f
       }
       w := NaturalTransformation.ext' fun A => (HasPullbacks.has (α.app A) (β.app A)).cone.w
     }
     lift     := pbNTLift α β
-    lift_fst := fun c => NaturalTransformation.ext' fun A =>
+    lift_fst := fun _ => NaturalTransformation.ext' fun A =>
       (HasPullbacks.has (α.app A) (β.app A)).lift_fst _
-    lift_snd := fun c => NaturalTransformation.ext' fun A =>
+    lift_snd := fun _ => NaturalTransformation.ext' fun A =>
       (HasPullbacks.has (α.app A) (β.app A)).lift_snd _
     lift_uniq := fun c u h₁ h₂ => NaturalTransformation.ext' fun A =>
       (HasPullbacks.has (α.app A) (β.app A)).lift_uniq
@@ -388,7 +388,7 @@ noncomputable def imageFunObj [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮
 noncomputable def imgArrNT [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
     (α : FunctorHom F G) : FunctorHom (imageFunObj α) G where
   app        := fun A => (image (α.app A)).arr
-  naturality := fun {X Y} f => imgTrans_comm α f
+  naturality := fun {_ _} f => imgTrans_comm α f
 
 /-- §1.521: imgArrNT α is monic in 𝒮^A (componentwise monic → NT monic, §1.462 easy). -/
 theorem imgArrNT_monic [RegularCategory 𝒮] {F G : FunctorObj 𝒜 𝒮}
