@@ -55,7 +55,7 @@ private abbrev sproj {i j : ι} (hij : D.le i j) : P.pr j ⟶ P.pr i := P.proj h
 
 /-- `(laxOfProjSystem' P).functF hij` acts on arrows as `baseChangeMap (P.proj hij)`. -/
 theorem stage_functF_map {i j : ι} (hij : D.le i j) {X Y : Over (P.pr i)} (m : X ⟶ Y) :
-    @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) X Y m
+    ((laxOfProjSystem' P).functF hij).map m
       = baseChangeMap (sproj P hij) m := rfl
 
 /-\! ### 2. Monic preservation — `g*` is a right adjoint (`Σ_g ⊣ g*`)
@@ -66,7 +66,7 @@ theorem stage_functF_map {i j : ι} (hij : D.le i j) {X Y : Over (P.pr i)} (m : 
 theorem projStage_preservesMono {i j : ι} (hij : D.le i j)
     {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y)
     (hφ : Monic φ) :
-    Monic (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ) := by
+    Monic (((laxOfProjSystem' P).functF hij).map φ) := by
   rw [stage_functF_map P hij φ]
   intro z u v huv
   apply bcTranspose_inj (sproj P hij)
@@ -103,7 +103,7 @@ theorem projStage_PTC [PreRegularCategory 𝒞] (i : ι) :
 theorem projStage_conservative [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     (hpc : Cover (sproj P hij))
     {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y) (hφmono : Monic φ)
-    (hiso : IsIso (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ)) :
+    (hiso : IsIso (((laxOfProjSystem' P).functF hij).map φ)) :
     IsIso φ := by
   rw [stage_functF_map P hij φ] at hiso
   exact isIso_of_baseChange_isIso_of_cover (sproj P hij) hpc φ hφmono hiso
@@ -118,8 +118,8 @@ theorem projStage_conservative [PreRegularCategory 𝒞] {i j : ι} (hij : D.le 
 theorem projStage_faithful [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     (hpc : Cover (sproj P hij))
     {x y : (laxOfProjSystem' P).A i} (p q : x ⟶ y)
-    (heq : @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y p
-        = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y q) :
+    (heq : ((laxOfProjSystem' P).functF hij).map p
+        = ((laxOfProjSystem' P).functF hij).map q) :
     p = q := by
   rw [stage_functF_map P hij p, stage_functF_map P hij q] at heq
   -- the X-pullback of `(x.hom, g)`: its `fst`-leg `π₁ˣ` is a cover (pullback of the cover `g`).
@@ -146,24 +146,24 @@ theorem projStage_faithful [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
 theorem projStage_conservative_full [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     (hpc : Cover (sproj P hij))
     {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y)
-    (hiso : IsIso (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ)) :
+    (hiso : IsIso (((laxOfProjSystem' P).functF hij).map φ)) :
     IsIso φ := by
   obtain ⟨inv, hinv1, hinv2⟩ := hiso
   -- `φ` is monic: a faithful functor (`projStage_faithful`) reflects monos, and `g* φ` is monic (iso).
   have hmonoφ : Monic φ := by
     intro Z a b hab
     apply projStage_faithful P hij hpc a b
-    have hcomp : @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ (a ≫ φ)
-        = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ (b ≫ φ) := by rw [hab]
-    rw [@Functor.map_comp _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ _ a φ,
-        @Functor.map_comp _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ _ b φ] at hcomp
-    calc @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
-        = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ a
-            ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by
+    have hcomp : ((laxOfProjSystem' P).functF hij).map (a ≫ φ)
+        = ((laxOfProjSystem' P).functF hij).map (b ≫ φ) := by rw [hab]
+    rw [((laxOfProjSystem' P).functF hij).map_comp a φ,
+        ((laxOfProjSystem' P).functF hij).map_comp b φ] at hcomp
+    calc ((laxOfProjSystem' P).functF hij).map a
+        = (((laxOfProjSystem' P).functF hij).map a
+            ≫ ((laxOfProjSystem' P).functF hij).map φ) ≫ inv := by
           rw [Cat.assoc, hinv1, Cat.comp_id]
-      _ = (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b
-            ≫ @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ φ) ≫ inv := by rw [hcomp]
-      _ = @Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) _ _ b := by
+      _ = (((laxOfProjSystem' P).functF hij).map b
+            ≫ ((laxOfProjSystem' P).functF hij).map φ) ≫ inv := by rw [hcomp]
+      _ = ((laxOfProjSystem' P).functF hij).map b := by
           rw [Cat.assoc, hinv1, Cat.comp_id]
   exact projStage_conservative P hij hpc φ hmonoφ ⟨inv, hinv1, hinv2⟩
 
@@ -176,7 +176,7 @@ theorem projStage_conservative_full [PreRegularCategory 𝒞] {i j : ι} (hij : 
   leg `(g* m).f` a cover, lifting back to a slice cover (`cover_of_cover_f`). -/
 theorem projStage_preservesCover [PreRegularCategory 𝒞] {i j : ι} (hij : D.le i j)
     {x y : (laxOfProjSystem' P).A i} (φ : x ⟶ y) (hφ : Cover φ) :
-    Cover (@Functor.map _ _ _ _ _ ((laxOfProjSystem' P).functF hij) x y φ) := by
+    Cover (((laxOfProjSystem' P).functF hij).map φ) := by
   rw [stage_functF_map P hij φ]
   -- it suffices to show the underlying arrow `(g* φ).f` is a base cover.
   apply cover_of_cover_f
