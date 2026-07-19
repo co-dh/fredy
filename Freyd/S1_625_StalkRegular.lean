@@ -117,7 +117,7 @@ theorem prefRel_of_legs {ℱ : Subobject 𝒞 one → Prop} (hℱ : IsPreFilter 
 /-! ### `T_F̂` preserves binary products. -/
 
 theorem TF_preserves_binaryProducts (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ) :
-    PreservesBinaryProducts (TF ℱ) := by
+    PreservesBinaryProducts (TF_functor ℱ) := by
   intro A B
   apply isIso_of_bijective
   · -- INJECTIVE: comparison `φ t = (TF.map fst t, TF.map snd t)`
@@ -237,7 +237,7 @@ theorem cone_data_of_eq {ℱ : Subobject 𝒞 one → Prop} (hℱ : IsPreFilter 
   · exact Quot.sound (prefRel_restrict ℱ q hW wb hwb)
 
 theorem TF_preserves_pullbacks (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ) :
-    PreservesPullbacks (TF ℱ) := by
+    PreservesPullbacks (TF_functor ℱ) := by
   intro A B C f g c hc d
   -- For each δ : d.pt, get a representing `𝒞`-cone over `(f,g)`, lift through `c`.
   -- existence of `u : d.pt → TF c.pt`
@@ -309,7 +309,7 @@ theorem TF_preserves_pullbacks (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPre
 
 theorem TF_preserves_covers_of_projective (ℱ : Subobject 𝒞 one → Prop)
     (hproj : ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom) :
-    PreservesCovers (TF ℱ) := by
+    PreservesCovers (TF_functor ℱ) := by
   intro A B e he
   -- `TF.map e` surjective ⟹ cover in `Set` (`set_cover_iff_surjective`)
   refine (set_cover_iff_surjective (TF.map ℱ e)).2 ?_
@@ -337,7 +337,7 @@ theorem TF_preserves_covers_of_projective (ℱ : Subobject 𝒞 one → Prop)
     rw [Cat.id_comp, Cat.id_comp]; exact hsq⟩
 
 theorem TF_preserves_mono (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ) :
-    PreservesMono (TF ℱ) := by
+    PreservesMono (TF_functor ℱ) := by
   intro X Y m hm
   -- `TF.map m` injective ⟹ monic in `Type u` (`set_monic_iff_injective`)
   refine (set_monic_iff_injective (TF.map ℱ m)).2 ?_
@@ -354,7 +354,7 @@ theorem TF_preserves_mono (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilte
 
 theorem TF_preserves_images (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ)
     (hproj : ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom) :
-    PreservesImages (TF ℱ) (TF_preserves_mono ℱ hℱ) := by
+    PreservesImages (TF_functor ℱ) (TF_preserves_mono ℱ hℱ) := by
   intro A B f I hI
   obtain ⟨ℓ, hℓ⟩ := hI.1
   -- `ℓ : A → I.dom`, `ℓ ≫ I.arr = f`; `ℓ` is a cover (image lift, transported across `image f ≅ I`).
@@ -372,7 +372,7 @@ theorem TF_preserves_images (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFil
     have : Cover (image.lift f ≫ k) := cover_comp (image_lift_cover f) hkcov
     rwa [hlift] at this
   -- `TF.map ℓ` is a cover in `Set`, hence surjective.
-  have hℓcov' : Cover (Functor.map (F := TF ℱ) ℓ) :=
+  have hℓcov' : Cover ((TF_functor ℱ).map ℓ) :=
     TF_preserves_covers_of_projective ℱ hproj ℓ hℓcov
   have hℓsurj : Function.Surjective (TF.map ℱ ℓ) := (set_cover_iff_surjective _).1 hℓcov'
   -- Build `IsImage (TF.map f) (Subobject.map (TF ℱ) _ I)`.
@@ -407,7 +407,7 @@ theorem TF_preserves_images (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFil
 
 theorem TF_regularFunctor (ℱ : Subobject 𝒞 one → Prop) (hℱ : IsPreFilter ℱ)
     (hproj : ∀ U : Subobject 𝒞 one, ℱ U → Projective U.dom) :
-    RelFunctor.RegularFunctor (TF ℱ) where
+    RelFunctor.RegularFunctor (TF_functor ℱ) where
   pres_prod := TF_preserves_binaryProducts ℱ hℱ
   pres_pullback := TF_preserves_pullbacks ℱ hℱ
   pres_covers := TF_preserves_covers_of_projective ℱ hproj
