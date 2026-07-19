@@ -34,6 +34,9 @@ feel free to copy ideas from Mathlib, but do not bring in them as dependency.
   the repo self-contained so builds stay fast and clones stay tiny.
 DRY as much as possible.
 
+Before starting a large change, commit all current work as a checkpoint unless the user explicitly
+asks not to commit it.
+
 ## Book notation pitfalls (OCR drops bold)
 - **Follow the book's names strictly.** Never coin your own name for a functor/object and never
   reuse a book symbol for a different thing. In particular `Δ` is the *diagonal* functor `𝐀 → 𝐀/B`
