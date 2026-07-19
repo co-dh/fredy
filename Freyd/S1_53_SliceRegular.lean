@@ -53,7 +53,7 @@ def overPullbackCone {B : 𝒞} {X Y Z : Over B} (m : X ⟶ Z) (n : Y ⟶ Z) :
 
 /-- **§1.441**: `A/B` has all pullbacks (when `A` does). -/
 instance overHasPullbacks (B : 𝒞) : HasPullbacks (Over B) where
-  has {X Y Z} m n :=
+  has {_ Y Z} m n :=
     { cone := overPullbackCone m n
       lift := fun c => overPullbackLift m n c.π₁ c.π₂ c.w
       lift_fst := fun c => OverHom.ext ((hpull.has m.f n.f).lift_fst _)
