@@ -55,10 +55,9 @@ theorem isoInv_prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
         ≫ isoInv (transApp_isIso L (D.refl k) hkm p)) = Cat.id _ := by
     unfold prUnit
     rw [Cat.assoc, ← Cat.assoc ((L.functF hkm).map (reflApp L p)),
-        ← @Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
-          _ _ _ (reflApp L p) (isoInv (reflApp_isIso L p)),
+        ← (L.functF hkm).map_comp (reflApp L p) (isoInv (reflApp_isIso L p)),
         isoInv_comp (reflApp_isIso L p),
-        @Functor.map_id (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm),
+        (L.functF hkm).map_id,
         Cat.id_comp, isoInv_comp (transApp_isIso L (D.refl k) hkm p)]
   calc isoInv (prUnit_isIso L p hkm)
       = isoInv (prUnit_isIso L p hkm) ≫ Cat.id _ := (Cat.comp_id _).symm
@@ -69,11 +68,9 @@ theorem isoInv_prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
     _ = (isoInv (prUnit_isIso L p hkm) ≫ prUnit L p hkm)
           ≫ ((L.functF hkm).map (isoInv (reflApp_isIso L p))
             ≫ isoInv (transApp_isIso L (D.refl k) hkm p)) := (Cat.assoc _ _ _).symm
-    _ = Cat.id _
-          ≫ ((L.functF hkm).map (isoInv (reflApp_isIso L p))
-            ≫ isoInv (transApp_isIso L (D.refl k) hkm p)) := by rw [inv_isoInv_comp]
     _ = (L.functF hkm).map (isoInv (reflApp_isIso L p))
-          ≫ isoInv (transApp_isIso L (D.refl k) hkm p) := Cat.id_comp _
+          ≫ isoInv (transApp_isIso L (D.refl k) hkm p) := by
+      rw [inv_isoInv_comp (prUnit_isIso L p hkm), Cat.id_comp]
 
 /-- **Pushing a single-stage INJECTION germ** `inj ≫ isoInv reflApp` from `k` to `m` (along `hkm`)
     equals `transApp ≫ (functF hkm).map inj ≫ isoInv (prUnit_isIso L p hkm)`.  The exact dual of
@@ -84,8 +81,7 @@ theorem pushHom_inj {i k m : ι} (x : L.A i) (p : L.A k) (hik : D.le i k) (hkm :
     pushHom L x p hik (D.refl k) hkm (inj ≫ isoInv (reflApp_isIso L p))
       = transApp L hik hkm x ≫ (L.functF hkm).map inj ≫ isoInv (prUnit_isIso L p hkm) := by
   unfold pushHom
-  rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
-        _ _ _ inj (isoInv (reflApp_isIso L p)),
+  rw [(L.functF hkm).map_comp inj (isoInv (reflApp_isIso L p)),
       isoInv_prUnit L p hkm, Cat.assoc]
 
 end CoprGeneric
