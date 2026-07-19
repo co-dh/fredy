@@ -193,7 +193,7 @@ variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Co
 /-- The lax mono-preservation bundle (shared shape of the germ keystones), abbreviated. -/
 abbrev TransMonoL : Prop :=
   ∀ {i j : ι} (hij : D.le i j),
-    @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij)
+    @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij)
 
 /-- The colimit subobject GERM of a stage subobject `X ⊆ y` (of `L.A N`): `⟨N, X.dom⟩ ↣ ⟨N, y⟩` via
     `stageInclL X.arr`, monic since transitions preserve `X.arr`'s mono.  Lax mirror of
@@ -265,11 +265,10 @@ set_option maxHeartbeats 1000000 in
 theorem union_germ_equivL (hmono : TransMonoL L) (coprData : LaxCoproductData L)
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        L.Fmap hij p = L.Fmap hij q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ (L.Fmap hij f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks (Obj L) (laxColimCat L hL)]
     [hImg : @HasImages (Obj L) (laxColimCat L hL)]
@@ -386,12 +385,11 @@ theorem laxColim_invImage_union_le [Nonempty ι]
     (coprData : LaxCoproductData L)
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        L.Fmap hij p = L.Fmap hij q → p = q)
     (hmono : TransMonoL L)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ (L.Fmap hij f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     (hbot : ∀ i, PreLogos (L.A i))
     [hpullI : @HasPullbacks (Obj L) (laxColimCat L hL)]
