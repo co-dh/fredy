@@ -232,7 +232,8 @@ theorem objInclL_preserves_products (i : ι) (a b : L.A i) :
     intro w
     unfold prUnit
     rw [Cat.assoc, ← (L.functF hiN).map_comp (reflApp L w) (isoInv (reflApp_isIso L w)),
-        isoInv_comp, (L.functF hiN).map_id, Cat.comp_id]
+        isoInv_comp, (L.functF hiN).map_id]
+    exact Cat.comp_id _
   have hcomp_fst : r ≫ (L.functF hiN).map (fstS ≫ isoInv (reflApp_isIso L a))
       = pushHom L Z.2 a af.2.1 af.2.2 hafN fa ≫ transApp L (D.refl i) hiN a := by
     rw [(L.functF hiN).map_comp fstS (isoInv (reflApp_isIso L a)), ← Cat.assoc, hr_fst]
