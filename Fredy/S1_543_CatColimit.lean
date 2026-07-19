@@ -60,9 +60,9 @@ def CatSystem.functF (C : CatSystem ι D) {i j} (hij : D.le i j) : Functor (C.A 
     `(ι, ≤) → Cat`. -/
 structure CatSystem.Coherent (C : CatSystem ι D) : Prop where
   refl_map : ∀ {i : ι} {x x' : C.A i} (g : x ⟶ x'),
-    HEq ((C.functF (D.refl i)).map g) g
+    HEq (C.Fmap (D.refl i) g) g
   trans_map : ∀ {i j k : ι} (hij : D.le i j) (hjk : D.le j k) {x x' : C.A i} (g : x ⟶ x'),
-    HEq ((C.functF (D.trans hij hjk)).map g) ((C.functF hjk).map ((C.functF hij).map g))
+    HEq (C.Fmap (D.trans hij hjk) g) (C.Fmap hjk (C.Fmap hij g))
 
 /-- The underlying directed system of OBJECT types of a `CatSystem` (forget the
     morphisms): exactly a Milestone-1 `System`. -/
@@ -148,6 +148,15 @@ theorem map_castHom {𝒜 𝒝 : Type w} [Cat.{w} 𝒜] [Cat.{w} 𝒝] (T : Func
     T.map (castHom hX hY m) = castHom (congrArg T.obj hX) (congrArg T.obj hY) (T.map m) := by
   subst hX; subst hY; rfl
 
+/-- `map_castHom` specialised to a `CatSystem`'s morphism action `Fmap` (whose result
+    type is stated directly over the object action `F`, so its images are syntactically
+    `F`-shaped — this is what the downstream `rw [F_trans]` casts need). -/
+theorem CatSystem.Fmap_castHom (C : CatSystem ι D) {i j} (hij : D.le i j)
+    {X Y X' Y' : C.A i} (hX : X = X') (hY : Y = Y') (m : X ⟶ Y) :
+    C.Fmap hij (castHom hX hY m)
+      = castHom (congrArg (C.F hij) hX) (congrArg (C.F hij) hY) (C.Fmap hij m) := by
+  subst hX; subst hY; rfl
+
 /-- A transport is heterogeneously equal to the morphism it transports. -/
 theorem heq_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜} (hX : X = X') (hY : Y = Y')
     (m : X ⟶ Y) : HEq (castHom hX hY m) m := by
@@ -172,7 +181,7 @@ theorem castHom_heq_congr {𝒜 : Type w} [Cat.{w} 𝒜] {X1 Y1 X2 Y2 X' Y' : �
     to upper bound `b` by applying `F hab` and re-typing along `F_trans`. -/
 def homTr (C : CatSystem ι D) {i j : ι} (x : C.A i) (y : C.A j) (a b : UpperBound D i j)
     (hab : D.le a.1 b.1) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) : C.F b.2.1 x ⟶ C.F b.2.2 y :=
-  castHom (C.F_trans a.2.1 hab x).symm (C.F_trans a.2.2 hab y).symm ((C.functF hab).map g)
+  castHom (C.F_trans a.2.1 hab x).symm (C.F_trans a.2.2 hab y).symm (C.Fmap hab g)
 
 theorem homTr_refl (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i) (y : C.A j)
     (a : UpperBound D i j) (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
@@ -185,7 +194,7 @@ theorem homTr_trans (C : CatSystem ι D) (hC : C.Coherent) {i j : ι} (x : C.A i
     (g : C.F a.2.1 x ⟶ C.F a.2.2 y) :
     homTr C x y a c (D.trans hab hbc) g = homTr C x y b c hbc (homTr C x y a b hab g) := by
   unfold homTr
-  rw [map_castHom (C.functF hbc), castHom_castHom]
+  rw [C.Fmap_castHom hbc, castHom_castHom]
   exact castHom_heq_congr _ _ _ _ (hC.trans_map hab hbc g)
 
 /-- The hom-colimit system for fixed representatives `x : C.A i`, `y : C.A j`. -/
@@ -283,7 +292,7 @@ theorem homTr_comp (C : CatSystem ι D) {ip iq ir : ι}
         ≫ homTr C xq xr ⟨c, hqc, hrc⟩ ⟨d, D.trans hqc hcd, D.trans hrc hcd⟩ hcd g := by
   unfold homTr
   dsimp only
-  rw [castHom_comp, ← (C.functF hcd).map_comp]
+  rw [castHom_comp, ← C.Fmap_comp hcd]
 
 /-- Pushing an identity germ up gives an identity (the transition is a functor:
     `map_id`, then `castHom_id`). -/
@@ -291,7 +300,7 @@ theorem homTr_id (C : CatSystem ι D) {i : ι} (x : C.A i)
     (a b : UpperBound D i i) (hab : D.le a.1 b.1) :
     homTr C x x a b hab (Cat.id (C.F a.2.1 x)) = Cat.id (C.F b.2.1 x) := by
   unfold homTr
-  rw [(C.functF hab).map_id]
+  rw [C.Fmap_id hab]
   exact castHom_id _
 
 /-- Compose germs `f` (level `a`) and `g` (level `b`) at an explicit common bound
