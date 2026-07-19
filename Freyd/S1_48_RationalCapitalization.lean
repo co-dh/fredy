@@ -867,7 +867,8 @@ theorem locMap_comp_equiv {𝒟 : DenseClass 𝒞} {A B C : 𝒞} (f : A ⟶ B) 
 
 /-- **§1.48 — `T_𝒟` is a functor** `𝒞 → A[denseMonos⁻¹]` (identity on objects, `f ↦ locMap f`).
     `map_id` is definitional (`idFraction = locFraction id`); `map_comp` is `locMap_comp_equiv`. -/
-def locFunctor : Functor (fun A : 𝒞 => Rat.mk (𝒞 := 𝒞) A) where
+def locFunctor : Functor 𝒞 (Rat 𝒞) where
+  obj A := Rat.mk (𝒞 := 𝒞) A
   map {A B} f := locMap f
   map_id A := by
     show locMap (Cat.id A) = ratId A
@@ -952,9 +953,10 @@ def ratCatOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) : Cat.{u} (RatObj hD
 /-- **§1.48/§1.547 — the localisation functor `T_𝒟 : 𝒞 → A[𝒟⁻¹]`** for any `DenseRoof` class.
     Identity on objects, `f ↦ locMapOf f`; `map_id` definitional, `map_comp` is `locMap_comp_equiv`. -/
 def locFunctorOf {𝒟 : DenseClass 𝒞} (hD : DenseRoof 𝒟) :
-    @Functor 𝒞 _ (RatObj hD) (ratCatOf hD) (fun A : 𝒞 => RatObj.mk (_hD := hD) A) :=
+    @Functor 𝒞 (RatObj hD) _ (ratCatOf hD) :=
   letI : Cat.{u} (RatObj hD) := ratCatOf hD
-  { map := fun {A B} f => locMapOf hD f
+  { obj := fun A => RatObj.mk (_hD := hD) A
+    map := fun {A B} f => locMapOf hD f
     map_id := fun A => by
       show locMapOf hD (Cat.id A) = ratIdOf hD A
       rfl
@@ -1075,7 +1077,8 @@ instance pairsCat : Cat.{u} (PairObj 𝒞) where
   assoc a b c := PairHom.ext (Cat.assoc a.g b.g c.g)
 
 /-- The FORGETFUL functor `Â → A`, `(A,F) ↦ A`, `g ↦ g`.  Underlying-arrow extraction. -/
-instance pairForget : Functor (fun X : PairObj 𝒞 => X.A) where
+def pairForget : Functor (PairObj 𝒞) 𝒞 where
+  obj X := X.A
   map a := a.g
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -1090,7 +1093,8 @@ def pairEmbedObj (A : 𝒞) : PairObj 𝒞 where
 /-- **§1.547 full embedding `A ↪ Â`**, on arrows: `g ↦ ⟨g, vacuous⟩` (the target `(B,∅)` has no
     factors, so compatibility is vacuous).  A genuine functor (`map_id`/`map_comp` by `PairHom.ext`).
     "A full embedding of `A` into `Â` is obtained by sending `A` to `(A,∅)`" (§1.547). -/
-instance pairEmbed : Functor (fun A : 𝒞 => pairEmbedObj A) where
+def pairEmbed : Functor 𝒞 (PairObj 𝒞) where
+  obj := pairEmbedObj
   map g := ⟨g, fun _ hp => absurd hp List.not_mem_nil⟩
   map_id _ := PairHom.ext rfl
   map_comp _ _ := PairHom.ext rfl
@@ -1106,21 +1110,21 @@ theorem pairHom_targets_subset {X Y : PairObj 𝒞} (m : PairHom X Y) :
 
 /-- The §1.547 embedding `A ↪ Â` is an `Embedding` (faithful on homs): a `PairHom` is determined by
     its underlying `.g`, which is exactly the input arrow (`PairHom.ext`). -/
-theorem pairEmbed_embedding : Embedding (fun A : 𝒞 => pairEmbedObj A) :=
+theorem pairEmbed_embedding : Embedding (pairEmbed (𝒞 := 𝒞)) :=
   fun _ _ h => congrArg PairHom.g h
 
 /-- The §1.547 embedding `A ↪ Â` is FULL: every `Â`-arrow `(A,∅) → (B,∅)` is `pairEmbed.map` of its
     underlying `.g` (no compatibility constraints between empty factor sets). -/
-theorem pairEmbed_full : Full (fun A : 𝒞 => pairEmbedObj A) :=
+theorem pairEmbed_full : Full (pairEmbed (𝒞 := 𝒞)) :=
   fun {A B} (a : PairHom (pairEmbedObj A) (pairEmbedObj B)) => ⟨a.g, PairHom.ext rfl⟩
 
 /-- The §1.547 embedding `A ↪ Â` is FAITHFUL (full embedding ⟹ faithful, §1.33). -/
-theorem pairEmbed_faithful : Faithful (fun A : 𝒞 => pairEmbedObj A) :=
-  full_embedding_faithful _ pairEmbed_embedding pairEmbed_full
+theorem pairEmbed_faithful : Faithful (pairEmbed (𝒞 := 𝒞)) :=
+  full_embedding_faithful (pairEmbed (𝒞 := 𝒞)) pairEmbed_embedding pairEmbed_full
 
 /-- The forgetful functor `Â → A` is an `Embedding` (faithful on homs): a `PairHom` is
     determined by its `.g` (`PairHom.ext`). -/
-theorem pairForget_embedding : Embedding (fun X : PairObj 𝒞 => X.A) :=
+theorem pairForget_embedding : Embedding (pairForget (𝒞 := 𝒞)) :=
   fun _ _ h => PairHom.ext h
 
 /-! ### §1.547  The refined DENSE class on `Â`
@@ -4019,8 +4023,7 @@ def pairRatCat [HasEqualizers 𝒞] [DecidableEq 𝒞] [PullbacksTransferCovers 
     `f ↦ [A ←id— A —f→ B]`.  Sorry-free.  Its faithfulness obligation (homs identified by a common
     DENSE roof are equal) is `pairLocalisation_faithful_criterion`, already proven. -/
 def pairLocFunctor [HasEqualizers 𝒞] [DecidableEq 𝒞] [PullbacksTransferCovers 𝒞] :
-    @Functor (PairObj 𝒞) _ (RatObj (pairDense_denseRoof (𝒞 := 𝒞))) pairRatCat
-      (fun A : PairObj 𝒞 => RatObj.mk (_hD := pairDense_denseRoof) A) :=
+    @Functor (PairObj 𝒞) (RatObj (pairDense_denseRoof (𝒞 := 𝒞))) _ pairRatCat :=
   locFunctorOf pairDense_denseRoof
 
 end PairEq
