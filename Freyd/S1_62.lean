@@ -885,8 +885,9 @@ theorem TF.map_comp (ℱ : (Subobject 𝒞 one) → Prop) {A B C : 𝒞} (f : A 
 
 /-- `T_ℱ : 𝒞 → 𝒮` is a set-valued functor, packaged at `Cat.{u} 𝒞` (so source and target
     hom-universes coincide, exactly as the §1.55 representations require). -/
-instance TF_functor {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] (ℱ : (Subobject 𝒞 one) → Prop) :
-    Functor (TF ℱ) where
+def TF_functor {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞] (ℱ : (Subobject 𝒞 one) → Prop) :
+    Functor 𝒞 (Type u) where
+  obj := TF ℱ
   map f := TF.map ℱ f
   map_id A := by funext x; exact TF.map_id ℱ x
   map_comp f g := by funext x; exact TF.map_comp ℱ f g x
@@ -959,7 +960,7 @@ theorem PrefRel_reflect_monic (ℱ : (Subobject 𝒞 one) → Prop) {A B : 𝒞}
   the content of a strengthened "preserves disjoint unions" statement. -/
 
 theorem prelogos_representation_theorem (A : Type u) [Cat.{u} A] [PositivePreLogos A] :
-    ∃ (T : A → (A → Type u)) (_ : Functor T), SeparatesMaps T := by
+    ∃ T : Functor A (A → Type u), SeparatesMaps T := by
   -- A positive pre-logos is a regular category, hence pre-regular; apply Henkin–Lubkin.
   letI : PreRegularCategory A :=
     { toHasTerminal := inferInstance, toHasBinaryProducts := inferInstance,
@@ -1335,17 +1336,17 @@ def UnionPrime (ℱ : (Subobject 𝒞 one) → Prop) : Prop :=
 
 /-- The canonical comparison `T A₁ ⊔ T A₂ → T(A₁+A₂)` of a SET-valued functor `T`,
     namely `[T(inl), T(inr)]` on the disjoint sum of the two stalks. -/
-def disjUnionCompare (T : 𝒞 → Type v) [hT : Functor T]
+def disjUnionCompare (T : Functor 𝒞 (Type v))
     [HasBinaryCoproducts 𝒞] (A₁ A₂ : 𝒞) :
-    (T A₁) ⊕ (T A₂) → T (HasBinaryCoproducts.coprod A₁ A₂) :=
-  fun s => s.elim (fun x => hT.map (HasBinaryCoproducts.inl) x)
-                  (fun y => hT.map (HasBinaryCoproducts.inr) y)
+    (T.obj A₁) ⊕ (T.obj A₂) → T.obj (HasBinaryCoproducts.coprod A₁ A₂) :=
+  fun s => s.elim (fun x => T.map (HasBinaryCoproducts.inl) x)
+                  (fun y => T.map (HasBinaryCoproducts.inr) y)
 
 /-- §1.625  `T : 𝒞 → 𝒮` PRESERVES DISJOINT UNIONS: for every binary coproduct the canonical
     comparison `T A₁ ⊔ T A₂ → T(A₁+A₂)` is a bijection (Set-level
     "`T(A₁+A₂) = T A₁ ⊔ T A₂`").  A representation of regular categories that preserves
     disjoint unions is a REPRESENTATION OF PRE-LOGOI. -/
-def PreservesDisjointUnions (T : 𝒞 → Type v) [Functor T]
+def PreservesDisjointUnions (T : Functor 𝒞 (Type v))
     [HasBinaryCoproducts 𝒞] : Prop :=
   ∀ (A₁ A₂ : 𝒞),
     Function.Injective (disjUnionCompare T A₁ A₂) ∧ Function.Surjective (disjUnionCompare T A₁ A₂)
@@ -1363,7 +1364,7 @@ def PreservesDisjointUnions (T : 𝒞 → Type v) [Functor T]
     the elements of `ℱ` are projective".  `SetRepOfPreLogos` adds the missing §1.635 ingredient
     — disjoint-union preservation — on top.  `repReg` is the regular-representation predicate
     (preserves products, equalizers, covers) carried as a parameter. -/
-def SetRepOfPreLogos (T : 𝒞 → Type v) [Functor T] [HasBinaryCoproducts 𝒞]
+def SetRepOfPreLogos (T : Functor 𝒞 (Type v)) [HasBinaryCoproducts 𝒞]
     (repReg : Prop) : Prop :=
   repReg ∧ PreservesDisjointUnions T
 
@@ -2888,12 +2889,12 @@ section DisjointUnionPreservation
 
 variable {𝒞 : Type u} [Cat.{u} 𝒞] [DisjointBinaryCoproduct 𝒞]
 
-/-- SURJECTIVITY of `disjUnionCompare (TF ℱ)` from `UnionPrime ℱ` (and up-closure of `ℱ`). -/
+/-- SURJECTIVITY of `disjUnionCompare (TF_functor ℱ)` from `UnionPrime ℱ` (and up-closure of `ℱ`). -/
 theorem disjUnionCompare_surjective (ℱ : (Subobject 𝒞 one) → Prop)
     (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
     (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
     (hUP : UnionPrime ℱ) (A₁ A₂ : 𝒞) :
-    Function.Surjective (disjUnionCompare (TF ℱ) A₁ A₂) := by
+    Function.Surjective (disjUnionCompare (TF_functor ℱ) A₁ A₂) := by
   intro t
   refine Quot.inductionOn t (fun p => ?_)
   -- p = ⟨U, hU, h⟩, h : U.dom → A₁+A₂.
@@ -2959,10 +2960,10 @@ theorem disjUnionCompare_surjective (ℱ : (Subobject 𝒞 one) → Prop)
     · show Cat.id _ ≫ (f₂ ≫ HasBinaryCoproducts.inr) = U₂.arr ≫ p.map
       rw [Cat.id_comp, ← hf₂]
 
-/-- INJECTIVITY of `disjUnionCompare (TF ℱ)` from `IsProperFilter ℱ`. -/
+/-- INJECTIVITY of `disjUnionCompare (TF_functor ℱ)` from `IsProperFilter ℱ`. -/
 theorem disjUnionCompare_injective (ℱ : (Subobject 𝒞 one) → Prop)
     (hprop : IsProperFilter ℱ) (A₁ A₂ : 𝒞) :
-    Function.Injective (disjUnionCompare (TF ℱ) A₁ A₂) := by
+    Function.Injective (disjUnionCompare (TF_functor ℱ) A₁ A₂) := by
   have hpre : IsPreFilter ℱ := hprop.1
   -- The cross case: TF.map inl x = TF.map inr y is impossible (properness).
   have hcross : ∀ (p : PrefilterMap ℱ A₁) (q : PrefilterMap ℱ A₂),
@@ -3024,7 +3025,7 @@ theorem disjUnionCompare_injective (ℱ : (Subobject 𝒞 one) → Prop)
     properness; surjectivity from `UnionPrime F̂` (`ultrafilter_unionPrime`), with up-closure
     within complemented subterminators supplied by `ultrafilter_isFilter`. -/
 theorem preservesDisjointUnions_of_ultrafilter (ℱ : (Subobject 𝒞 one) → Prop)
-    (hU : IsUltraFilter ℱ) : PreservesDisjointUnions (TF ℱ) :=
+    (hU : IsUltraFilter ℱ) : PreservesDisjointUnions (TF_functor ℱ) :=
   fun A₁ A₂ =>
     ⟨disjUnionCompare_injective ℱ hU.1 A₁ A₂,
      disjUnionCompare_surjective ℱ hU.2.1
@@ -3037,7 +3038,7 @@ theorem preservesDisjointUnions_of_ultrafilter (ℱ : (Subobject 𝒞 one) → P
     common refinement `Zero1`, both maps out of the initial `0`), but `inl ≠ inr` as sum tags. -/
 theorem notMem_zero_of_injective (ℱ : (Subobject 𝒞 one) → Prop)
     (hinj : Function.Injective
-      (disjUnionCompare (TF ℱ) (minimal_subobject_of_one_is_coterminator
+      (disjUnionCompare (TF_functor ℱ) (minimal_subobject_of_one_is_coterminator
         (inferInstance : PreLogos 𝒞)).zero
         (minimal_subobject_of_one_is_coterminator (inferInstance : PreLogos 𝒞)).zero)) :
     ¬ ℱ Zero1 := by
@@ -3067,7 +3068,7 @@ theorem notMem_zero_of_injective (ℱ : (Subobject 𝒞 one) → Prop)
     disjoint pair realises `K.dom ≅ U₁.dom + U₂.dom` with leg-exposed inclusions
     (`disjointPair_legs_iso`): `inl≫ψ≫K.arr = U₁.arr`, `inr≫ψ≫K.arr = U₂.arr`, inverse `ψinv`.
     Feed the name `(K, ψinv : K.dom → U₁.dom+U₂.dom)` to surjectivity of
-    `disjUnionCompare (TF ℱ) U₁.dom U₂.dom`.  Its preimage is `inl x` or `inr y`.  In the `inl`
+    `disjUnionCompare (TF_functor ℱ) U₁.dom U₂.dom`.  Its preimage is `inl x` or `inr y`.  In the `inl`
     case `x = ⟨W,g⟩` and `TF.mk⟨W, g≫inl⟩ = TF.mk⟨K, ψinv⟩`, so `PrefRel` gives a common
     refinement `W' ∈ ℱ` with legs `a:W'→W`, `b:W'→K`, `b≫K.arr = W'.arr`, and
     `a≫(g≫inl) = b≫ψinv`.  Post-composing the last with `ψ` (using `ψinv≫ψ = id` and
@@ -3078,7 +3079,7 @@ theorem unionPrime_membership_of_surjective (ℱ : (Subobject 𝒞 one) → Prop
     (hpre : IsPreFilter ℱ)
     (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
     (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
-    (hsurj : ∀ A₁ A₂ : 𝒞, Function.Surjective (disjUnionCompare (TF ℱ) A₁ A₂))
+    (hsurj : ∀ A₁ A₂ : 𝒞, Function.Surjective (disjUnionCompare (TF_functor ℱ) A₁ A₂))
     (U₁ U₂ : Subobject 𝒞 one)
     (hdisj : Subobject.le (Subobject.inter U₁ U₂) Zero1)
     (hKmem : ℱ (HasSubobjectUnions.union U₁ U₂)) :
@@ -3099,7 +3100,7 @@ theorem unionPrime_membership_of_surjective (ℱ : (Subobject 𝒞 one) → Prop
         have hWname' : TF.mk ℱ (⟨pW.U, pW.hU, pW.map ≫ HasBinaryCoproducts.inl⟩ : PrefilterMap ℱ _)
             = TF.mk ℱ ⟨K, hKmem, ψinv⟩ := by
           have h := hWname
-          rw [show disjUnionCompare (TF ℱ) U₁.dom U₂.dom (Sum.inl (Quot.mk (PrefRel ℱ) pW))
+          rw [show disjUnionCompare (TF_functor ℱ) U₁.dom U₂.dom (Sum.inl (Quot.mk (PrefRel ℱ) pW))
                  = TF.map ℱ HasBinaryCoproducts.inl (TF.mk ℱ pW) from rfl, TF.map_mk] at h
           exact h
         obtain ⟨W', hW', a, b, ha, hb, hagree⟩ := PrefRel_of_TF_eq ℱ hpre hWname'
@@ -3128,7 +3129,7 @@ theorem unionPrime_membership_of_surjective (ℱ : (Subobject 𝒞 one) → Prop
       · have hWname' : TF.mk ℱ (⟨pW.U, pW.hU, pW.map ≫ HasBinaryCoproducts.inr⟩ : PrefilterMap ℱ _)
             = TF.mk ℱ ⟨K, hKmem, ψinv⟩ := by
           have h := hWname
-          rw [show disjUnionCompare (TF ℱ) U₁.dom U₂.dom (Sum.inr (Quot.mk (PrefRel ℱ) pW))
+          rw [show disjUnionCompare (TF_functor ℱ) U₁.dom U₂.dom (Sum.inr (Quot.mk (PrefRel ℱ) pW))
                  = TF.map ℱ HasBinaryCoproducts.inr (TF.mk ℱ pW) from rfl, TF.map_mk] at h
           exact h
         obtain ⟨W', hW', a, b, ha, hb, hagree⟩ := PrefRel_of_TF_eq ℱ hpre hWname'
@@ -3163,7 +3164,7 @@ theorem unionPrime_of_preservesDisjointUnions (ℱ : (Subobject 𝒞 one) → Pr
     (hpre : IsPreFilter ℱ)
     (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
     (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V)
-    (hPDU : PreservesDisjointUnions (TF ℱ)) : UnionPrime ℱ :=
+    (hPDU : PreservesDisjointUnions (TF_functor ℱ)) : UnionPrime ℱ :=
   ⟨notMem_zero_of_injective ℱ (hPDU _ _).1,
    fun U₁ U₂ hdisj hKmem =>
      unionPrime_membership_of_surjective ℱ hpre hcompAll hup
@@ -3179,7 +3180,7 @@ theorem preservesDisjointUnions_iff_unionPrime (ℱ : (Subobject 𝒞 one) → P
     (hpre : IsPreFilter ℱ)
     (hcompAll : ∀ U, ℱ U → IsComplementedSub U)
     (hup : ∀ U V, ℱ U → U.le V → IsComplementedSub V → ℱ V) :
-    PreservesDisjointUnions (TF ℱ) ↔ UnionPrime ℱ := by
+    PreservesDisjointUnions (TF_functor ℱ) ↔ UnionPrime ℱ := by
   constructor
   · exact unionPrime_of_preservesDisjointUnions ℱ hpre hcompAll hup
   · intro hUP A₁ A₂
@@ -3203,7 +3204,7 @@ theorem preservesDisjointUnions_iff_unionPrime (ℱ : (Subobject 𝒞 one) → P
     `T_F̂` in the `SetRepOfPreLogos` shape Freyd's representation theorem produces. -/
 theorem setRepOfPreLogos_of_ultrafilter (ℱ : (Subobject 𝒞 one) → Prop)
     (hU : IsUltraFilter ℱ) {repReg : Prop} (hreg : repReg) :
-    SetRepOfPreLogos (TF ℱ) repReg :=
+    SetRepOfPreLogos (TF_functor ℱ) repReg :=
   ⟨hreg, preservesDisjointUnions_of_ultrafilter ℱ hU⟩
 
 end DisjointUnionPreservation
@@ -3489,7 +3490,7 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞] [RegularCategory 𝒞]
 /-- **`homRep` preserves binary products.**  The comparison `homRep(A×B) → homRep A × homRep B`,
     `h ↦ (h ≫ fst, h ≫ snd)`, has inverse `(p, q) ↦ ⟨p, q⟩` (the `𝒞`-pairing); both round-trips
     are the product universal property (`fst_pair`/`snd_pair`/`pair_uniq`). -/
-theorem homRep_preserves_prod : PreservesBinaryProducts (homRep 𝒞) := by
+theorem homRep_preserves_prod : PreservesBinaryProducts (homRepFunctor 𝒞) := by
   intro A B
   -- The comparison is `pair (map fst) (map snd)`; its fibrewise value at `h` is `(h ≫ fst, h ≫ snd)`.
   refine ⟨fun i pq => pair (pq.1) (pq.2), ?_, ?_⟩
@@ -3508,7 +3509,7 @@ theorem homRep_preserves_prod : PreservesBinaryProducts (homRep 𝒞) := by
 /-- **`homRep` preserves pullbacks.**  A pullback square in `𝒞` is sent to a pullback square in
     `Set^|𝒞|`: at each index `i`, a fibrewise compatible pair `(x, y)` of arrows out of `i`
     glues, by the pullback's universal property, to a unique arrow `i → c.pt`. -/
-theorem homRep_preserves_pullbacks : PreservesPullbacks (homRep 𝒞) := by
+theorem homRep_preserves_pullbacks : PreservesPullbacks (homRepFunctor 𝒞) := by
   intro A B C f g c hpb
   -- Goal: the image cone in `Set^|𝒞|` is a pullback, i.e. the canonical lift exists+unique.
   intro d
@@ -3541,7 +3542,7 @@ theorem homRep_preserves_pullbacks : PreservesPullbacks (homRep 𝒞) := by
     (`power_cover_iff`); `homRep_preserves_cover_pointwise` gives exactly fibrewise surjectivity. -/
 theorem homRep_preserves_covers
     (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
-    PreservesCovers (homRep 𝒞) := by
+    PreservesCovers (homRepFunctor 𝒞) := by
   intro X Y f hf
   rw [power_cover_iff]
   intro i b
@@ -3556,9 +3557,9 @@ theorem homRep_preserves_covers
     and is minimal, because the cover `homRep (image.lift f)` is onto it. -/
 theorem homRep_preserves_images
     (hproj : ∀ C : 𝒞, ∀ {P : 𝒞} (e : P ⟶ C), Cover e → ∃ s : C ⟶ P, s ≫ e = Cat.id C) :
-    PreservesImages (homRep 𝒞) (homRep_preserves_mono 𝒞) := by
+    PreservesImages (homRepFunctor 𝒞) (homRep_preserves_mono 𝒞) := by
   intro A B f I hI
-  -- `Subobject.map (homRep 𝒞) _ I` has arrow `homRep (I.arr)` (a mono) and allows `homRep f`.
+  -- `Subobject.map (homRepFunctor 𝒞) _ I` has arrow `homRep (I.arr)` (a mono) and allows `homRep f`.
   -- We show it is the image of `homRep f`.  Strategy: `homRep` preserves the cover `image.lift`.
   -- `hI : IsImage f I`.  The canonical image `image f` has `(image f).le I` and `I.le (image f)`
   -- (both images), but to stay general we work from `hI` directly via the cover onto `I`.
@@ -3595,7 +3596,7 @@ theorem homRep_preserves_images
     have hliftcov : Cover (image.lift f) := image_lift_cover f
     have : Cover (image.lift f ≫ k) := cover_comp hliftcov hkcov
     rwa [hlift] at this
-  -- Now build `IsImage (homRep f) (Subobject.map (homRep 𝒞) _ I)`.
+  -- Now build `IsImage (homRep f) (Subobject.map (homRepFunctor 𝒞) _ I)`.
   refine ⟨⟨(homRepFunctor 𝒞).map ℓ, ?_⟩, ?_⟩
   · -- allows: `homRep ℓ ≫ homRep I.arr = homRep f`
     show (homRepFunctor 𝒞).map ℓ ≫ (homRepFunctor 𝒞).map I.arr = (homRepFunctor 𝒞).map f
@@ -4186,8 +4187,8 @@ theorem pushPow_preserves_image (hproj : Capital 𝒞) (ρ : Env 𝒞 nObj) {a b
       (Subobject.mk _ (morAs ρ em hem_src hem_tgt) h.1) := isImage_of_isImageObj h
   -- push the subobject; `homRep` preserves images.
   have hpres := homRep_preserves_images (𝒞 := 𝒞) hproj _ _ hI
-  -- `Subobject.map (homRep 𝒞) _ (mk ..)` has arrow `homRep em`; rewrite to `morAs (pushPow ρ) em`.
-  have harr : (Subobject.map (homRep 𝒞) (homRep_preserves_mono 𝒞)
+  -- `Subobject.map (homRepFunctor 𝒞) _ (mk ..)` has arrow `homRep em`; rewrite to `morAs (pushPow ρ) em`.
+  have harr : (Subobject.map (homRepFunctor 𝒞) (homRep_preserves_mono 𝒞)
       (Subobject.mk _ (morAs ρ em hem_src hem_tgt) h.1)).arr
         = morAs (pushPow ρ) em hem_src hem_tgt := by
     rw [morAs_pushPow]; rfl
@@ -4328,7 +4329,8 @@ def StalkIndex (𝒞 : Type u) [Cat.{u} 𝒞] [PreLogos 𝒞] : Type u :=
 def Tstar (A : 𝒞) : StalkIndex 𝒞 → Type u := fun F => TF F.val A
 
 /-- `T⋆` is a power-category functor: pointwise the stalk functor `T_F̂`. -/
-instance TstarFunctor : Functor (Tstar (𝒞 := 𝒞)) where
+def TstarFunctor : Functor 𝒞 (StalkIndex 𝒞 → Type u) where
+  obj := Tstar (𝒞 := 𝒞)
   map {A B} f := fun F => TF.map F.val f
   map_id A := by funext F x; exact TF.map_id F.val x
   map_comp f g := by funext F x; exact TF.map_comp F.val f g x

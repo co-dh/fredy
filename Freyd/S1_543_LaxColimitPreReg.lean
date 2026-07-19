@@ -130,30 +130,20 @@ variable (L : LaxCatSystem.{u, w} ι D)
 /-- The forward component of the reflexive coherence iso `F_refl_iso` at an object `x : L.A i`:
     the canonical iso `L.F (D.refl i) x ⟶ x`. -/
 def reflApp {i : ι} (x : L.A i) : L.F (D.refl i) x ⟶ x :=
-  @NaturalTransformation.app (L.A i) (L.catA i) (L.A i) (L.catA i)
-    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
-    (@NatIso.nat (L.A i) (L.catA i) (L.A i) (L.catA i)
-      (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
-      L.F_refl_iso) x
+  L.F_refl_iso.nat.app x
 
 /-- `reflApp` is an isomorphism (it is a component of the natural iso `F_refl_iso`). -/
 theorem reflApp_isIso {i : ι} (x : L.A i) : IsIso (reflApp L x) :=
-  @NatIso.isIso (L.A i) (L.catA i) (L.A i) (L.catA i)
-    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
-    L.F_refl_iso x
+  L.F_refl_iso.isIso x
 
 /-- **Naturality of `reflApp`.**  `reflApp` is the component of the natural iso `F_refl_iso`, so for
     any `f : x ⟶ y` in `L.A i` it intertwines the reflexive transition `F (refl i)` with the
     identity functor: `(F (refl i)).map f ≫ reflApp y = reflApp x ≫ f`. -/
 theorem reflApp_natural {i : ι} {x y : L.A i} (f : x ⟶ y) :
-    @Functor.map (L.A i) (L.catA i) (L.A i) (L.catA i) (L.F (D.refl i)) (L.functF (D.refl i)) x y f
+    (L.functF (D.refl i)).map f
         ≫ reflApp L y
       = reflApp L x ≫ f :=
-  @NaturalTransformation.naturality (L.A i) (L.catA i) (L.A i) (L.catA i)
-    (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
-    (@NatIso.nat (L.A i) (L.catA i) (L.A i) (L.catA i)
-      (L.F (D.refl i)) (fun z => z) (L.functF (D.refl i)) (@idFunctor (L.A i) (L.catA i))
-      L.F_refl_iso) x y f
+  L.F_refl_iso.nat.naturality f
 
 /-- **`reflApp` of `laxOfProjSystem'` IS the reflexive base-change pullback `π₁`.**  `reflApp` is the
     `.nat.app` of `projReflIso`, which is `baseChangeIdNatIso` (component `_idBwd = π₁`) transported
@@ -293,8 +283,7 @@ noncomputable def prUnit {k m : ι} (p : L.A k) (hkm : D.le k m) :
 theorem prUnit_isIso {k m : ι} (p : L.A k) (hkm : D.le k m) :
     IsIso (prUnit L p hkm) :=
   isIso_comp (transApp_isIso L (D.refl k) hkm p)
-    (@functor_preserves_iso (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
-      _ _ (reflApp L p) (reflApp_isIso L p))
+    (functor_preserves_iso (F := L.functF hkm) (reflApp L p) (reflApp_isIso L p))
 
 /-- Pushing a single-stage projection germ `reflApp p ≫ proj` from `k` to `m` (along `hkm`) equals
     `prUnit ≫ (functF hkm).map proj ≫ isoInv (transApp hik hkm tgt)`.  Unfold `pushHom`, distribute
@@ -306,8 +295,7 @@ theorem pushHom_proj {i k m : ι} (x : L.A i) (p : L.A k)
         ≫ (L.functF hkm).map proj
         ≫ isoInv (transApp_isIso L hik hkm x) := by
   unfold pushHom prUnit
-  rw [@Functor.map_comp (L.A k) (L.catA k) (L.A m) (L.catA m) (L.F hkm) (L.functF hkm)
-        _ _ _ (reflApp L p) proj]
+  rw [(L.functF hkm).map_comp (reflApp L p) proj]
   simp only [Cat.assoc]
 
 /-- **Existence of the pairing mediator.**  For competitor germs `f : ⟨l,z⟩ ⟶ ⟨i,x⟩`,

@@ -992,23 +992,23 @@ variable {ℬ : Type u} [Cat.{v} ℬ]
 /-- **§1.968**: general coproducts + coequalizers ⟹ cocomplete (dual of `eq_prod_complete`). -/
 noncomputable def cocomplete_of_coproducts_coequalizers
     (hcp : HasAllCoproducts ℬ) (hce : HasCoequalizers ℬ) : Cocomplete ℬ where
-  hasColimit {𝒟} _ D hD := by
+  hasColimit {𝒟} _ D := by
     classical
     -- Σ of arrows in 𝒟; coproduct of sources over arrows, and of objects.
     let Arr := Σ (i : 𝒟) (j : 𝒟), (i ⟶ j)
     let srcOf : Arr → 𝒟 := fun a => a.fst
     let tgtOf : Arr → 𝒟 := fun a => a.snd.fst
     let arrOf : (a : Arr) → srcOf a ⟶ tgtOf a := fun a => a.snd.snd
-    let P := hcp.coprod D                                  -- ∐_objects D
-    let Q := hcp.coprod (fun a : Arr => D (srcOf a))       -- ∐_arrows D(src)
+    let P := hcp.coprod D.obj                                  -- ∐_objects D
+    let Q := hcp.coprod (fun a : Arr => D.obj (srcOf a))       -- ∐_arrows D(src)
     -- mapF's a-leg = D(arr a) ≫ inj(tgt a); mapG's = inj(src a).
-    let mapF : Q.obj ⟶ P.obj := Q.desc (fun a => hD.map (arrOf a) ≫ P.inj (tgtOf a))
+    let mapF : Q.obj ⟶ P.obj := Q.desc (fun a => D.map (arrOf a) ≫ P.inj (tgtOf a))
     let mapG : Q.obj ⟶ P.obj := Q.desc (fun a => P.inj (srcOf a))
     let ce := hce.coeq mapF mapG
-    let ιi : (i : 𝒟) → D i ⟶ ce.obj := fun i => P.inj i ≫ ce.map
+    let ιi : (i : 𝒟) → D.obj i ⟶ ce.obj := fun i => P.inj i ≫ ce.map
     -- Cocone naturality: D(x) ≫ ιj = ιi.  From `inj(src⟨i,j,x⟩) ≫ map = D(x) ≫ inj(tgt) ≫ map`
     -- (the a=⟨i,j,x⟩ component of `mapG ≫ ce.map = mapF ≫ ce.map`).
-    have nat_pf : ∀ {i j : 𝒟} (x : i ⟶ j), hD.map x ≫ ιi j = ιi i := by
+    have nat_pf : ∀ {i j : 𝒟} (x : i ⟶ j), D.map x ≫ ιi j = ιi i := by
       intro i j x
       let a : Arr := ⟨i, j, x⟩
       have hFG : mapF ≫ ce.map = mapG ≫ ce.map := by
@@ -1018,15 +1018,15 @@ noncomputable def cocomplete_of_coproducts_coequalizers
       simp only [mapF, mapG] at hstep
       rw [← Cat.assoc, ← Cat.assoc, Q.fac, Q.fac] at hstep
       -- hstep : (D(arr a) ≫ inj(tgt a)) ≫ map = inj(src a) ≫ map
-      show hD.map x ≫ P.inj j ≫ ce.map = P.inj i ≫ ce.map
-      calc hD.map x ≫ P.inj j ≫ ce.map
-          = (hD.map (arrOf a) ≫ P.inj (tgtOf a)) ≫ ce.map := by rw [Cat.assoc]
+      show D.map x ≫ P.inj j ≫ ce.map = P.inj i ≫ ce.map
+      calc D.map x ≫ P.inj j ≫ ce.map
+          = (D.map (arrOf a) ≫ P.inj (tgtOf a)) ≫ ce.map := by rw [Cat.assoc]
         _ = P.inj (srcOf a) ≫ ce.map := hstep
         _ = P.inj i ≫ ce.map := rfl
     -- Given a cocone c, `P.desc c.ι` coequalizes mapF and mapG.
     have desc_eq : ∀ (c : DiagCocone D), mapF ≫ P.desc c.ι = mapG ≫ P.desc c.ι := by
       intro c
-      have hF : mapF ≫ P.desc c.ι = Q.desc (fun a => hD.map (arrOf a) ≫ c.ι (tgtOf a)) := by
+      have hF : mapF ≫ P.desc c.ι = Q.desc (fun a => D.map (arrOf a) ≫ c.ι (tgtOf a)) := by
         apply Q.uniq; intro a
         rw [← Cat.assoc, Q.fac, Cat.assoc, P.fac]
       have hG : mapG ≫ P.desc c.ι = Q.desc (fun a => c.ι (srcOf a)) := by
@@ -1055,7 +1055,8 @@ private instance discCatTC {I : Type v} : Cat.{v} I where
   assoc _ _ _ := rfl
 
 /-- Every `A : I → ℬ` is a functor on the discrete category (local copy). -/
-private instance discFunTC {I : Type v} (A : I → ℬ) : @Functor I discCatTC ℬ _ A where
+private def discFunTC {I : Type v} (A : I → ℬ) : @Functor I ℬ discCatTC _ where
+  obj          := A
   map {i j} h  := h.down.down ▸ Cat.id (A i)
   map_id _     := rfl
   map_comp f g := by
@@ -1064,17 +1065,17 @@ private instance discFunTC {I : Type v} (A : I → ℬ) : @Functor I discCatTC �
 /-- **Cocomplete ⟹ all coproducts** (colimit-dual of `complete_hasProducts`).  A coproduct is the
     colimit of the discrete diagram; reusable infra (e.g. Lawvere→Tierney's `∐(gen set)`). -/
 noncomputable def cocompleteCoconeOf {I : Type v} (A : I → ℬ) (X : ℬ) (f : ∀ i, A i ⟶ X) :
-    @DiagCocone I discCatTC ℬ _ A (discFunTC A) :=
+    @DiagCocone I discCatTC ℬ _ (discFunTC A) :=
   { nadir := X, ι := f,
-    nat := by intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij; simp [Functor.map, Cat.id_comp] }
+    nat := by intro i j x; obtain ⟨⟨hij⟩⟩ := x; subst hij; simp [discFunTC, Cat.id_comp] }
 
 noncomputable def cocomplete_hasAllCoproducts (hc : Cocomplete ℬ) : HasAllCoproducts ℬ where
   coprod {I} A :=
-    { obj  := (@hc.hasColimit I discCatTC A (discFunTC A)).cocone.nadir
-      inj  := (@hc.hasColimit I discCatTC A (discFunTC A)).cocone.ι
-      desc := fun {X} f => (@hc.hasColimit I discCatTC A (discFunTC A)).lift (cocompleteCoconeOf A X f)
-      fac  := fun {X} f i => (@hc.hasColimit I discCatTC A (discFunTC A)).fac (cocompleteCoconeOf A X f) i
-      uniq := fun {X} f h hh => (@hc.hasColimit I discCatTC A (discFunTC A)).uniq (cocompleteCoconeOf A X f) h hh }
+    { obj  := (@hc.hasColimit I discCatTC (discFunTC A)).cocone.nadir
+      inj  := (@hc.hasColimit I discCatTC (discFunTC A)).cocone.ι
+      desc := fun {X} f => (@hc.hasColimit I discCatTC (discFunTC A)).lift (cocompleteCoconeOf A X f)
+      fac  := fun {X} f i => (@hc.hasColimit I discCatTC (discFunTC A)).fac (cocompleteCoconeOf A X f) i
+      uniq := fun {X} f h hh => (@hc.hasColimit I discCatTC (discFunTC A)).uniq (cocompleteCoconeOf A X f) h hh }
 
 end CocompleteFromCoprodCoeq
 

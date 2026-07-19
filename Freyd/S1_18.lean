@@ -39,41 +39,68 @@ import Freyd.S1_41
 
 open Freyd
 
-universe v u u₁ u₂
+universe v u u₁ u₂ u₃
 
 variable {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
 
 namespace Freyd
 
-/-- §1.18  A functor from `𝒞` to `𝒟`.
-
-    `F : 𝒞 → 𝒟` is the map on objects.  The class provides:
-    - `map`   : for each `f : X ⟶ Y`, a morphism `map f : F X ⟶ F Y`.
+/-- §1.18  A functor from `𝒞` to `𝒟`, bundled as one structure:
+    - `obj`   : the map on objects.
+    - `map`   : for each `f : X ⟶ Y`, a morphism `map f : obj X ⟶ obj Y`.
     - `map_id` / `map_comp` : preservation laws.
 
     In the book's single-sorted language, a functor is a function `F`
     on morphisms such that `□(Fx) = F(□x)`, `(Fx)□ = F(x□)`, and
-    `F(xy) = (Fx)(Fy)`.  Our object-centric definition is equivalent. -/
-class Functor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] (F : C → D) where
-  map  : {X Y : C} → (X ⟶ Y) → (F X ⟶ F Y)
-  map_id : ∀ (X : C), map (Cat.id X) = Cat.id (F X)
+    `F(xy) = (Fx)(Fy)`.  Our object-centric definition is equivalent.
+    (Bundled rather than a class over the object map: distinct functors
+    routinely share an object map — e.g. functors between one-object
+    categories are monoid homomorphisms — so the morphism action cannot
+    be recovered by instance search.) -/
+structure Functor (C : Type u₁) (D : Type u₂) [Cat.{v} C] [Cat.{v} D] where
+  obj  : C → D
+  map  : {X Y : C} → (X ⟶ Y) → (obj X ⟶ obj Y)
+  map_id : ∀ (X : C), map (Cat.id X) = Cat.id (obj X)
   map_comp : ∀ {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map f ≫ map g
 
-/-- The identity functor `1_𝒞` : every object and morphism maps to itself. -/
-instance idFunctor : Functor (λ X : 𝒞 => X) where
+/-- The identity functor `1_𝒞` : every object and morphism maps to itself.
+    Reducible so that `idFunctor.obj X`/`idFunctor.map f` compute to `X`/`f` at reducible
+    transparency — the bundled replacement for the old raw `λ X => X` object map, which
+    β-reduced on its own in identity/naturality laws. -/
+@[reducible] def idFunctor : Functor 𝒞 𝒞 where
+  obj X := X
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
 
-/-- Composition `G ∘ F` of two functors as a global instance. -/
-instance compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 → ℰ}
-    [hf : Functor F] [hg : Functor G] : Functor (G ∘ F) where
-  map f := hg.map (hf.map f)
+/-- Composition of two functors, in diagram order: first `F`, then `G`.
+    Fully universe-polymorphic (source, middle, target may live in different object
+    universes) so it also serves the cross-universe compositions §1.1(10) needs. -/
+def compFunctor {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D] {E : Type u₃} [Cat.{v} E]
+    (F : Functor C D) (G : Functor D E) : Functor C E where
+  obj X := G.obj (F.obj X)
+  map f := G.map (F.map f)
   map_id X := by
-    dsimp
-    rw [hf.map_id, hg.map_id]
+    rw [F.map_id, G.map_id]
   map_comp f g := by
-    rw [hf.map_comp, hg.map_comp]
+    rw [F.map_comp, G.map_comp]
+
+/-! Definitional computation lemmas for `idFunctor`/`compFunctor` (all `rfl`), marked
+    `@[simp]` so `simp` normalizes the object/morphism action of composites and the
+    identity — the standard idiom, needed because a bundled functor's `.obj`/`.map`
+    projection does not β-reduce on its own (unlike the old raw `λ X => X`). -/
+
+@[simp] theorem idFunctor_obj (X : 𝒞) : (idFunctor : Functor 𝒞 𝒞).obj X = X := rfl
+
+@[simp] theorem idFunctor_map {X Y : 𝒞} (f : X ⟶ Y) : (idFunctor : Functor 𝒞 𝒞).map f = f := rfl
+
+@[simp] theorem compFunctor_obj {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    {E : Type u₃} [Cat.{v} E] (F : Functor C D) (G : Functor D E)
+    (X : C) : (compFunctor F G).obj X = G.obj (F.obj X) := rfl
+
+@[simp] theorem compFunctor_map {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
+    {E : Type u₃} [Cat.{v} E] (F : Functor C D) (G : Functor D E)
+    {X Y : C} (f : X ⟶ Y) : (compFunctor F G).map f = G.map (F.map f) := rfl
 
 /-! ## §1.181 as a general concept: preservation / reflection of a morphism-property -/
 
@@ -81,12 +108,12 @@ instance compFunctor {ℰ : Type _} [Cat.{v} ℰ] {F : 𝒞 → 𝒟} {G : 𝒟 
 abbrev MorphProp := ∀ {𝒜 : Type u} [Cat.{v} 𝒜] {X Y : 𝒜}, (X ⟶ Y) → Prop
 
 /-- `F` PRESERVES `P` if it carries `P`-arrows to `P`-arrows. -/
-def Preserves {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
-  ∀ {X Y : ℰ} {f : X ⟶ Y}, P f → P (hF.map f)
+def Preserves {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : Functor ℰ ℱ) (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : ℰ} {f : X ⟶ Y}, P f → P (F.map f)
 
 /-- `F` REFLECTS `P` if a `P`-image forces a `P`-arrow (the shape of the §1.531 Slice Lemma). -/
-def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [hF : Functor F] (P : MorphProp.{v,u}) : Prop :=
-  ∀ {X Y : ℰ} {f : X ⟶ Y}, P (hF.map f) → P f
+def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : Functor ℰ ℱ) (P : MorphProp.{v,u}) : Prop :=
+  ∀ {X Y : ℰ} {f : X ⟶ Y}, P (F.map f) → P f
 
 /-! ### Cross-universe preservation/reflection of `Monic`
 
@@ -101,13 +128,13 @@ def Reflects {ℰ ℱ : Type u} [Cat.{v} ℰ] [Cat.{v} ℱ] (F : ℰ → ℱ) [h
 
 /-- `F` PRESERVES monos: it carries monos to monos. -/
 def PreservesMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : Functor F] : Prop :=
-  ∀ {X Y : C} {f : X ⟶ Y}, Monic f → Monic (hF.map f)
+    (F : Functor C D) : Prop :=
+  ∀ {X Y : C} {f : X ⟶ Y}, Monic f → Monic (F.map f)
 
 /-- `F` REFLECTS monos: a mono image forces a mono. -/
 def ReflectsMono {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [hF : Functor F] : Prop :=
-  ∀ {X Y : C} {f : X ⟶ Y}, Monic (hF.map f) → Monic f
+    (F : Functor C D) : Prop :=
+  ∀ {X Y : C} {f : X ⟶ Y}, Monic (F.map f) → Monic f
 
 /-- A morphism has a right inverse: there exists `g` such that `f ≫ g = id`. -/
 def HasRightInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), f ≫ g = Cat.id X
@@ -118,27 +145,25 @@ def HasLeftInv : MorphProp.{v,u} := λ {_} _ {X Y} f => ∃ (g : Y ⟶ X), g ≫
 /-- **§1.181 restated**: every functor preserves isomorphisms.  This is the one
     morphism-property preserved by *all* functors; preservation of `@Monic`, `@Cover`, … are
     separate statements that need hypotheses on `F`. -/
-theorem preserves_iso (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F @IsIso := by
+theorem preserves_iso (F : Functor 𝒞 𝒟) : Preserves F @IsIso := by
   intro X Y f hf
   obtain ⟨g, hfg, hgf⟩ := hf
-  exact ⟨hF.map g,
-    by rw [← hF.map_comp, hfg, hF.map_id],
-    by rw [← hF.map_comp, hgf, hF.map_id]⟩
+  exact ⟨F.map g,
+    by rw [← F.map_comp, hfg, F.map_id],
+    by rw [← F.map_comp, hgf, F.map_id]⟩
 
 /-- **§1.181**: every functor preserves right-invertibility. -/
-theorem preserves_has_right_inv (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F HasRightInv := by
+theorem preserves_has_right_inv (F : Functor 𝒞 𝒟) : Preserves F HasRightInv := by
   intro X Y f ⟨g, hfg⟩
-  exact ⟨hF.map g, by rw [← hF.map_comp, hfg, hF.map_id]⟩
+  exact ⟨F.map g, by rw [← F.map_comp, hfg, F.map_id]⟩
 
 /-- **§1.181**: every functor preserves left-invertibility. -/
-theorem preserves_has_left_inv (F : 𝒞 → 𝒟) [hF : Functor F] : Preserves F HasLeftInv := by
+theorem preserves_has_left_inv (F : Functor 𝒞 𝒟) : Preserves F HasLeftInv := by
   intro X Y f ⟨g, hgf⟩
-  exact ⟨hF.map g, by rw [← hF.map_comp, hgf, hF.map_id]⟩
+  exact ⟨F.map g, by rw [← F.map_comp, hgf, F.map_id]⟩
 
 section FunctorProperties
--- The theorems below all share the same functor `F` and its instance `h`;
--- declaring them once as section variables avoids repeating them.
-variable {F : 𝒞 → 𝒟} [h : Functor F]
+variable {F : Functor 𝒞 𝒟}
 
 /-- **§1.181**: a functor preserves isomorphisms.
 
@@ -146,7 +171,7 @@ variable {F : 𝒞 → 𝒟} [h : Functor F]
     has a two-sided inverse in `𝒟`.  This is an instance of the
     general `Preserves` notion — every functor `Preserves` `@IsIso`. -/
 theorem functor_preserves_iso {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) :
-    IsIso (h.map f) :=
+    IsIso (F.map f) :=
   preserves_iso F hf
 
 /-- **§1.181**: the image of the inverse is an inverse of the image.
@@ -156,11 +181,11 @@ theorem functor_preserves_iso {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) :
     `F.map f`.  Returns both equations as a pair (`∧`). -/
 theorem functor_map_inv {X Y : 𝒞} (f : X ⟶ Y) (g : Y ⟶ X)
     (hfg : f ≫ g = Cat.id X) (hgf : g ≫ f = Cat.id Y) :
-    h.map f ≫ h.map g = Cat.id (F X) ∧
-    h.map g ≫ h.map f = Cat.id (F Y) := by
+    F.map f ≫ F.map g = Cat.id (F.obj X) ∧
+    F.map g ≫ F.map f = Cat.id (F.obj Y) := by
   constructor
-  · rw [← h.map_comp, hfg, h.map_id]
-  · rw [← h.map_comp, hgf, h.map_id]
+  · rw [← F.map_comp, hfg, F.map_id]
+  · rw [← F.map_comp, hgf, F.map_id]
 
 end FunctorProperties
 
@@ -210,6 +235,6 @@ def IdMorphs (C : Type u) [Cat.{v} C] := C
 /-- **§1.19**: A functor `F : 𝒞 → 𝒟` induces a function `|𝒞| → |𝒟|`
     by sending each identity `id_X` to the identity `id_{FX}`. -/
 def functor_on_idMorphs {C : Type u₁} [Cat.{v} C] {D : Type u₂} [Cat.{v} D]
-    (F : C → D) [Functor F] : IdMorphs C → IdMorphs D := F
+    (F : Functor C D) : IdMorphs C → IdMorphs D := F.obj
 
 

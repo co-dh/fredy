@@ -69,8 +69,8 @@ theorem colimHom_epiCase_of_rep (C : CatSystem ι D) (hC : C.Coherent)
     (f₁ : C.F hcb (colimOut C B).2 ⟶ C.F hpd (colimOut C P).2)
     (hcancel : ∀ {j : ι} (hjk : D.le L j) (z : C.A j)
         (u v : C.F hjk (C.F hpd (colimOut C P).2) ⟶ z),
-        (C.functF hjk).map f₀ ≫ u = (C.functF hjk).map f₀ ≫ v →
-        (C.functF hjk).map f₁ ≫ u = (C.functF hjk).map f₁ ≫ v → u = v)
+        C.Fmap hjk f₀ ≫ u = C.Fmap hjk f₀ ≫ v →
+        C.Fmap hjk f₁ ≫ u = C.Fmap hjk f₁ ≫ v → u = v)
     {W : C.Obj}
     (s t : colimHom C hC P W)
     (hf : colimComp C hC (homIncl C hC (colimOut C A).2 (colimOut C P).2 ⟨L, hca, hpd⟩ f₀) s
@@ -119,9 +119,9 @@ theorem colimHom_epiCase_of_rep (C : CatSystem ι D) (hC : C.Coherent)
   have hHcA2 : C.F hLLf (C.F hca xA) = C.F hiAL xA := (C.F_trans hca hLLf xA).symm
   have hHcB2 : C.F hLLf (C.F hcb xB) = C.F hiBL xB := (C.F_trans hcb hLLf xB).symm
   have hpush_f0 : homTr C xA xP ⟨L, hca, hpd⟩ ⟨Lf, hiAL, hiPL⟩ hLLf f₀
-      = castHom hHcA2 hHcA ((C.functF hLLf).map f₀) := rfl
+      = castHom hHcA2 hHcA (C.Fmap hLLf f₀) := rfl
   have hpush_f1 : homTr C xB xP ⟨L, hcb, hpd⟩ ⟨Lf, hiBL, hiPL⟩ hLLf f₁
-      = castHom hHcB2 hHcA ((C.functF hLLf).map f₁) := rfl
+      = castHom hHcB2 hHcA (C.Fmap hLLf f₁) := rfl
   rw [hpush_f0] at keyf
   rw [hpush_f1] at keys
   -- cast slides (dual: domain/codomain swapped vs. the products `cR`/`cT`)
@@ -162,12 +162,12 @@ theorem objIncl_preserves_coproducts (C : CatSystem ι D) (hC : C.Coherent)
     (hcop : ∀ i, HasBinaryCoproducts (C.A i))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : C.F hij ((hcop i).coprod a b) ⟶ z),
-        (C.functF hij).map (hcop i).inl ≫ u = (C.functF hij).map (hcop i).inl ≫ v →
-        (C.functF hij).map (hcop i).inr ≫ u = (C.functF hij).map (hcop i).inr ≫ v → u = v)
+        C.Fmap hij (hcop i).inl ≫ u = C.Fmap hij (hcop i).inl ≫ v →
+        C.Fmap hij (hcop i).inr ≫ u = C.Fmap hij (hcop i).inr ≫ v → u = v)
     (hcoppres_case : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : C.F hij a ⟶ z) (q : C.F hij b ⟶ z),
         ∃ r : C.F hij ((hcop i).coprod a b) ⟶ z,
-          (C.functF hij).map (hcop i).inl ≫ r = p ∧ (C.functF hij).map (hcop i).inr ≫ r = q)
+          C.Fmap hij (hcop i).inl ≫ r = p ∧ C.Fmap hij (hcop i).inr ≫ r = q)
     (i : ι) (a b : C.A i) :
     @IsIso C.Obj (colimitCat C hC) _ _
       (@HasBinaryCoproducts.case C.Obj (colimitCat C hC)
@@ -223,15 +223,15 @@ theorem objIncl_preserves_coproducts (C : CatSystem ι D) (hC : C.Coherent)
       (congrArg (C.F hjk) hgaL).trans (C.F_trans hiL hjk a).symm
     have e_b : C.F hjk (C.F (D.trans hpb hkbL) xb) = C.F (D.trans hiL hjk) b :=
       (congrArg (C.F hjk) hgbL).trans (C.F_trans hiL hjk b).symm
-    have hmapF : (C.functF hjk).map (wF.germ inlS)
-        = castHom e_a.symm e_P.symm ((C.functF (D.trans hiL hjk)).map inlS) := by
+    have hmapF : C.Fmap hjk (wF.germ inlS)
+        = castHom e_a.symm e_P.symm (C.Fmap (D.trans hiL hjk) inlS) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      rw [C.Fmap_castHom hjk]
       exact castHom_heq_congr _ _ e_a.symm e_P.symm (hC.trans_map hiL hjk inlS).symm
-    have hmapS : (C.functF hjk).map (wS.germ inrS)
-        = castHom e_b.symm e_P.symm ((C.functF (D.trans hiL hjk)).map inrS) := by
+    have hmapS : C.Fmap hjk (wS.germ inrS)
+        = castHom e_b.symm e_P.symm (C.Fmap (D.trans hiL hjk) inrS) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      rw [C.Fmap_castHom hjk]
       exact castHom_heq_congr _ _ e_b.symm e_P.symm (hC.trans_map hiL hjk inrS).symm
     have cR : ∀ {U V V' R : C.A j} (he : V = V') (c : U ⟶ V') (m : V ⟶ R),
         c ≫ castHom he rfl m = castHom rfl he.symm c ≫ m := by
@@ -241,12 +241,12 @@ theorem objIncl_preserves_coproducts (C : CatSystem ι D) (hC : C.Coherent)
       intro _ _ _ _ he b c; subst he; rfl
     rw [hmapF] at hu
     rw [hmapS] at hv
-    have huu : (C.functF (D.trans hiL hjk)).map inlS ≫ (castHom e_P rfl u)
-        = (C.functF (D.trans hiL hjk)).map inlS ≫ (castHom e_P rfl v) := by
+    have huu : C.Fmap (D.trans hiL hjk) inlS ≫ (castHom e_P rfl u)
+        = C.Fmap (D.trans hiL hjk) inlS ≫ (castHom e_P rfl v) := by
       apply castHom_injective e_a.symm rfl
       rw [cT, cT, cR, cR, castHom_castHom]; exact hu
-    have hvv : (C.functF (D.trans hiL hjk)).map inrS ≫ (castHom e_P rfl u)
-        = (C.functF (D.trans hiL hjk)).map inrS ≫ (castHom e_P rfl v) := by
+    have hvv : C.Fmap (D.trans hiL hjk) inrS ≫ (castHom e_P rfl u)
+        = C.Fmap (D.trans hiL hjk) inrS ≫ (castHom e_P rfl v) := by
       apply castHom_injective e_b.symm rfl
       rw [cT, cT, cR, cR, castHom_castHom]; exact hv
     exact castHom_injective e_P rfl
@@ -301,11 +301,11 @@ theorem objIncl_preserves_coproducts (C : CatSystem ι D) (hC : C.Coherent)
       ⟨wFN.K, wFN.hpx, wFN.hpy⟩ (wFN.germ inlS)
       ⟨N, D.trans (D.trans hpP hkPL) hLN, D.trans af.2.2 hafN⟩ rgerm af fa N (D.refl N) (D.refl N) hafN ?_
     rw [homTr_refl C hC, homTr_refl C hC]
-    show castHom hgaN.symm hgPN.symm ((C.functF hiN).map inlS) ≫ rgerm
+    show castHom hgaN.symm hgPN.symm (C.Fmap hiN inlS) ≫ rgerm
       = homTr C xa z af ⟨N, D.trans af.2.1 hafN, D.trans af.2.2 hafN⟩ hafN fa
-    show castHom hgaN.symm hgPN.symm ((C.functF hiN).map inlS) ≫ castHom hgPN.symm rfl r = fL_raw
+    show castHom hgaN.symm hgPN.symm (C.Fmap hiN inlS) ≫ castHom hgPN.symm rfl r = fL_raw
     rw [castHom_comp]
-    rw [show (C.functF hiN).map inlS ≫ r = pL from hr_inl]
+    rw [show C.Fmap hiN inlS ≫ r = pL from hr_inl]
     show castHom hgaN.symm rfl (castHom hfa_tgt rfl fL_raw) = fL_raw
     rw [castHom_castHom]
     exact castHom_of_heq _ rfl HEq.rfl
@@ -319,10 +319,10 @@ theorem objIncl_preserves_coproducts (C : CatSystem ι D) (hC : C.Coherent)
       ⟨wSN.K, wSN.hpx, wSN.hpy⟩ (wSN.germ inrS)
       ⟨N, D.trans (D.trans hpP hkPL) hLN, D.trans af.2.2 hafN⟩ rgerm bg ga N (D.refl N) (D.refl N) hbgN ?_
     rw [homTr_refl C hC, homTr_refl C hC]
-    show castHom hgbN.symm hgPN.symm ((C.functF hiN).map inrS) ≫ castHom hgPN.symm rfl r
+    show castHom hgbN.symm hgPN.symm (C.Fmap hiN inrS) ≫ castHom hgPN.symm rfl r
       = homTr C xb z bg ⟨N, D.trans bg.2.1 hbgN, D.trans bg.2.2 hbgN⟩ hbgN ga
     rw [castHom_comp]
-    rw [show (C.functF hiN).map inrS ≫ r = qL from hr_inr]
+    rw [show C.Fmap hiN inrS ≫ r = qL from hr_inr]
     show castHom hgbN.symm rfl (castHom hgb_tgt hzeq gL_raw) = gL_raw
     rw [castHom_castHom]
     exact castHom_of_heq _ hzeq HEq.rfl

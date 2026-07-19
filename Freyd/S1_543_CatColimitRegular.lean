@@ -106,12 +106,12 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q) :
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q) :
     @HasBinaryProducts C.Obj (colimitCat C hC) := by
   -- Helper: proof irrelevance for D.le (a Prop)
   have hDirSubsingleton : ∀ {i j : ι} (h h' : D.le i j), h = h' := by
@@ -158,14 +158,14 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
         (calc
           C.F (h_k_kp A B) (ak A B) = C.F (h_k_kp A B) (C.F (hA_k A B) (xObj A)) := rfl
           _ = C.F (D.trans (hA_k A B) (h_k_kp A B)) (xObj A) := by rw [C.F_trans (hA_k A B) (h_k_kp A B) (xObj A)])
-        ((C.functF (h_k_kp A B)).map ((hp (k A B)).fst (A:=ak A B) (B:=bk A B))))
+        (C.Fmap (h_k_kp A B) ((hp (k A B)).fst (A:=ak A B) (B:=bk A B))))
   let snd {A B : C.Obj} : colimHom C hC (prodFun A B) B :=
     homIncl C hC (op A B) (xObj B) ⟨kp A B, h_ip_kp A B, D.trans (hB_k A B) (h_k_kp A B)⟩
       (castHom (h_prod_eq A B).symm
         (calc
           C.F (h_k_kp A B) (bk A B) = C.F (h_k_kp A B) (C.F (hB_k A B) (xObj B)) := rfl
           _ = C.F (D.trans (hB_k A B) (h_k_kp A B)) (xObj B) := by rw [C.F_trans (hB_k A B) (h_k_kp A B) (xObj B)])
-        ((C.functF (h_k_kp A B)).map ((hp (k A B)).snd (A:=ak A B) (B:=bk A B))))
+        (C.Fmap (h_k_kp A B) ((hp (k A B)).snd (A:=ak A B) (B:=bk A B))))
   -- Existence of a mediating morphism for any f, g (used to define pair via choice)
   have h_exists_pair (Z X Y : C.Obj) (f : colimHom C hC Z X) (g : colimHom C hC Z Y) :
       ∃ h : colimHom C hC Z (prodFun X Y),
@@ -236,7 +236,7 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
         (calc
           C.F h_k_kp0 (ak X Y) = C.F h_k_kp0 (C.F (hA_k X Y) (xObj X)) := rfl
           _ = C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) := by rw [C.F_trans (hA_k X Y) h_k_kp0 (xObj X)])
-        ((C.functF h_k_kp0).map ((hp k0).fst (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap h_k_kp0 ((hp k0).fst (A:=ak X Y) (B:=bk X Y)))
     have h_fst_eq : fst (A:=X) (B:=Y) = homIncl C hC op0 (xObj X) ub_fst m_fst := rfl
     have h_fst_ok : colimComp C hC h (fst (A:=X) (B:=Y)) = Quotient.mk (setoid (homSystem C hC z (xObj X))) ⟨af, fa⟩ := by
       show homCompRaw C hC z op0 (xObj X) ub_pair r' ub_fst m_fst = homIncl C hC z (xObj X) af fa
@@ -248,9 +248,9 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
       rw [h1]
       have h_mfst_push : homTr C op0 (xObj X) ub_fst ⟨M, D.trans ub_fst.2.1 hkpM, D.trans ub_fst.2.2 hkpM⟩ hkpM m_fst
           = castHom (h_prod_eq_M.symm) (h_fa_to_ak.symm.trans (hF_proof_irrel _ _ _))
-              ((C.functF h_k_M).map ((hp k0).fst (A:=ak X Y) (B:=bk X Y))) := by
+              (C.Fmap h_k_M ((hp k0).fst (A:=ak X Y) (B:=bk X Y))) := by
         dsimp [homTr, m_fst]
-        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        rw [C.Fmap_castHom hkpM, castHom_castHom]
         exact castHom_heq_congr _ _ _ _
           (hC.trans_map h_k_kp0 hkpM ((hp k0).fst (A:=ak X Y) (B:=bk X Y))).symm
       rw [h_mfst_push]
@@ -268,7 +268,7 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
           (calc
             C.F h_k_kp0 (bk X Y) = C.F h_k_kp0 (C.F (hB_k X Y) (xObj Y)) := rfl
             _ = C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) := by rw [C.F_trans (hB_k X Y) h_k_kp0 (xObj Y)])
-          ((C.functF h_k_kp0).map ((hp k0).snd (A:=ak X Y) (B:=bk X Y)))
+          (C.Fmap h_k_kp0 ((hp k0).snd (A:=ak X Y) (B:=bk X Y)))
       show homCompRaw C hC z op0 (xObj Y) ub_pair r' ub_snd m_snd = homIncl C hC z (xObj Y) ag ga
       refine homCompRaw_eq_of_stage C hC z op0 (xObj Y) ub_pair r' ub_snd m_snd ag ga M
         (D.refl M) hkpM hbM ?_
@@ -277,9 +277,9 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
       rw [h1]
       have h_msnd_push : homTr C op0 (xObj Y) ub_snd ⟨M, D.trans ub_snd.2.1 hkpM, D.trans ub_snd.2.2 hkpM⟩ hkpM m_snd
           = castHom (h_prod_eq_M.symm) (h_gb_to_bk.symm.trans (hF_proof_irrel _ _ _))
-              ((C.functF h_k_M).map ((hp k0).snd (A:=ak X Y) (B:=bk X Y))) := by
+              (C.Fmap h_k_M ((hp k0).snd (A:=ak X Y) (B:=bk X Y))) := by
         dsimp [homTr, m_snd]
-        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        rw [C.Fmap_castHom hkpM, castHom_castHom]
         exact castHom_heq_congr _ _ _ _
           (hC.trans_map h_k_kp0 hkpM ((hp k0).snd (A:=ak X Y) (B:=bk X Y))).symm
       rw [h_msnd_push]
@@ -316,13 +316,13 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
       castHom (h_prod_eq X Y).symm
         (calc C.F (h_k_kp X Y) (ak X Y) = C.F (h_k_kp X Y) (C.F (hA_k X Y) (xObj X)) := rfl
           _ = C.F (D.trans (hA_k X Y) (h_k_kp X Y)) (xObj X) := by rw [C.F_trans (hA_k X Y) (h_k_kp X Y) (xObj X)])
-        ((C.functF (h_k_kp X Y)).map ((hp (k X Y)).fst (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap (h_k_kp X Y) ((hp (k X Y)).fst (A:=ak X Y) (B:=bk X Y)))
     let ub_sndg : UpperBound D (ip X Y) (iObj Y) := ⟨kp X Y, h_ip_kp X Y, D.trans (hB_k X Y) (h_k_kp X Y)⟩
     let m_sndg : C.F (h_ip_kp X Y) (op X Y) ⟶ C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) :=
       castHom (h_prod_eq X Y).symm
         (calc C.F (h_k_kp X Y) (bk X Y) = C.F (h_k_kp X Y) (C.F (hB_k X Y) (xObj Y)) := rfl
           _ = C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) := by rw [C.F_trans (hB_k X Y) (h_k_kp X Y) (xObj Y)])
-        ((C.functF (h_k_kp X Y)).map ((hp (k X Y)).snd (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap (h_k_kp X Y) ((hp (k X Y)).snd (A:=ak X Y) (B:=bk X Y)))
     have er1 : homCompRaw C hC (colimOut C Z).2 (op X Y) (xObj X) ah mha ub_fstg m_fstg
              = homCompRaw C hC (colimOut C Z).2 (op X Y) (xObj X) ap mpa ub_fstg m_fstg := e1
     have er2 : homCompRaw C hC (colimOut C Z).2 (op X Y) (xObj Y) ah mha ub_sndg m_sndg
@@ -369,15 +369,15 @@ noncomputable def colimitHasBinaryProducts (C : CatSystem ι D) (hC : C.Coherent
       rw [show C.F hk_L (bk X Y) = C.F hk_L (C.F (hB_k X Y) (xObj Y)) from rfl,
           ← C.F_trans (hB_k X Y) hk_L (xObj Y)]
     have hpush_f : homTr C (op X Y) (xObj X) ub_fstg ⟨L, D.trans ub_fstg.2.1 hkp_L, D.trans ub_fstg.2.2 hkp_L⟩ hkp_L m_fstg
-        = castHom h_prod_eq_L.symm h_aktoX_L ((C.functF hk_L).map ((hp (k X Y)).fst (A:=ak X Y) (B:=bk X Y))) := by
+        = castHom h_prod_eq_L.symm h_aktoX_L (C.Fmap hk_L ((hp (k X Y)).fst (A:=ak X Y) (B:=bk X Y))) := by
       dsimp [homTr, m_fstg]
-      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      rw [C.Fmap_castHom hkp_L, castHom_castHom]
       exact castHom_heq_congr _ _ _ _
         (hC.trans_map (h_k_kp X Y) hkp_L ((hp (k X Y)).fst (A:=ak X Y) (B:=bk X Y))).symm
     have hpush_s : homTr C (op X Y) (xObj Y) ub_sndg ⟨L, D.trans ub_sndg.2.1 hkp_L, D.trans ub_sndg.2.2 hkp_L⟩ hkp_L m_sndg
-        = castHom h_prod_eq_L.symm h_bktoY_L ((C.functF hk_L).map ((hp (k X Y)).snd (A:=ak X Y) (B:=bk X Y))) := by
+        = castHom h_prod_eq_L.symm h_bktoY_L (C.Fmap hk_L ((hp (k X Y)).snd (A:=ak X Y) (B:=bk X Y))) := by
       dsimp [homTr, m_sndg]
-      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      rw [C.Fmap_castHom hkp_L, castHom_castHom]
       exact castHom_heq_congr _ _ _ _
         (hC.trans_map (h_k_kp X Y) hkp_L ((hp (k X Y)).snd (A:=ak X Y) (B:=bk X Y))).symm
     rw [hpush_f] at key_f
@@ -428,12 +428,12 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
     (hcop : ∀ i, HasBinaryCoproducts (C.A i))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : C.F hij ((hcop i).coprod a b) ⟶ z),
-        (C.functF hij).map (hcop i).inl ≫ u = (C.functF hij).map (hcop i).inl ≫ v →
-        (C.functF hij).map (hcop i).inr ≫ u = (C.functF hij).map (hcop i).inr ≫ v → u = v)
+        C.Fmap hij (hcop i).inl ≫ u = C.Fmap hij (hcop i).inl ≫ v →
+        C.Fmap hij (hcop i).inr ≫ u = C.Fmap hij (hcop i).inr ≫ v → u = v)
     (hcoppres_case : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : C.F hij a ⟶ z) (q : C.F hij b ⟶ z),
         ∃ r : C.F hij ((hcop i).coprod a b) ⟶ z,
-          (C.functF hij).map (hcop i).inl ≫ r = p ∧ (C.functF hij).map (hcop i).inr ≫ r = q) :
+          C.Fmap hij (hcop i).inl ≫ r = p ∧ C.Fmap hij (hcop i).inr ≫ r = q) :
     @HasBinaryCoproducts C.Obj (colimitCat C hC) := by
   have hDirSubsingleton : ∀ {i j : ι} (h h' : D.le i j), h = h' := by
     intro i j h h'; exact Subsingleton.elim h h'
@@ -480,7 +480,7 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
           C.F (h_k_kp A B) (ak A B) = C.F (h_k_kp A B) (C.F (hA_k A B) (xObj A)) := rfl
           _ = C.F (D.trans (hA_k A B) (h_k_kp A B)) (xObj A) := by rw [C.F_trans (hA_k A B) (h_k_kp A B) (xObj A)])
         (h_coprod_eq A B).symm
-        ((C.functF (h_k_kp A B)).map ((hcop (k A B)).inl (A:=ak A B) (B:=bk A B))))
+        (C.Fmap (h_k_kp A B) ((hcop (k A B)).inl (A:=ak A B) (B:=bk A B))))
   let inr {A B : C.Obj} : colimHom C hC B (coprodFun A B) :=
     homIncl C hC (xObj B) (op A B) ⟨kp A B, D.trans (hB_k A B) (h_k_kp A B), h_ip_kp A B⟩
       (castHom
@@ -488,7 +488,7 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
           C.F (h_k_kp A B) (bk A B) = C.F (h_k_kp A B) (C.F (hB_k A B) (xObj B)) := rfl
           _ = C.F (D.trans (hB_k A B) (h_k_kp A B)) (xObj B) := by rw [C.F_trans (hB_k A B) (h_k_kp A B) (xObj B)])
         (h_coprod_eq A B).symm
-        ((C.functF (h_k_kp A B)).map ((hcop (k A B)).inr (A:=ak A B) (B:=bk A B))))
+        (C.Fmap (h_k_kp A B) ((hcop (k A B)).inr (A:=ak A B) (B:=bk A B))))
   -- Existence of a mediating morphism OUT of the coproduct for any f, g.
   have h_exists_case (Z X Y : C.Obj) (f : colimHom C hC X Z) (g : colimHom C hC Y Z) :
       ∃ h : colimHom C hC (coprodFun X Y) Z,
@@ -557,7 +557,7 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
           C.F h_k_kp0 (ak X Y) = C.F h_k_kp0 (C.F (hA_k X Y) (xObj X)) := rfl
           _ = C.F (D.trans (hA_k X Y) h_k_kp0) (xObj X) := by rw [C.F_trans (hA_k X Y) h_k_kp0 (xObj X)])
         h_coprod_eq0.symm
-        ((C.functF h_k_kp0).map ((hcop k0).inl (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap h_k_kp0 ((hcop k0).inl (A:=ak X Y) (B:=bk X Y)))
     have h_inl_eq : inl (A:=X) (B:=Y) = homIncl C hC (xObj X) op0 ub_inl m_inl := rfl
     have h_inl_ok : colimComp C hC (inl (A:=X) (B:=Y)) h
         = Quotient.mk (setoid (homSystem C hC (xObj X) z)) ⟨af, fa⟩ := by
@@ -568,9 +568,9 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
         simpa [ub_pair] using homTr_refl C hC op0 z ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
       have h_minl_push : homTr C (xObj X) op0 ub_inl ⟨M, D.trans ub_inl.2.1 hkpM, D.trans ub_inl.2.2 hkpM⟩ hkpM m_inl
           = castHom (h_fa_to_ak.symm.trans (hF_proof_irrel _ _ _)) (h_coprod_eq_M.symm)
-              ((C.functF h_k_M).map ((hcop k0).inl (A:=ak X Y) (B:=bk X Y))) := by
+              (C.Fmap h_k_M ((hcop k0).inl (A:=ak X Y) (B:=bk X Y))) := by
         dsimp [homTr, m_inl]
-        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        rw [C.Fmap_castHom hkpM, castHom_castHom]
         exact castHom_heq_congr _ _ _ _
           (hC.trans_map h_k_kp0 hkpM ((hcop k0).inl (A:=ak X Y) (B:=bk X Y))).symm
       rw [h_minl_push, h2]
@@ -589,7 +589,7 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
             C.F h_k_kp0 (bk X Y) = C.F h_k_kp0 (C.F (hB_k X Y) (xObj Y)) := rfl
             _ = C.F (D.trans (hB_k X Y) h_k_kp0) (xObj Y) := by rw [C.F_trans (hB_k X Y) h_k_kp0 (xObj Y)])
           h_coprod_eq0.symm
-          ((C.functF h_k_kp0).map ((hcop k0).inr (A:=ak X Y) (B:=bk X Y)))
+          (C.Fmap h_k_kp0 ((hcop k0).inr (A:=ak X Y) (B:=bk X Y)))
       show homCompRaw C hC (xObj Y) op0 z ub_inr m_inr ub_pair r' = homIncl C hC (xObj Y) z ag ga
       refine homCompRaw_eq_of_stage C hC (xObj Y) op0 z ub_inr m_inr ub_pair r' ag ga M
         hkpM (D.refl M) hbM ?_
@@ -597,9 +597,9 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
         simpa [ub_pair] using homTr_refl C hC op0 z ⟨M, D.trans ub_pair.2.1 (D.refl M), D.trans ub_pair.2.2 (D.refl M)⟩ r'
       have h_minr_push : homTr C (xObj Y) op0 ub_inr ⟨M, D.trans ub_inr.2.1 hkpM, D.trans ub_inr.2.2 hkpM⟩ hkpM m_inr
           = castHom (h_gb_to_bk.symm.trans (hF_proof_irrel _ _ _)) (h_coprod_eq_M.symm)
-              ((C.functF h_k_M).map ((hcop k0).inr (A:=ak X Y) (B:=bk X Y))) := by
+              (C.Fmap h_k_M ((hcop k0).inr (A:=ak X Y) (B:=bk X Y))) := by
         dsimp [homTr, m_inr]
-        rw [map_castHom (C.F hkpM) (hT := C.functF hkpM), castHom_castHom]
+        rw [C.Fmap_castHom hkpM, castHom_castHom]
         exact castHom_heq_congr _ _ _ _
           (hC.trans_map h_k_kp0 hkpM ((hcop k0).inr (A:=ak X Y) (B:=bk X Y))).symm
       rw [h_minr_push, h2]
@@ -638,14 +638,14 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
         (calc C.F (h_k_kp X Y) (ak X Y) = C.F (h_k_kp X Y) (C.F (hA_k X Y) (xObj X)) := rfl
           _ = C.F (D.trans (hA_k X Y) (h_k_kp X Y)) (xObj X) := by rw [C.F_trans (hA_k X Y) (h_k_kp X Y) (xObj X)])
         (h_coprod_eq X Y).symm
-        ((C.functF (h_k_kp X Y)).map ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap (h_k_kp X Y) ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y)))
     let ub_inrg : UpperBound D (iObj Y) (ip X Y) := ⟨kp X Y, D.trans (hB_k X Y) (h_k_kp X Y), h_ip_kp X Y⟩
     let m_inrg : C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) ⟶ C.F (h_ip_kp X Y) (op X Y) :=
       castHom
         (calc C.F (h_k_kp X Y) (bk X Y) = C.F (h_k_kp X Y) (C.F (hB_k X Y) (xObj Y)) := rfl
           _ = C.F (D.trans (hB_k X Y) (h_k_kp X Y)) (xObj Y) := by rw [C.F_trans (hB_k X Y) (h_k_kp X Y) (xObj Y)])
         (h_coprod_eq X Y).symm
-        ((C.functF (h_k_kp X Y)).map ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y)))
+        (C.Fmap (h_k_kp X Y) ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y)))
     have er1 : homCompRaw C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ah mha
              = homCompRaw C hC (xObj X) (op X Y) (colimOut C Z).2 ub_inlg m_inlg ap mpa := e1
     have er2 : homCompRaw C hC (xObj Y) (op X Y) (colimOut C Z).2 ub_inrg m_inrg ah mha
@@ -692,15 +692,15 @@ noncomputable def colimitHasBinaryCoproducts (C : CatSystem ι D) (hC : C.Cohere
       rw [show C.F hk_L (bk X Y) = C.F hk_L (C.F (hB_k X Y) (xObj Y)) from rfl,
           ← C.F_trans (hB_k X Y) hk_L (xObj Y)]
     have hpush_f : homTr C (xObj X) (op X Y) ub_inlg ⟨L, D.trans ub_inlg.2.1 hkp_L, D.trans ub_inlg.2.2 hkp_L⟩ hkp_L m_inlg
-        = castHom h_aktoX_L h_coprod_eq_L.symm ((C.functF hk_L).map ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y))) := by
+        = castHom h_aktoX_L h_coprod_eq_L.symm (C.Fmap hk_L ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y))) := by
       dsimp [homTr, m_inlg]
-      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      rw [C.Fmap_castHom hkp_L, castHom_castHom]
       exact castHom_heq_congr _ _ _ _
         (hC.trans_map (h_k_kp X Y) hkp_L ((hcop (k X Y)).inl (A:=ak X Y) (B:=bk X Y))).symm
     have hpush_s : homTr C (xObj Y) (op X Y) ub_inrg ⟨L, D.trans ub_inrg.2.1 hkp_L, D.trans ub_inrg.2.2 hkp_L⟩ hkp_L m_inrg
-        = castHom h_bktoY_L h_coprod_eq_L.symm ((C.functF hk_L).map ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y))) := by
+        = castHom h_bktoY_L h_coprod_eq_L.symm (C.Fmap hk_L ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y))) := by
       dsimp [homTr, m_inrg]
-      rw [map_castHom (C.F hkp_L) (hT := C.functF hkp_L), castHom_castHom]
+      rw [C.Fmap_castHom hkp_L, castHom_castHom]
       exact castHom_heq_congr _ _ _ _
         (hC.trans_map (h_k_kp X Y) hkp_L ((hcop (k X Y)).inr (A:=ak X Y) (B:=bk X Y))).symm
     rw [hpush_f] at key_f
@@ -753,11 +753,11 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
     (he : ∀ i, HasEqualizers (C.A i))
     (hpres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hpres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     @HasEqualizers C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
   have hDirSubsingleton : ∀ {i j : ι} (h h' : D.le i j), h = h' :=
@@ -799,7 +799,7 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
     -- the equalizer map E ⟶ X, as a germ from `opE` (= colimOut rep of E) to `xX`
     let ubm : UpperBound D ipE iX := ⟨kpE, h_ipE_kpE, D.trans hiXM h_M_kpE⟩
     let gm : C.F ubm.2.1 opE ⟶ C.F ubm.2.2 xX :=
-      castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm ((C.functF h_M_kpE).map (eqMap fM gM))
+      castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm (C.Fmap h_M_kpE (eqMap fM gM))
     let m : E ⟶ X := homIncl C hC opE xX ubm gm
     -- `m` is monic: reduce `l ≫ m = l' ≫ m` to a stage equation, cancel `eqMap` via `hpres`.
     have hm_mono : ∀ {W : C.Obj} (l l' : W ⟶ E), l ≫ m = l' ≫ m → l = l' := by
@@ -839,9 +839,9 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
           _ = C.F hipEL opE := by rw [← C.F_trans h_ipE_kpE hkpEL opE]
       have hHc : C.F hML (C.F hiXM xX) = C.F hiXL xX := (C.F_trans hiXM hML xX).symm
       have hpush_gm : homTr C opE xX ubm ⟨L, hipEL, hiXL⟩ hkpEL gm
-          = castHom hHd hHc ((C.functF hML).map (eqMap fM gM)) := by
+          = castHom hHd hHc (C.Fmap hML (eqMap fM gM)) := by
         dsimp [homTr, gm]
-        rw [map_castHom (C.F hkpEL) (hT := C.functF hkpEL), castHom_castHom]
+        rw [C.Fmap_castHom hkpEL, castHom_castHom]
         exact castHom_heq_congr _ _ _ _ (hC.trans_map h_M_kpE hkpEL (eqMap fM gM)).symm
       rw [hpush_gm] at key
       -- cancel the `eqMap`-map on the right via `hpres`
@@ -876,7 +876,7 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
           homCompRaw C hC opE xX xY ubm gm a gg
             = homIncl C hC opE xY ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩
                 (castHom h_E_eq.symm (C.F_trans hiYM h_M_kpE xY).symm
-                  ((C.functF h_M_kpE).map (eqMap fM gM ≫ gMrep))) := by
+                  (C.Fmap h_M_kpE (eqMap fM gM ≫ gMrep))) := by
         intro a gg haM gMrep hgg
         refine homCompRaw_eq_of_stage C hC opE xX xY ubm gm a gg
           ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩ _ kpE (D.refl kpE) (D.trans haM h_M_kpE)
@@ -889,12 +889,12 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
           rw [← hgg, ← homTr_trans C hC xX xY a ⟨M, hiXM, hiYM⟩ _ haM h_M_kpE gg]]
         rw [homTr_refl C hC opE xY ⟨kpE, h_ipE_kpE, D.trans hiYM h_M_kpE⟩]
         -- now: gm ≫ homTr gMrep = castHom .. (map (eqMap fM gM ≫ gMrep))
-        show castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm ((C.functF h_M_kpE).map (eqMap fM gM))
+        show castHom h_E_eq.symm (C.F_trans hiXM h_M_kpE xX).symm (C.Fmap h_M_kpE (eqMap fM gM))
             ≫ castHom (C.F_trans hiXM h_M_kpE xX).symm (C.F_trans hiYM h_M_kpE xY).symm
-                ((C.functF h_M_kpE).map gMrep)
+                (C.Fmap h_M_kpE gMrep)
           = castHom h_E_eq.symm (C.F_trans hiYM h_M_kpE xY).symm
-              ((C.functF h_M_kpE).map (eqMap fM gM ≫ gMrep))
-        rw [castHom_comp, ← (C.functF h_M_kpE).map_comp]
+              (C.Fmap h_M_kpE (eqMap fM gM ≫ gMrep))
+        rw [castHom_comp, ← C.Fmap_comp h_M_kpE]
       show homCompRaw C hC opE xX xY ubm gm aF fF = homCompRaw C hC opE xX xY ubm gm aG gG
       rw [hcomp aF fF haFM fM rfl, hcomp aG gG haGM gM rfl, eqMap_eq fM gM]
     · intro W c
@@ -930,10 +930,10 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
       have hAX : C.F hiXL xX = C.F hML (C.F hiXM xX) := C.F_trans hiXM hML xX
       have hAY : C.F hiYL xY = C.F hML (C.F hiYM xY) := C.F_trans hiYM hML xY
       have hpush_f : homTr C xX xY aF ⟨L, hiXL, hiYL⟩ (D.trans haFM hML) fF
-          = castHom hAX.symm hAY.symm ((C.functF hML).map fM) := by
+          = castHom hAX.symm hAY.symm (C.Fmap hML fM) := by
         rw [homTr_trans C hC xX xY aF ⟨M, hiXM, hiYM⟩ ⟨L, hiXL, hiYL⟩ haFM hML fF]; rfl
       have hpush_g : homTr C xX xY aG ⟨L, hiXL, hiYL⟩ (D.trans haGM hML) gG
-          = castHom hAX.symm hAY.symm ((C.functF hML).map gM) := by
+          = castHom hAX.symm hAY.symm (C.Fmap hML gM) := by
         rw [homTr_trans C hC xX xY aG ⟨M, hiXM, hiYM⟩ ⟨L, hiXL, hiYL⟩ haGM hML gG]; rfl
       rw [hpush_f, hpush_g] at key
       -- cancel the codomain cast to get the `hpres_lift` hypothesis
@@ -945,14 +945,14 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
       have cT : ∀ {U V Wq Wq' : C.A L} (he : Wq = Wq') (a : U ⟶ V) (b : V ⟶ Wq),
           castHom rfl he (a ≫ b) = a ≫ castHom rfl he b := by
         intro _ _ _ _ he a b; subst he; rfl
-      have hk : (castHom rfl hAX cL) ≫ (C.functF hML).map fM
-              = (castHom rfl hAX cL) ≫ (C.functF hML).map gM := by
+      have hk : (castHom rfl hAX cL) ≫ C.Fmap hML fM
+              = (castHom rfl hAX cL) ≫ C.Fmap hML gM := by
         have hh := congrArg (castHom rfl hAY) key
         rw [cT, cT] at hh
-        rw [show castHom rfl hAY (castHom hAX.symm hAY.symm ((C.functF hML).map fM))
-              = castHom hAX.symm rfl ((C.functF hML).map fM) from by rw [castHom_castHom],
-            show castHom rfl hAY (castHom hAX.symm hAY.symm ((C.functF hML).map gM))
-              = castHom hAX.symm rfl ((C.functF hML).map gM) from by rw [castHom_castHom]] at hh
+        rw [show castHom rfl hAY (castHom hAX.symm hAY.symm (C.Fmap hML fM))
+              = castHom hAX.symm rfl (C.Fmap hML fM) from by rw [castHom_castHom],
+            show castHom rfl hAY (castHom hAX.symm hAY.symm (C.Fmap hML gM))
+              = castHom hAX.symm rfl (C.Fmap hML gM) from by rw [castHom_castHom]] at hh
         rw [← cR, ← cR] at hh
         exact hh
       obtain ⟨r, hr⟩ := hpres_lift hML fM gM (C.F (D.trans aC.2.1 (D.trans hcP (D.trans hPR hRL))) xW)
@@ -963,9 +963,9 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
       have hiXL2 : D.le iX L := D.trans hiXM hML
       have hHcL : C.F hML (C.F hiXM xX) = C.F hiXL2 xX := (C.F_trans hiXM hML xX).symm
       have hpush_gmL : homTr C opE xX ubm ⟨L, hipEL, hiXL2⟩ hkpEL gm
-          = castHom hHdL hHcL ((C.functF hML).map (eqMap fM gM)) := by
+          = castHom hHdL hHcL (C.Fmap hML (eqMap fM gM)) := by
         dsimp [homTr, gm]
-        rw [map_castHom (C.F hkpEL) (hT := C.functF hkpEL), castHom_castHom]
+        rw [C.Fmap_castHom hkpEL, castHom_castHom]
         exact castHom_heq_congr _ _ _ _ (hC.trans_map h_M_kpE hkpEL (eqMap fM gM)).symm
       have hfac : lmap ≫ m = Quotient.mk (setoid (homSystem C hC xW xX)) ⟨aC, cC⟩ := by
         show homCompRaw C hC xW opE xX ⟨L, D.trans aC.2.1 haCL, hipEL⟩ (castHom rfl hHdL r) ubm gm
@@ -1035,7 +1035,7 @@ theorem colimHom_isIso_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Ob
     of `functF` strip back to `g = g'`. -/
 theorem homIncl_injective (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     {i j : ι} (x : C.A i) (y : C.A j) (a : UpperBound D i j)
     (g g' : C.F a.2.1 x ⟶ C.F a.2.2 y)
     (h : homIncl C hC x y a g = homIncl C hC x y a g') : g = g' := by
@@ -1055,7 +1055,7 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
     (hcancel : ∀ {j : ι} (hjk : D.le a.1 j) (z : C.A j)
         (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2)),
-        u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀ → u = v) :
+        u ≫ C.Fmap hjk f₀ = v ≫ C.Fmap hjk f₀ → u = v) :
     @Monic C.Obj (colimitCat C hC) A B
       (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
   letI : Cat C.Obj := colimitCat C hC
@@ -1086,7 +1086,7 @@ theorem colimHom_mono_of_rep (C : CatSystem ι D) (hC : C.Coherent) {A B : C.Obj
   have hHc : C.F haL (C.F a.2.1 xA) = C.F hiAL xA := (C.F_trans a.2.1 haL xA).symm
   have hHc2 : C.F haL (C.F a.2.2 xB) = C.F hiBL xB := (C.F_trans a.2.2 haL xB).symm
   have hpush_f : homTr C xA xB a ⟨L, hiAL, hiBL⟩ haL f₀
-      = castHom hHc hHc2 ((C.functF haL).map f₀) := rfl
+      = castHom hHc hHc2 (C.Fmap haL f₀) := rfl
   rw [hpush_f] at key
   have cR : ∀ {U V V' Wq : C.A L} (he : V = V') (b : U ⟶ V) (c : V' ⟶ Wq),
       castHom rfl he b ≫ c = b ≫ castHom he.symm rfl c := by
@@ -1127,7 +1127,7 @@ theorem castHom_injective {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     `castHom_injective` + faithfulness strip back to `u = v`. -/
 theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     {A B : C.Obj}
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
@@ -1135,7 +1135,7 @@ theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
       (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀))
     {j : ι} (hjk : D.le a.1 j) (z : C.A j)
     (u v : z ⟶ C.F hjk (C.F a.2.1 (colimOut C A).2))
-    (huv : u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀) : u = v := by
+    (huv : u ≫ C.Fmap hjk f₀ = v ≫ C.Fmap hjk f₀) : u = v := by
   letI : Cat C.Obj := colimitCat C hC
   let xA := (colimOut C A).2; let xB := (colimOut C B).2
   let W := C.objIncl j z
@@ -1152,21 +1152,21 @@ theorem colimHom_mono_reflects (C : CatSystem ι D) (hC : C.Coherent)
     rw [← C.F_trans a.2.2 hjk xB, ← C.F_trans (D.trans a.2.2 hjk) hjs xB]
   -- include a stage map `m : z ⟶ …` as a germ `xW ⟶ xA` at stage `s`
   let germ : (z ⟶ C.F hjk (C.F a.2.1 xA)) → (C.F hps xW ⟶ C.F (D.trans a.2.1 h_as) xA) :=
-    fun m => castHom heq0.symm hcodA ((C.functF hjs).map m)
+    fun m => castHom heq0.symm hcodA (C.Fmap hjs m)
   let U : C.objIncl j z ⟶ A := homIncl C hC xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ u)
   let V : C.objIncl j z ⟶ A := homIncl C hC xW xA ⟨s, hps, D.trans a.2.1 h_as⟩ (germ v)
   -- `f₀` pushed from bound `a` to stage `s` factors as the iterated transition map
   have hpf : homTr C xA xB a ⟨s, D.trans a.2.1 h_as, D.trans a.2.2 h_as⟩ h_as f₀
-      = castHom hcodA hcodB ((C.functF hjs).map ((C.functF hjk).map f₀)) := by
+      = castHom hcodA hcodB (C.Fmap hjs (C.Fmap hjk f₀)) := by
     unfold homTr
     exact castHom_heq_congr _ _ hcodA hcodB (hC.trans_map hjk hjs f₀)
   -- composing the germ with the pushed `f₀` only sees `m ≫ functF.map f₀`
   have key : ∀ (m : z ⟶ C.F hjk (C.F a.2.1 xA)),
       germ m ≫ homTr C xA xB a ⟨s, D.trans a.2.1 h_as, D.trans a.2.2 h_as⟩ h_as f₀
-        = castHom heq0.symm hcodB ((C.functF hjs).map (m ≫ (C.functF hjk).map f₀)) := by
+        = castHom heq0.symm hcodB (C.Fmap hjs (m ≫ C.Fmap hjk f₀)) := by
     intro m
-    show castHom heq0.symm hcodA ((C.functF hjs).map m) ≫ _ = _
-    rw [hpf, castHom_comp, ← (C.functF hjs).map_comp]
+    show castHom heq0.symm hcodA (C.Fmap hjs m) ≫ _ = _
+    rw [hpf, castHom_comp, ← C.Fmap_comp hjs]
   -- the two inclusions agree after composing with `homIncl a f₀`
   have hUV : colimComp C hC U (homIncl C hC xA xB a f₀)
       = colimComp C hC V (homIncl C hC xA xB a f₀) := by
@@ -1244,7 +1244,7 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
     (hiso : @IsIso C.Obj (colimitCat C hC) A B
       (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀)) :
-    ∃ (L : ι) (hL : D.le a.1 L), IsIso ((C.functF hL).map f₀) := by
+    ∃ (L : ι) (hL : D.le a.1 L), IsIso (C.Fmap hL f₀) := by
   letI : Cat C.Obj := colimitCat C hC
   let xA := (colimOut C A).2; let xB := (colimOut C B).2
   obtain ⟨ginv, hl, hr⟩ := hiso
@@ -1283,7 +1283,7 @@ theorem colimHom_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent) {A B : C.
   have hisoL : IsIso (homTr C xA xB a ⟨L, D.trans a.2.1 haL, D.trans a.2.2 haL⟩ haL f₀) :=
     ⟨homTr C xB xA b ⟨L, D.trans b.2.1 hbL, D.trans b.2.2 hbL⟩ hbL g₀, eq1L, eq2L⟩
   exact ⟨L, haL, isIso_of_castHom (C.F_trans a.2.1 haL xA).symm (C.F_trans a.2.2 haL xB).symm
-    ((C.functF haL).map f₀) hisoL⟩
+    (C.Fmap haL f₀) hisoL⟩
 
 /-- `castHom` carries monos to monos (transport along object equalities). -/
 theorem mono_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
@@ -1304,11 +1304,11 @@ theorem cover_castHom {𝒜 : Type w} [Cat.{w} 𝒜] {X Y X' Y' : 𝒜}
     (`colimHom_isIso_of_rep`) + `homIncl_compat` lift that back to `IsIso m`. -/
 theorem colimHom_cover_of_rep (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     {A B : C.Obj}
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
-    (hcov : ∀ (L : ι) (haL : D.le a.1 L), Cover ((C.functF haL).map f₀)) :
+    (hcov : ∀ (L : ι) (haL : D.le a.1 L), Cover (C.Fmap haL f₀)) :
     @Cover C.Obj (colimitCat C hC) A B (homIncl C hC (colimOut C A).2 (colimOut C B).2 a f₀) := by
   letI : Cat C.Obj := colimitCat C hC
   let xA := (colimOut C A).2; let xB := (colimOut C B).2
@@ -1323,7 +1323,7 @@ theorem colimHom_cover_of_rep (C : CatSystem ι D) (hC : C.Coherent)
   have hgm' : homCompRaw C hC xA xC xB bg g₀ bm m₀ = homIncl C hC xA xB a f₀ := hgm
   obtain ⟨N, hgN, hmN, hfN, eqN⟩ := homCompRaw_eq_stage C hC xA xC xB bg g₀ bm m₀ a f₀ hgm'
   -- `m₀` is monic at `N` (mono reflection); `f₀` is a cover at `N` (`hcov`)
-  have hm_map : Monic ((C.functF hmN).map m₀) :=
+  have hm_map : Monic (C.Fmap hmN m₀) :=
     fun {W} u v huv => colimHom_mono_reflects C hC hfaith bm m₀ hm hmN W u v huv
   have hm_N : Monic (homTr C xC xB bm ⟨N, D.trans bm.2.1 hmN, D.trans bm.2.2 hmN⟩ hmN m₀) :=
     mono_castHom _ _ _ hm_map
@@ -1354,7 +1354,7 @@ structure HioWitness (C : CatSystem ι D) {i : ι} (x y : C.A i) where
 def HioWitness.germ {C : CatSystem ι D} {i : ι} {x y : C.A i} (w : HioWitness C x y)
     (g : x ⟶ y) :
     C.F w.hpx (colimOut C (C.objIncl i x)).2 ⟶ C.F w.hpy (colimOut C (C.objIncl i y)).2 :=
-  castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g)
+  castHom w.hgx.symm w.hgy.symm (C.Fmap w.hix g)
 
 /-- A chosen witness, materialized from the `colimOut` `Rel`s by `Classical.choose`. -/
 noncomputable def hioWitness (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x y : C.A i) :
@@ -1406,9 +1406,9 @@ theorem homInclObj_germ_push (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x 
     (Hcy : C.F (D.trans w.hix hwL) y = C.F (D.trans w.hpy hwL) (colimOut C (C.objIncl i y)).2) :
     homTr C (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
         ⟨w.K, w.hpx, w.hpy⟩ ⟨L, D.trans w.hpx hwL, D.trans w.hpy hwL⟩ hwL (w.germ g)
-      = castHom Hcx Hcy ((C.functF (D.trans w.hix hwL)).map g) := by
+      = castHom Hcx Hcy (C.Fmap (D.trans w.hix hwL) g) := by
   dsimp only [HioWitness.germ, homTr]
-  rw [map_castHom (C.F hwL) (hT := C.functF hwL), castHom_castHom]
+  rw [C.Fmap_castHom hwL, castHom_castHom]
   exact castHom_heq_congr _ _ _ _ (hC.trans_map w.hix hwL g).symm
 
 /-- **Representative-independence:** `homInclObj g` equals the germ `homIncl` at
@@ -1428,7 +1428,7 @@ theorem homInclObj_eq (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y : C.A
           ⟨L, D.trans v.hpx hvL, D.trans v.hpy hvL⟩
           (castHom (by rw [C.F_trans v.hix hvL x, ← v.hgx, ← C.F_trans v.hpx hvL])
                    (by rw [C.F_trans v.hix hvL y, ← v.hgy, ← C.F_trans v.hpy hvL])
-                   ((C.functF (D.trans v.hix hvL)).map g)) := by
+                   (C.Fmap (D.trans v.hix hvL) g)) := by
     intro v hvL
     rw [← homInclObj_germ_push C hC g v L hvL _ _]
     exact (homIncl_compat C hC (colimOut C (C.objIncl i x)).2 (colimOut C (C.objIncl i y)).2
@@ -1480,13 +1480,13 @@ theorem homInclObj_comp (C : CatSystem ι D) (hC : C.Coherent) {i : ι} {x y z :
   -- of germs to a single germ via `castHom_comp` + `map_comp`, matching the LHS germ
   -- of `g ≫ g'`.  The two `UpperBound`s agree by proof irrelevance, so `rfl` closes it.
   dsimp only [HioWitness.germ]
-  rw [castHom_comp, ← (C.functF hiL).map_comp]
+  rw [castHom_comp, ← C.Fmap_comp hiL]
 /-- **The stage-inclusion `homInclObj` is injective** (faithful) when transitions
     are faithful: it shares the same `colimOut`-transport bound for `g`, `g'`, so
     `homIncl_injective` + cast-invertibility + `hfaith` strip back to `g = g'`. -/
 theorem homInclObj_injective (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     {i : ι} {x y : C.A i} (g g' : x ⟶ y)
     (h : homInclObj C hC g = homInclObj C hC g') : g = g' := by
   unfold homInclObj at h
@@ -1501,21 +1501,21 @@ theorem homInclObj_injective (C : CatSystem ι D) (hC : C.Coherent)
 theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     {i : ι} {x y : C.A i} (g : x ⟶ y)
     (hcancel : ∀ {j : ι} (hij : D.le i j) (z : C.A j) (u v : z ⟶ C.F hij x),
-        u ≫ (C.functF hij).map g = v ≫ (C.functF hij).map g → u = v) :
+        u ≫ C.Fmap hij g = v ≫ C.Fmap hij g → u = v) :
     @Monic C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
   let w := hioWitness C hC x y
   have hcancel' : ∀ {j : ι} (hjk : D.le w.K j) (z : C.A j)
       (u v : z ⟶ C.F hjk (C.F w.hpx (colimOut C (C.objIncl i x)).2)),
-      u ≫ (C.functF hjk).map (w.germ g) = v ≫ (C.functF hjk).map (w.germ g) → u = v := by
+      u ≫ C.Fmap hjk (w.germ g) = v ≫ C.Fmap hjk (w.germ g) → u = v := by
     intro j hjk z u v huv
     have e_x : C.F hjk (C.F w.hpx (colimOut C (C.objIncl i x)).2) = C.F (D.trans w.hix hjk) x :=
       (congrArg (C.F hjk) w.hgx).trans (C.F_trans w.hix hjk x).symm
     have e_y : C.F hjk (C.F w.hpy (colimOut C (C.objIncl i y)).2) = C.F (D.trans w.hix hjk) y :=
       (congrArg (C.F hjk) w.hgy).trans (C.F_trans w.hix hjk y).symm
-    have hgerm_map : (C.functF hjk).map (w.germ g)
-        = castHom e_x.symm e_y.symm ((C.functF (D.trans w.hix hjk)).map g) := by
+    have hgerm_map : C.Fmap hjk (w.germ g)
+        = castHom e_x.symm e_y.symm (C.Fmap (D.trans w.hix hjk) g) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      rw [C.Fmap_castHom hjk]
       exact castHom_heq_congr _ _ e_x.symm e_y.symm (hC.trans_map w.hix hjk g).symm
     have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
         castHom rfl he bb ≫ cc = bb ≫ castHom he.symm rfl cc := by
@@ -1524,8 +1524,8 @@ theorem homInclObj_mono_of_stage (C : CatSystem ι D) (hC : C.Coherent)
         castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
       intro _ _ _ _ he bb cc; subst he; rfl
     rw [hgerm_map] at huv
-    have hcc : (castHom rfl e_x u) ≫ (C.functF (D.trans w.hix hjk)).map g
-        = (castHom rfl e_x v) ≫ (C.functF (D.trans w.hix hjk)).map g := by
+    have hcc : (castHom rfl e_x u) ≫ C.Fmap (D.trans w.hix hjk) g
+        = (castHom rfl e_x v) ≫ C.Fmap (D.trans w.hix hjk) g := by
       apply castHom_injective rfl e_y.symm
       rw [cT, cT, cR, cR]
       exact huv
@@ -1550,14 +1550,14 @@ theorem homInclObj_isIso_of_stage (C : CatSystem ι D) (hC : C.Coherent)
   rw [homInclObj_eq C hC g w]
   -- inverse germ: `g'` transported at the swapped bound, with the witness rep-equalities
   refine colimHom_isIso_of_rep (A := C.objIncl i x) (B := C.objIncl i y) C hC
-    ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) (castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')) ?_ ?_
+    ⟨w.K, w.hpx, w.hpy⟩ (w.germ g) (castHom w.hgy.symm w.hgx.symm (C.Fmap w.hix g')) ?_ ?_
   · -- (w.germ g) ≫ (inverse germ) = id
-    show castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g)
-        ≫ castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g') = Cat.id _
-    rw [castHom_comp, ← (C.functF w.hix).map_comp, h1, (C.functF w.hix).map_id, castHom_id]
-  · show castHom w.hgy.symm w.hgx.symm ((C.functF w.hix).map g')
-        ≫ castHom w.hgx.symm w.hgy.symm ((C.functF w.hix).map g) = Cat.id _
-    rw [castHom_comp, ← (C.functF w.hix).map_comp, h2, (C.functF w.hix).map_id, castHom_id]
+    show castHom w.hgx.symm w.hgy.symm (C.Fmap w.hix g)
+        ≫ castHom w.hgy.symm w.hgx.symm (C.Fmap w.hix g') = Cat.id _
+    rw [castHom_comp, ← C.Fmap_comp w.hix, h1, C.Fmap_id w.hix, castHom_id]
+  · show castHom w.hgy.symm w.hgx.symm (C.Fmap w.hix g')
+        ≫ castHom w.hgx.symm w.hgy.symm (C.Fmap w.hix g) = Cat.id _
+    rw [castHom_comp, ← C.Fmap_comp w.hix, h2, C.Fmap_id w.hix, castHom_id]
 
 /-- **Cover preservation for the stage inclusion.**  If `g : x ⟶ y` is a cover that
     stays a cover under *every* transition from `i` (`hcov`), then `homInclObj g` is a
@@ -1568,23 +1568,23 @@ theorem homInclObj_isIso_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     to the colimit (item (2) in the `hcanon` residual). -/
 theorem homInclObj_cover_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     {i : ι} {x y : C.A i} (g : x ⟶ y)
-    (hcov : ∀ {j : ι} (hij : D.le i j), Cover ((C.functF hij).map g)) :
+    (hcov : ∀ {j : ι} (hij : D.le i j), Cover (C.Fmap hij g)) :
     @Cover C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g) := by
   let w := hioWitness C hC x y
   rw [homInclObj_eq C hC g w]
-  have hcov' : ∀ (L : ι) (hwL : D.le w.K L), Cover ((C.functF hwL).map (w.germ g)) := by
+  have hcov' : ∀ (L : ι) (hwL : D.le w.K L), Cover (C.Fmap hwL (w.germ g)) := by
     intro L hwL
     -- the germ pushed to `L` is `castHom .. (functF (w.hix ≫ L)).map g`; cover_castHom + hcov
     have e_x : C.F hwL (C.F w.hpx (colimOut C (C.objIncl i x)).2) = C.F (D.trans w.hix hwL) x :=
       (congrArg (C.F hwL) w.hgx).trans (C.F_trans w.hix hwL x).symm
     have e_y : C.F hwL (C.F w.hpy (colimOut C (C.objIncl i y)).2) = C.F (D.trans w.hix hwL) y :=
       (congrArg (C.F hwL) w.hgy).trans (C.F_trans w.hix hwL y).symm
-    have hgerm_map : (C.functF hwL).map (w.germ g)
-        = castHom e_x.symm e_y.symm ((C.functF (D.trans w.hix hwL)).map g) := by
+    have hgerm_map : C.Fmap hwL (w.germ g)
+        = castHom e_x.symm e_y.symm (C.Fmap (D.trans w.hix hwL) g) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hwL) (hT := C.functF hwL)]
+      rw [C.Fmap_castHom hwL]
       exact castHom_heq_congr _ _ e_x.symm e_y.symm (hC.trans_map w.hix hwL g).symm
     rw [hgerm_map]
     -- `apply` (not `exact …  _`) so Lean resolves `cover_castHom`'s `m` metavar before
@@ -1602,7 +1602,7 @@ theorem homInclObj_cover_of_stage (C : CatSystem ι D) (hC : C.Coherent)
     `IsIso (functF.map g)`, which `hcons` reflects to `IsIso g`. -/
 theorem homInclObj_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     {i : ι} {x y : C.A i} (g : x ⟶ y)
     (hiso : @IsIso C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
     IsIso g := by
@@ -1614,10 +1614,10 @@ theorem homInclObj_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (congrArg (C.F hL) w.hgx).trans (C.F_trans w.hix hL x).symm
   have e_y : C.F hL (C.F w.hpy (colimOut C (C.objIncl i y)).2) = C.F (D.trans w.hix hL) y :=
     (congrArg (C.F hL) w.hgy).trans (C.F_trans w.hix hL y).symm
-  have hgerm_map : (C.functF hL).map (w.germ g)
-      = castHom e_x.symm e_y.symm ((C.functF (D.trans w.hix hL)).map g) := by
+  have hgerm_map : C.Fmap hL (w.germ g)
+      = castHom e_x.symm e_y.symm (C.Fmap (D.trans w.hix hL) g) := by
     dsimp only [HioWitness.germ]
-    rw [map_castHom (C.F hL) (hT := C.functF hL)]
+    rw [C.Fmap_castHom hL]
     exact castHom_heq_congr _ _ e_x.symm e_y.symm (hC.trans_map w.hix hL g).symm
   rw [hgerm_map] at hisoL
   exact hcons (D.trans w.hix hL) g (isIso_of_castHom _ _ _ hisoL)
@@ -1630,9 +1630,9 @@ theorem homInclObj_isIso_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (`homInclObj_isIso_reflects`, via `hcons`) brings the iso back to the stage. -/
 theorem homInclObj_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     {i : ι} {x y : C.A i} (g : x ⟶ y)
     (hcov : @Cover C.Obj (colimitCat C hC) (C.objIncl i x) (C.objIncl i y) (homInclObj C hC g)) :
     Cover g := by
@@ -1657,9 +1657,9 @@ theorem homInclObj_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     `hcons` bring the iso back to `m'`. -/
 theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (hcons : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        IsIso ((C.functF hij).map φ) → IsIso φ)
+        IsIso (C.Fmap hij φ) → IsIso φ)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
-        Monic φ → Monic ((C.functF hij).map φ))
+        Monic φ → Monic (C.Fmap hij φ))
     {A B : C.Obj}
     (a : UpperBound D (colimOut C A).1 (colimOut C B).1)
     (f₀ : C.F a.2.1 (colimOut C A).2 ⟶ C.F a.2.2 (colimOut C B).2)
@@ -1677,24 +1677,24 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
   have domcast : C.F h_ts (C.F a.2.1 xA) = C.F (D.trans a.2.1 h_ts) xA := (C.F_trans a.2.1 h_ts xA).symm
   have codcast : C.F h_ts (C.F a.2.2 xB) = C.F (D.trans a.2.2 h_ts) xB := (C.F_trans a.2.2 h_ts xB).symm
   let germ_G : C.F (D.trans a.2.1 h_ts) xA ⟶ C.F h_pt rep_t :=
-    castHom domcast heqt.symm ((C.functF h_ts).map g')
+    castHom domcast heqt.symm (C.Fmap h_ts g')
   let germ_M : C.F h_pt rep_t ⟶ C.F (D.trans a.2.2 h_ts) xB :=
-    castHom heqt.symm codcast ((C.functF h_ts).map m')
+    castHom heqt.symm codcast (C.Fmap h_ts m')
   let G : A ⟶ T := homIncl C hC xA rep_t ⟨s, D.trans a.2.1 h_ts, h_pt⟩ germ_G
   let M : T ⟶ B := homIncl C hC rep_t xB ⟨s, h_pt, D.trans a.2.2 h_ts⟩ germ_M
   -- M is a colimit mono (mono preservation of the germ, from `m'` mono via `hmono`)
   have hM_mono : @Monic C.Obj (colimitCat C hC) T B M := by
     have hcancel : ∀ {j : ι} (hj : D.le s j) (z : C.A j) (u v : z ⟶ C.F hj (C.F h_pt rep_t)),
-        u ≫ (C.functF hj).map germ_M = v ≫ (C.functF hj).map germ_M → u = v := by
+        u ≫ C.Fmap hj germ_M = v ≫ C.Fmap hj germ_M → u = v := by
       intro j hj z u v huv
       have ed : C.F hj (C.F h_pt rep_t) = C.F (D.trans h_ts hj) t :=
         (congrArg (C.F hj) heqt).trans (C.F_trans h_ts hj t).symm
       have ec : C.F hj (C.F (D.trans a.2.2 h_ts) xB) = C.F (D.trans h_ts hj) (C.F a.2.2 xB) := by
         rw [← C.F_trans (D.trans a.2.2 h_ts) hj xB, ← C.F_trans a.2.2 (D.trans h_ts hj) xB]
-      have hgm : (C.functF hj).map germ_M
-          = castHom ed.symm ec.symm ((C.functF (D.trans h_ts hj)).map m') := by
-        show (C.functF hj).map (castHom heqt.symm codcast ((C.functF h_ts).map m')) = _
-        rw [map_castHom (C.F hj) (hT := C.functF hj)]
+      have hgm : C.Fmap hj germ_M
+          = castHom ed.symm ec.symm (C.Fmap (D.trans h_ts hj) m') := by
+        show C.Fmap hj (castHom heqt.symm codcast (C.Fmap h_ts m')) = _
+        rw [C.Fmap_castHom hj]
         exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_ts hj m').symm
       rw [hgm] at huv
       have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
@@ -1703,8 +1703,8 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
       have cT : ∀ {P Q R R' : C.A j} (he : R = R') (bb : P ⟶ Q) (cc : Q ⟶ R),
           castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
         intro _ _ _ _ he bb cc; subst he; rfl
-      have hcc : (castHom rfl ed u) ≫ (C.functF (D.trans h_ts hj)).map m'
-          = (castHom rfl ed v) ≫ (C.functF (D.trans h_ts hj)).map m' := by
+      have hcc : (castHom rfl ed u) ≫ C.Fmap (D.trans h_ts hj) m'
+          = (castHom rfl ed v) ≫ C.Fmap (D.trans h_ts hj) m' := by
         apply castHom_injective rfl ec.symm
         rw [cT, cT, cR, cR]
         exact huv
@@ -1722,9 +1722,9 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     rw [homTr_refl C hC, homTr_refl C hC]
     have hcomp : germ_G ≫ germ_M
         = homTr C xA xB a ⟨s, D.trans a.2.1 h_ts, D.trans a.2.2 h_ts⟩ h_ts f₀ := by
-      show castHom domcast heqt.symm ((C.functF h_ts).map g')
-          ≫ castHom heqt.symm codcast ((C.functF h_ts).map m') = _
-      rw [castHom_comp, ← (C.functF h_ts).map_comp, hgm']
+      show castHom domcast heqt.symm (C.Fmap h_ts g')
+          ≫ castHom heqt.symm codcast (C.Fmap h_ts m') = _
+      rw [castHom_comp, ← C.Fmap_comp h_ts, hgm']
       rfl
     rw [hcomp]
     exact homIncl_compat C hC xA xB h_ts f₀
@@ -1737,10 +1737,10 @@ theorem colimHom_cover_reflects (C : CatSystem ι D) (hC : C.Coherent)
     (congrArg (C.F hL) heqt).trans (C.F_trans h_ts hL t).symm
   have ec : C.F hL (C.F (D.trans a.2.2 h_ts) xB) = C.F (D.trans h_ts hL) (C.F a.2.2 xB) := by
     rw [← C.F_trans (D.trans a.2.2 h_ts) hL xB, ← C.F_trans a.2.2 (D.trans h_ts hL) xB]
-  have hgm : (C.functF hL).map germ_M
-      = castHom ed.symm ec.symm ((C.functF (D.trans h_ts hL)).map m') := by
-    show (C.functF hL).map (castHom heqt.symm codcast ((C.functF h_ts).map m')) = _
-    rw [map_castHom (C.F hL) (hT := C.functF hL)]
+  have hgm : C.Fmap hL germ_M
+      = castHom ed.symm ec.symm (C.Fmap (D.trans h_ts hL) m') := by
+    show C.Fmap hL (castHom heqt.symm codcast (C.Fmap h_ts m')) = _
+    rw [C.Fmap_castHom hL]
     exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_ts hL m').symm
   rw [hgm] at hisoL
   exact hcons (D.trans h_ts hL) m' (isIso_of_castHom _ _ _ hisoL)
@@ -1781,8 +1781,8 @@ theorem colimHom_monicPair_of_rep (C : CatSystem ι D) (hC : C.Coherent)
     (f₁ : C.F hpd (colimOut C P).2 ⟶ C.F hcb (colimOut C B).2)
     (hcancel : ∀ {j : ι} (hjk : D.le L j) (z : C.A j)
         (u v : z ⟶ C.F hjk (C.F hpd (colimOut C P).2)),
-        u ≫ (C.functF hjk).map f₀ = v ≫ (C.functF hjk).map f₀ →
-        u ≫ (C.functF hjk).map f₁ = v ≫ (C.functF hjk).map f₁ → u = v) :
+        u ≫ C.Fmap hjk f₀ = v ≫ C.Fmap hjk f₀ →
+        u ≫ C.Fmap hjk f₁ = v ≫ C.Fmap hjk f₁ → u = v) :
     @MonicPair C.Obj (colimitCat C hC) P A B
       (homIncl C hC (colimOut C P).2 (colimOut C A).2 ⟨L, hpd, hca⟩ f₀)
       (homIncl C hC (colimOut C P).2 (colimOut C B).2 ⟨L, hpd, hcb⟩ f₁) := by
@@ -1827,9 +1827,9 @@ theorem colimHom_monicPair_of_rep (C : CatSystem ι D) (hC : C.Coherent)
   have hHcA2 : C.F hLLf (C.F hca xA) = C.F hiAL xA := (C.F_trans hca hLLf xA).symm
   have hHcB2 : C.F hLLf (C.F hcb xB) = C.F hiBL xB := (C.F_trans hcb hLLf xB).symm
   have hpush_f0 : homTr C xP xA ⟨L, hpd, hca⟩ ⟨Lf, hiPL, hiAL⟩ hLLf f₀
-      = castHom hHcA hHcA2 ((C.functF hLLf).map f₀) := rfl
+      = castHom hHcA hHcA2 (C.Fmap hLLf f₀) := rfl
   have hpush_f1 : homTr C xP xB ⟨L, hpd, hcb⟩ ⟨Lf, hiPL, hiBL⟩ hLLf f₁
-      = castHom hHcA hHcB2 ((C.functF hLLf).map f₁) := rfl
+      = castHom hHcA hHcB2 (C.Fmap hLLf f₁) := rfl
   rw [hpush_f0] at keyf
   rw [hpush_f1] at keys
   have cR : ∀ {U V V' Wq : C.A Lf} (he : V = V') (b : U ⟶ V) (c : V' ⟶ Wq),
@@ -1876,12 +1876,12 @@ theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hpres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hpres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (i : ι) (a b : C.A i) :
     @IsIso C.Obj (colimitCat C hC) _ _
       (@pair C.Obj (colimitCat C hC) (colimitHasBinaryProducts C hC hp hpres hpres_pair)
@@ -1936,15 +1936,15 @@ theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
       (congrArg (C.F hjk) hgaL).trans (C.F_trans hiL hjk a).symm
     have e_b : C.F hjk (C.F (D.trans hpb hkbL) xb) = C.F (D.trans hiL hjk) b :=
       (congrArg (C.F hjk) hgbL).trans (C.F_trans hiL hjk b).symm
-    have hmapF : (C.functF hjk).map (wF.germ fstS)
-        = castHom e_P.symm e_a.symm ((C.functF (D.trans hiL hjk)).map fstS) := by
+    have hmapF : C.Fmap hjk (wF.germ fstS)
+        = castHom e_P.symm e_a.symm (C.Fmap (D.trans hiL hjk) fstS) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      rw [C.Fmap_castHom hjk]
       exact castHom_heq_congr _ _ e_P.symm e_a.symm (hC.trans_map hiL hjk fstS).symm
-    have hmapS : (C.functF hjk).map (wS.germ sndS)
-        = castHom e_P.symm e_b.symm ((C.functF (D.trans hiL hjk)).map sndS) := by
+    have hmapS : C.Fmap hjk (wS.germ sndS)
+        = castHom e_P.symm e_b.symm (C.Fmap (D.trans hiL hjk) sndS) := by
       dsimp only [HioWitness.germ]
-      rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+      rw [C.Fmap_castHom hjk]
       exact castHom_heq_congr _ _ e_P.symm e_b.symm (hC.trans_map hiL hjk sndS).symm
     have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
         castHom rfl he bb ≫ cc = bb ≫ castHom he.symm rfl cc := by
@@ -1954,11 +1954,11 @@ theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
       intro _ _ _ _ he bb cc; subst he; rfl
     rw [hmapF] at hu
     rw [hmapS] at hv
-    have huu : (castHom rfl e_P u) ≫ (C.functF (D.trans hiL hjk)).map fstS
-        = (castHom rfl e_P v) ≫ (C.functF (D.trans hiL hjk)).map fstS := by
+    have huu : (castHom rfl e_P u) ≫ C.Fmap (D.trans hiL hjk) fstS
+        = (castHom rfl e_P v) ≫ C.Fmap (D.trans hiL hjk) fstS := by
       apply castHom_injective rfl e_a.symm; rw [cT, cT, cR, cR]; exact hu
-    have hvv : (castHom rfl e_P u) ≫ (C.functF (D.trans hiL hjk)).map sndS
-        = (castHom rfl e_P v) ≫ (C.functF (D.trans hiL hjk)).map sndS := by
+    have hvv : (castHom rfl e_P u) ≫ C.Fmap (D.trans hiL hjk) sndS
+        = (castHom rfl e_P v) ≫ C.Fmap (D.trans hiL hjk) sndS := by
       apply castHom_injective rfl e_b.symm; rw [cT, cT, cR, cR]; exact hv
     exact castHom_injective rfl e_P
       (hpres (D.trans hiL hjk) a b z (castHom rfl e_P u) (castHom rfl e_P v) huu hvv)
@@ -2013,11 +2013,11 @@ theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
       ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
       ⟨wFN.K, wFN.hpx, wFN.hpy⟩ (wFN.germ fstS) af fa N (D.refl N) (D.refl N) hafN ?_
     rw [homTr_refl C hC, homTr_refl C hC]
-    show rgerm ≫ castHom hgPN.symm hgaN.symm ((C.functF hiN).map fstS)
+    show rgerm ≫ castHom hgPN.symm hgaN.symm (C.Fmap hiN fstS)
       = homTr C z xa af ⟨N, D.trans af.2.1 hafN, D.trans af.2.2 hafN⟩ hafN fa
-    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgaN.symm ((C.functF hiN).map fstS) = fL_raw
+    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgaN.symm (C.Fmap hiN fstS) = fL_raw
     rw [castHom_comp]
-    rw [show r ≫ (C.functF hiN).map fstS = pL from hr_fst]
+    rw [show r ≫ C.Fmap hiN fstS = pL from hr_fst]
     show castHom rfl hgaN.symm (castHom rfl hfa_tgt fL_raw) = fL_raw
     rw [castHom_castHom]
     exact castHom_of_heq rfl _ HEq.rfl
@@ -2031,10 +2031,10 @@ theorem objIncl_preserves_products (C : CatSystem ι D) (hC : C.Coherent)
       ⟨N, D.trans af.2.1 hafN, D.trans (D.trans hpP hkPL) hLN⟩ rgerm
       ⟨wSN.K, wSN.hpx, wSN.hpy⟩ (wSN.germ sndS) bg ga N (D.refl N) (D.refl N) hbgN ?_
     rw [homTr_refl C hC, homTr_refl C hC]
-    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgbN.symm ((C.functF hiN).map sndS)
+    show castHom rfl hgPN.symm r ≫ castHom hgPN.symm hgbN.symm (C.Fmap hiN sndS)
       = homTr C z xb bg ⟨N, D.trans bg.2.1 hbgN, D.trans bg.2.2 hbgN⟩ hbgN ga
     rw [castHom_comp]
-    rw [show r ≫ (C.functF hiN).map sndS = qL from hr_snd]
+    rw [show r ≫ C.Fmap hiN sndS = qL from hr_snd]
     show castHom rfl hgbN.symm (castHom hzeq hgb_tgt gL_raw) = gL_raw
     rw [castHom_castHom]
     exact castHom_of_heq hzeq _ HEq.rfl
@@ -2060,11 +2060,11 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     (i : ι) {a b : C.A i} (f g : a ⟶ b) :
     @EqualizerCone.IsEqualizer C.Obj (colimitCat C hC)
       (C.objIncl i a) (C.objIncl i b) (homInclObj C hC f) (homInclObj C hC g)
@@ -2193,16 +2193,16 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
   have key2 := congrArg (castHom rfl hgbM) key
   rw [cT, cT, castHom_castHom, castHom_castHom] at key2
   -- key2 : dM_raw ≫ castHom HcfP (HcfQ.trans hgbM) (functF f) = … (functF g)
-  have hk : pL ≫ (C.functF hiM).map f = pL ≫ (C.functF hiM).map g := by
-    show castHom rfl hda_tgt dM_raw ≫ (C.functF hiM).map f
-       = castHom rfl hda_tgt dM_raw ≫ (C.functF hiM).map g
+  have hk : pL ≫ C.Fmap hiM f = pL ≫ C.Fmap hiM g := by
+    show castHom rfl hda_tgt dM_raw ≫ C.Fmap hiM f
+       = castHom rfl hda_tgt dM_raw ≫ C.Fmap hiM g
     rw [cR hda_tgt, cR hda_tgt]
     -- both sides: `dM_raw ≫ castHom hda_tgt.symm rfl (functF.map _)`, defeq to `key2`'s legs
     have hslide : ∀ (h : a ⟶ b),
-        castHom hda_tgt.symm rfl ((C.functF hiM).map h)
-          = castHom HcfP (HcfQ.trans hgbM) ((C.functF hiM).map h) := by
+        castHom hda_tgt.symm rfl (C.Fmap hiM h)
+          = castHom HcfP (HcfQ.trans hgbM) (C.Fmap hiM h) := by
       intro h
-      exact castHom_of_heq _ _ (heq_castHom HcfP (HcfQ.trans hgbM) ((C.functF hiM).map h)).symm
+      exact castHom_of_heq _ _ (heq_castHom HcfP (HcfQ.trans hgbM) (C.Fmap hiM h)).symm
     rw [hslide f, hslide g]
     exact key2
   obtain ⟨r, hr⟩ := hepres_lift hiM f g (C.F (D.trans ad.2.1 hadM) zz) pL hk
@@ -2219,11 +2219,11 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
       ⟨M, D.trans ad.2.1 hadM, D.trans (D.trans hpE hkEL) hLM⟩ rgerm
       ⟨wEM.K, wEM.hpx, wEM.hpy⟩ (wEM.germ eS) ad dm M (D.refl M) (D.refl M) hadM ?_
     rw [homTr_refl C hC, homTr_refl C hC]
-    show rgerm ≫ castHom hgEM.symm hgaM.symm ((C.functF hiM).map eS)
+    show rgerm ≫ castHom hgEM.symm hgaM.symm (C.Fmap hiM eS)
       = homTr C zz xa ad ⟨M, D.trans ad.2.1 hadM, D.trans ad.2.2 hadM⟩ hadM dm
-    show castHom rfl hgEM.symm r ≫ castHom hgEM.symm hgaM.symm ((C.functF hiM).map eS) = dM_raw
+    show castHom rfl hgEM.symm r ≫ castHom hgEM.symm hgaM.symm (C.Fmap hiM eS) = dM_raw
     rw [castHom_comp]
-    rw [show r ≫ (C.functF hiM).map eS = pL from hr]
+    rw [show r ≫ C.Fmap hiM eS = pL from hr]
     show castHom rfl hgaM.symm (castHom rfl hda_tgt dM_raw) = dM_raw
     rw [castHom_castHom]
     exact castHom_of_heq rfl _ HEq.rfl
@@ -2272,13 +2272,13 @@ theorem coverMono_isImage {𝒞 : Type w} [Cat.{w} 𝒞] [HasPullbacks 𝒞]
   through its image's mono `F (image f).arr`; that mono being monic and `image.lift (F f)` also
   factoring `F f`, the two lifts agree, hence `F (image.lift f)` is a cover. -/
 theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ] [HasImages 𝒜]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F) {A B : 𝒜} (f : A ⟶ B)
-    (himg : IsImage (hF.map f) (Subobject.map F hpm (image f))) :
-    Cover (hF.map (image.lift f)) := by
+    (F : Functor 𝒜 ℬ) (hpm : PreservesMono F) {A B : 𝒜} (f : A ⟶ B)
+    (himg : IsImage (F.map f) (Subobject.map F hpm (image f))) :
+    Cover (F.map (image.lift f)) := by
   -- `F (image.lift f)` factors `F f` through the monic `(Subobject.map F hpm (image f)).arr`.
-  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
-    show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
-    rw [← hF.map_comp, image.lift_fac]
+  have hfac : F.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = F.map f := by
+    show F.map (image.lift f) ≫ F.map (image f).arr = F.map f
+    rw [← F.map_comp, image.lift_fac]
   -- That subobject IS the image of `F f` (himg), so its lift is `F (image.lift f)`;
   -- and an image-lift is a cover.  Concretely: `F (image.lift f)` is a cover because any
   -- monic `n` it factors through, `(Subobject.map F hpm (image f)).arr` factors through too
@@ -2292,9 +2292,9 @@ theorem preservesImage_lift_cover {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} �
     exact hn _ _ ((Subobject.map F hpm (image f)).monic _ _ (by
       rw [← Cat.assoc, ← Cat.assoc] at huv; exact huv))
   have hallow : Allows (Subobject.mk Cobj (n ≫ (Subobject.map F hpm (image f)).arr) hcomp_mono)
-      (hF.map f) := by
+      (F.map f) := by
     refine ⟨p, ?_⟩
-    show p ≫ (n ≫ (Subobject.map F hpm (image f)).arr) = hF.map f
+    show p ≫ (n ≫ (Subobject.map F hpm (image f)).arr) = F.map f
     rw [← Cat.assoc, hpn, hfac]
   obtain ⟨h, hh⟩ := himg.2 _ hallow
   -- `hh : h ≫ (n ≫ image-arr) = image-arr`, with `image-arr` mono ⟹ `h ≫ n = id`.
@@ -2333,14 +2333,14 @@ theorem image_lift_cover_local {𝒜 : Type w} [Cat.{w} 𝒜] [HasImages 𝒜] {
     and the target having pullbacks.  This is what turns the §1.543 tower (whose transitions
     already preserve covers/monos/finite limits) into an *image*-preserving tower. -/
 theorem transitions_preserve_images {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} ℬ]
-    [HasImages 𝒜] [HasPullbacks ℬ] (F : 𝒜 → ℬ) [hF : Functor F] (hpm : PreservesMono F)
+    [HasImages 𝒜] [HasPullbacks ℬ] (F : Functor 𝒜 ℬ) (hpm : PreservesMono F)
     (hcov : PreservesCovers F) {A B : 𝒜} (f : A ⟶ B) :
-    IsImage (hF.map f) (Subobject.map F hpm (image f)) := by
+    IsImage (F.map f) (Subobject.map F hpm (image f)) := by
   -- target factorization `F(image.lift f) ≫ F((image f).arr) = F f`, cover-then-mono.
-  have hfac : hF.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = hF.map f := by
-    show hF.map (image.lift f) ≫ hF.map (image f).arr = hF.map f
-    rw [← hF.map_comp, image.lift_fac]
-  have hcover : Cover (hF.map (image.lift f)) := hcov _ (image_lift_cover_local f)
+  have hfac : F.map (image.lift f) ≫ (Subobject.map F hpm (image f)).arr = F.map f := by
+    show F.map (image.lift f) ≫ F.map (image f).arr = F.map f
+    rw [← F.map_comp, image.lift_fac]
+  have hcover : Cover (F.map (image.lift f)) := hcov _ (image_lift_cover_local f)
   exact coverMono_isImage (Subobject.map F hpm (image f)).monic hcover hfac
 
 /-- **`objIncl i` preserves images** (the image analog of `objIncl_preserves_equalizers`).
@@ -2358,12 +2358,12 @@ theorem transitions_preserve_images {𝒜 ℬ : Type w} [Cat.{w} 𝒜] [Cat.{w} 
 theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
     (hi : ∀ i, HasImages (C.A i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+        PreservesMono (C.functF hij))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
-        IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+        IsImage (C.Fmap hij f)
+          (Subobject.map (C.functF hij) (hmono hij)
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
     (i : ι) {a b : C.A i} (f : a ⟶ b) :
@@ -2380,7 +2380,7 @@ theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
   -- the cover leg: `homInclObj (image.lift f)` is a colimit cover.
   have hcov : @Cover C.Obj (colimitCat C hC) _ _ (homInclObj C hC (image.lift f)) :=
     homInclObj_cover_of_stage C hC hfaith (image.lift f)
-      (fun {j} hij => preservesImage_lift_cover (C.F hij) (hF := C.functF hij) (hmono hij) f
+      (fun {j} hij => preservesImage_lift_cover (C.functF hij) (hmono hij) f
         (himgpres hij f))
   -- the composite `homInclObj (image.lift f) ≫ homInclObj (image f).arr = homInclObj f`.
   have hcomp : colimComp C hC (homInclObj C hC (image.lift f)) (homInclObj C hC (image f).arr)
@@ -2403,12 +2403,12 @@ theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
 noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
     (hi : ∀ i, HasImages (C.A i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (p q : x ⟶ y),
-        (C.functF hij).map p = (C.functF hij).map q → p = q)
+        C.Fmap hij p = C.Fmap hij q → p = q)
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (C.catA i) _ (C.catA j) (C.F hij) (C.functF hij))
+        PreservesMono (C.functF hij))
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
-        IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+        IsImage (C.Fmap hij f)
+          (Subobject.map (C.functF hij) (hmono hij)
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)] :
     @HasImages C.Obj (colimitCat C hC) := by
@@ -2442,18 +2442,18 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
     -- the mono leg `M : Img ⟶ Y`, a germ from `opI` (= colimOut rep of Img) to `xY`.
     let ubM : UpperBound D ipI (colimOut C Y).1 := ⟨kpI, h_ipI_kpI, D.trans a.2.2 h_s_kpI⟩
     let gM : C.F ubM.2.1 opI ⟶ C.F ubM.2.2 xY :=
-      castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm ((C.functF h_s_kpI).map m₀)
+      castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm (C.Fmap h_s_kpI m₀)
     let M : Img ⟶ Y := homIncl C hC opI xY ubM gM
     -- the cover leg `E : X ⟶ Img`, a germ from `xX` to `opI`.
     let ubE : UpperBound D (colimOut C X).1 ipI := ⟨kpI, D.trans a.2.1 h_s_kpI, h_ipI_kpI⟩
     let gE : C.F ubE.2.1 xX ⟶ C.F ubE.2.2 opI :=
-      castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm ((C.functF h_s_kpI).map e₀)
+      castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm (C.Fmap h_s_kpI e₀)
     let E : X ⟶ Img := homIncl C hC xX opI ubE gE
     -- `M` is monic (`m₀` monic, preserved by every transition via `hmono`).
     have hM_mono : @Monic C.Obj (colimitCat C hC) Img Y M := by
       have hcancel : ∀ {j : ι} (hjk : D.le ubM.1 j) (z : C.A j)
           (u v : z ⟶ C.F hjk (C.F ubM.2.1 opI)),
-          u ≫ (C.functF hjk).map gM = v ≫ (C.functF hjk).map gM → u = v := by
+          u ≫ C.Fmap hjk gM = v ≫ C.Fmap hjk gM → u = v := by
         intro j hjk z u v huv
         -- push `gM`'s germ to `j`: `castHom ∘ functF.map m₀` over `(s → kpI → j)`.
         have ed : C.F hjk (C.F ubM.2.1 opI) = C.F (D.trans h_s_kpI hjk) Iobj :=
@@ -2461,11 +2461,11 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
         have ec : C.F hjk (C.F ubM.2.2 xY) = C.F (D.trans h_s_kpI hjk) (C.F a.2.2 xY) := by
           show C.F hjk (C.F (D.trans a.2.2 h_s_kpI) xY) = _
           rw [← C.F_trans (D.trans a.2.2 h_s_kpI) hjk xY, ← C.F_trans a.2.2 (D.trans h_s_kpI hjk) xY]
-        have hgm : (C.functF hjk).map gM
-            = castHom ed.symm ec.symm ((C.functF (D.trans h_s_kpI hjk)).map m₀) := by
-          show (C.functF hjk).map (castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm
-            ((C.functF h_s_kpI).map m₀)) = _
-          rw [map_castHom (C.F hjk) (hT := C.functF hjk)]
+        have hgm : C.Fmap hjk gM
+            = castHom ed.symm ec.symm (C.Fmap (D.trans h_s_kpI hjk) m₀) := by
+          show C.Fmap hjk (castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm
+            (C.Fmap h_s_kpI m₀)) = _
+          rw [C.Fmap_castHom hjk]
           exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_s_kpI hjk m₀).symm
         rw [hgm] at huv
         have cR : ∀ {P Q Q' R : C.A j} (he : Q = Q') (bb : P ⟶ Q) (cc : Q' ⟶ R),
@@ -2474,8 +2474,8 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
         have cT : ∀ {P Q R R' : C.A j} (he : R = R') (bb : P ⟶ Q) (cc : Q ⟶ R),
             castHom rfl he (bb ≫ cc) = bb ≫ castHom rfl he cc := by
           intro _ _ _ _ he bb cc; subst he; rfl
-        have hcc : (castHom rfl ed u) ≫ (C.functF (D.trans h_s_kpI hjk)).map m₀
-            = (castHom rfl ed v) ≫ (C.functF (D.trans h_s_kpI hjk)).map m₀ := by
+        have hcc : (castHom rfl ed u) ≫ C.Fmap (D.trans h_s_kpI hjk) m₀
+            = (castHom rfl ed v) ≫ C.Fmap (D.trans h_s_kpI hjk) m₀ := by
           apply castHom_injective rfl ec.symm
           rw [cT, cT, cR, cR]; exact huv
         exact castHom_injective rfl ed
@@ -2484,7 +2484,7 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
       exact colimHom_mono_of_rep (A := Img) (B := Y) C hC ubM gM hcancel p q hpq
     -- `E` is a cover (`e₀ = image.lift f₀` stays a cover under every transition via `himgpres`).
     have hE_cover : @Cover C.Obj (colimitCat C hC) X Img E := by
-      have hcov : ∀ (L : ι) (haL : D.le ubE.1 L), Cover ((C.functF haL).map gE) := by
+      have hcov : ∀ (L : ι) (haL : D.le ubE.1 L), Cover (C.Fmap haL gE) := by
         intro L haL
         -- push `gE`'s germ to `L`: `castHom ∘ functF.map e₀` over `(s → kpI → L)`; e₀ stays a cover.
         have ed : C.F haL (C.F ubE.2.1 xX) = C.F (D.trans h_s_kpI haL) (C.F a.2.1 xX) := by
@@ -2492,15 +2492,15 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
             (C.F_proof_irrel _ _ xX)
         have ec : C.F haL (C.F ubE.2.2 opI) = C.F (D.trans h_s_kpI haL) Iobj :=
           (congrArg (C.F haL) h_I_eq).trans (C.F_trans h_s_kpI haL Iobj).symm
-        have hgm : (C.functF haL).map gE
-            = castHom ed.symm ec.symm ((C.functF (D.trans h_s_kpI haL)).map e₀) := by
-          show (C.functF haL).map (castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm
-            ((C.functF h_s_kpI).map e₀)) = _
-          rw [map_castHom (C.F haL) (hT := C.functF haL)]
+        have hgm : C.Fmap haL gE
+            = castHom ed.symm ec.symm (C.Fmap (D.trans h_s_kpI haL) e₀) := by
+          show C.Fmap haL (castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm
+            (C.Fmap h_s_kpI e₀)) = _
+          rw [C.Fmap_castHom haL]
           exact castHom_heq_congr _ _ ed.symm ec.symm (hC.trans_map h_s_kpI haL e₀).symm
         rw [hgm]
         apply cover_castHom ed.symm ec.symm
-        exact preservesImage_lift_cover (C.F (D.trans h_s_kpI haL)) (hF := C.functF (D.trans h_s_kpI haL))
+        exact preservesImage_lift_cover (C.functF (D.trans h_s_kpI haL))
           (hmono (D.trans h_s_kpI haL)) f₀ (himgpres (D.trans h_s_kpI haL) f₀)
       apply colimHom_cover_of_rep (A := X) (B := Img) C hC hfaith ubE gE
       exact hcov
@@ -2511,10 +2511,10 @@ noncomputable def colimitHasImages (C : CatSystem ι D) (hC : C.Coherent)
         h_s_kpI ?_
       rw [homTr_refl C hC xX opI ubE gE, homTr_refl C hC opI xY ubM gM]
       -- `gE ≫ gM = castHom .. (functF h_s_kpI).map (e₀ ≫ m₀) = (homTr f₀)`.
-      show castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm ((C.functF h_s_kpI).map e₀)
-          ≫ castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm ((C.functF h_s_kpI).map m₀)
+      show castHom (C.F_trans a.2.1 h_s_kpI xX).symm h_I_eq.symm (C.Fmap h_s_kpI e₀)
+          ≫ castHom h_I_eq.symm (C.F_trans a.2.2 h_s_kpI xY).symm (C.Fmap h_s_kpI m₀)
         = homTr C xX xY a ⟨kpI, D.trans a.2.1 h_s_kpI, D.trans a.2.2 h_s_kpI⟩ h_s_kpI f₀
-      rw [castHom_comp, ← (C.functF h_s_kpI).map_comp, hfac]
+      rw [castHom_comp, ← C.Fmap_comp h_s_kpI, hfac]
       rfl
     refine ⟨Subobject.mk Img M hM_mono, ?_⟩
     rw [show (Quotient.mk (setoid (homSystem C hC xX xY)) ⟨a, f₀⟩ : X ⟶ Y) = colimComp C hC E M
@@ -2631,36 +2631,36 @@ theorem isEqualizer_iso_apex {𝒟 : Type u} [Cat.{v} 𝒟] {A B E E' : 𝒟} {f
 theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     [HasTerminal 𝒞] [HasBinaryProducts 𝒞] [HasEqualizers 𝒞]
     [HasTerminal 𝒟] [HasBinaryProducts 𝒟] [HasEqualizers 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F]
+    (F : Functor 𝒞 𝒟)
     (hprod : PreservesBinaryProducts F) (hpeq : PreservesEqualizers F)
     {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C) :
-    (Cone.mk (f := hF.map f) (g := hF.map g)
-      (F (products_equalizers_implies_pullbacks f g).cone.pt)
-      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₁)
-      (hF.map (products_equalizers_implies_pullbacks f g).cone.π₂)
-      (by rw [← hF.map_comp, ← hF.map_comp,
+    (Cone.mk (f := F.map f) (g := F.map g)
+      (F.obj (products_equalizers_implies_pullbacks f g).cone.pt)
+      (F.map (products_equalizers_implies_pullbacks f g).cone.π₁)
+      (F.map (products_equalizers_implies_pullbacks f g).cone.π₂)
+      (by rw [← F.map_comp, ← F.map_comp,
               (products_equalizers_implies_pullbacks f g).cone.w])).IsPullback := by
   -- abbreviations for the §1.432 apex/map of the source pullback
   let eo : 𝒞 := eqObj (fst ≫ f) (snd ≫ g)
   let em : eo ⟶ prod A B := eqMap (fst ≫ f) (snd ≫ g)
-  -- (F eo, F em) is the equalizer of (F(fst≫f), F(snd≫g)) — `PreservesEqualizers` + apex-iso
-  have hFem_eq : hF.map em ≫ hF.map (fst ≫ f) = hF.map em ≫ hF.map (snd ≫ g) :=
-    (hF.map_comp em (fst ≫ f)).symm.trans
-      ((congrArg hF.map (eqMap_eq (fst ≫ f) (snd ≫ g))).trans (hF.map_comp em (snd ≫ g)))
-  -- chosen equalizer of (F(fst≫f), F(snd≫g)); k is the comparison from F eo, iso by hpeq
-  let cD := HasEqualizers.eq (F (prod A B)) (F C) (hF.map (fst ≫ f)) (hF.map (snd ≫ g))
-  let hcone : EqualizerCone (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) :=
-    { dom := F eo, map := hF.map em, eq := hFem_eq }
+  -- (F.obj eo, F em) is the equalizer of (F(fst≫f), F(snd≫g)) — `PreservesEqualizers` + apex-iso
+  have hFem_eq : F.map em ≫ F.map (fst ≫ f) = F.map em ≫ F.map (snd ≫ g) :=
+    (F.map_comp em (fst ≫ f)).symm.trans
+      ((congrArg F.map (eqMap_eq (fst ≫ f) (snd ≫ g))).trans (F.map_comp em (snd ≫ g)))
+  -- chosen equalizer of (F(fst≫f), F(snd≫g)); k is the comparison from F.obj eo, iso by hpeq
+  let cD := HasEqualizers.eq (F.obj (prod A B)) (F.obj C) (F.map (fst ≫ f)) (F.map (snd ≫ g))
+  let hcone : EqualizerCone (F.map (fst ≫ f)) (F.map (snd ≫ g)) :=
+    { dom := F.obj eo, map := F.map em, eq := hFem_eq }
   let k := cD.lift hcone
-  have hk_fac : k ≫ eqMap (hF.map (fst ≫ f)) (hF.map (snd ≫ g)) = hF.map em := cD.fac hcone
+  have hk_fac : k ≫ eqMap (F.map (fst ≫ f)) (F.map (snd ≫ g)) = F.map em := cD.fac hcone
   have hk_iso : IsIso k := hpeq (fst ≫ f) (snd ≫ g)
   obtain ⟨k', hkk', hk'k⟩ := hk_iso
-  -- (F eo, F em) is an equalizer: transport the chosen equalizer along the iso k (apex move)
-  have hFem_isEq : (EqualizerCone.mk (F eo) (hF.map em) hFem_eq).IsEqualizer := by
-    -- transport the chosen equalizer (apex eqObj..) to apex F eo via k : F eo → eqObj..
+  -- (F.obj eo, F em) is an equalizer: transport the chosen equalizer along the iso k (apex move)
+  have hFem_isEq : (EqualizerCone.mk (F.obj eo) (F.map em) hFem_eq).IsEqualizer := by
+    -- transport the chosen equalizer (apex eqObj..) to apex F.obj eo via k : F.obj eo → eqObj..
     have h0 := isEqualizer_iso_apex
-      (chosenEqualizer_isEqualizer (hF.map (fst ≫ f)) (hF.map (snd ≫ g))) k k' hkk' hk'k
-    -- h0 : (F eo, k ≫ eqMap) IsEqualizer; and k ≫ eqMap = F em (hk_fac)
+      (chosenEqualizer_isEqualizer (F.map (fst ≫ f)) (F.map (snd ≫ g))) k k' hkk' hk'k
+    -- h0 : (F.obj eo, k ≫ eqMap) IsEqualizer; and k ≫ eqMap = F em (hk_fac)
     intro d
     obtain ⟨u, hu, huniq⟩ := h0 d
     refine ⟨u, ?_, fun v hv => huniq v ?_⟩
@@ -2668,53 +2668,53 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
       exact (congrArg (u ≫ ·) hk_fac).symm.trans hu
     · -- hv : v ≫ F em = d.map ; goal v ≫ (k ≫ eqMap) = d.map
       exact (congrArg (v ≫ ·) hk_fac).trans hv
-  -- product-comparison iso φ : F(prod A B) → prod (F A)(F B); φ ≫ fst = F fst, φ ≫ snd = F snd
-  let φ : F (prod A B) ⟶ prod (F A) (F B) :=
-    pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  -- product-comparison iso φ : F(prod A B) → prod (F.obj A)(F.obj B); φ ≫ fst = F fst, φ ≫ snd = F snd
+  let φ : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) :=
+    pair (F.map (fst (A := A) (B := B))) (F.map snd)
   have hφ_iso : IsIso φ := hprod (A := A) (B := B)
-  have hφ_fst : φ ≫ fst = hF.map (fst (A := A) (B := B)) := fst_pair _ _
-  have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
+  have hφ_fst : φ ≫ fst = F.map (fst (A := A) (B := B)) := fst_pair _ _
+  have hφ_snd : φ ≫ snd = F.map (snd (A := A) (B := B)) := snd_pair _ _
   -- the pair (F(fst≫f), F(snd≫g)) is (φ≫(fst≫Ff), φ≫(snd≫Fg))
-  have hpair_f : hF.map (fst ≫ f) = φ ≫ (fst ≫ hF.map f) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_fst]
-  have hpair_g : hF.map (snd ≫ g) = φ ≫ (snd ≫ hF.map g) := by
-    rw [hF.map_comp, ← Cat.assoc, hφ_snd]
+  have hpair_f : F.map (fst ≫ f) = φ ≫ (fst ≫ F.map f) := by
+    rw [F.map_comp, ← Cat.assoc, hφ_fst]
+  have hpair_g : F.map (snd ≫ g) = φ ≫ (snd ≫ F.map g) := by
+    rw [F.map_comp, ← Cat.assoc, hφ_snd]
   -- transport hFem_isEq onto the φ-precomposed pair (proof-irrelevant cone rewrite)
-  have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ hF.map f)) (g := φ ≫ (snd ≫ hF.map g))
-      (F eo) (hF.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
+  have hFem_isEq' : (EqualizerCone.mk (f := φ ≫ (fst ≫ F.map f)) (g := φ ≫ (snd ≫ F.map g))
+      (F.obj eo) (F.map em) (by rw [← hpair_f, ← hpair_g]; exact hFem_eq)).IsEqualizer := by
     intro d
     -- a cone over (φ≫p, φ≫q) is the same data as a cone over (F(fst≫f),F(snd≫g)) by hpair
-    have hd : d.map ≫ hF.map (fst ≫ f) = d.map ≫ hF.map (snd ≫ g) := by
+    have hd : d.map ≫ F.map (fst ≫ f) = d.map ≫ F.map (snd ≫ g) := by
       rw [hpair_f, hpair_g]; exact d.eq
     obtain ⟨u, hu, huniq⟩ := hFem_isEq (EqualizerCone.mk d.dom d.map hd)
     exact ⟨u, hu, huniq⟩
   have hslid := isEqualizer_comp_iso hφ_iso
     (by rw [← hpair_f, ← hpair_g]; exact hFem_eq) hFem_isEq'
-  -- hslid : (F eo, F em ≫ φ) is the equalizer of (fst≫Ff, snd≫Fg) over prod (F A)(F B)
-  have hmeq : (hF.map em ≫ φ) ≫ (fst ≫ hF.map f) = (hF.map em ≫ φ) ≫ (snd ≫ hF.map g) := by
+  -- hslid : (F.obj eo, F em ≫ φ) is the equalizer of (fst≫Ff, snd≫Fg) over prod (F.obj A)(F.obj B)
+  have hmeq : (F.map em ≫ φ) ≫ (fst ≫ F.map f) = (F.map em ≫ φ) ≫ (snd ≫ F.map g) := by
     rw [Cat.assoc, Cat.assoc, ← hpair_f, ← hpair_g]; exact hFem_eq
   have hpb := pullback_of_equalizer hmeq hslid
-  -- hpb : (F eo, (F em ≫ φ)≫fst, (F em ≫ φ)≫snd) is the pullback of (Ff, Fg).
+  -- hpb : (F.obj eo, (F em ≫ φ)≫fst, (F em ≫ φ)≫snd) is the pullback of (Ff, Fg).
   -- those projections equal F P.π₁ = F(em≫fst), F P.π₂ = F(em≫snd).
   intro d
   obtain ⟨u, ⟨hu₁, hu₂⟩, huniq⟩ := hpb d
-  -- bridge: (F em ≫ φ) ≫ fst = F (em ≫ fst), likewise snd
-  have hbr₁ : hF.map em ≫ φ ≫ fst = hF.map (em ≫ fst) := by rw [hφ_fst, ← hF.map_comp]
-  have hbr₂ : hF.map em ≫ φ ≫ snd = hF.map (em ≫ snd) := by rw [hφ_snd, ← hF.map_comp]
-  have hpr₁ : (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) := (Cat.assoc _ _ _).trans hbr₁
-  have hpr₂ : (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) := (Cat.assoc _ _ _).trans hbr₂
+  -- bridge: (F em ≫ φ) ≫ fst = F.obj (em ≫ fst), likewise snd
+  have hbr₁ : F.map em ≫ φ ≫ fst = F.map (em ≫ fst) := by rw [hφ_fst, ← F.map_comp]
+  have hbr₂ : F.map em ≫ φ ≫ snd = F.map (em ≫ snd) := by rw [hφ_snd, ← F.map_comp]
+  have hpr₁ : (F.map em ≫ φ) ≫ fst = F.map (em ≫ fst) := (Cat.assoc _ _ _).trans hbr₁
+  have hpr₂ : (F.map em ≫ φ) ≫ snd = F.map (em ≫ snd) := (Cat.assoc _ _ _).trans hbr₂
   refine ⟨u, ⟨?_, ?_⟩, ?_⟩
-  · show u ≫ hF.map (em ≫ fst) = d.π₁
+  · show u ≫ F.map (em ≫ fst) = d.π₁
     rw [← hpr₁]; exact hu₁
-  · show u ≫ hF.map (em ≫ snd) = d.π₂
+  · show u ≫ F.map (em ≫ snd) = d.π₂
     rw [← hpr₂]; exact hu₂
   · intro v hv₁ hv₂
     refine huniq v ?_ ?_
-    · show v ≫ (hF.map em ≫ φ) ≫ fst = d.π₁
-      rw [show (hF.map em ≫ φ) ≫ fst = hF.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
+    · show v ≫ (F.map em ≫ φ) ≫ fst = d.π₁
+      rw [show (F.map em ≫ φ) ≫ fst = F.map (em ≫ fst) from (Cat.assoc _ _ _).trans hbr₁]
       exact hv₁
-    · show v ≫ (hF.map em ≫ φ) ≫ snd = d.π₂
-      rw [show (hF.map em ≫ φ) ≫ snd = hF.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
+    · show v ≫ (F.map em ≫ φ) ≫ snd = d.π₂
+      rw [show (F.map em ≫ φ) ≫ snd = F.map (em ≫ snd) from (Cat.assoc _ _ _).trans hbr₂]
       exact hv₂
 
 /-! ## M3b — pullbacks for the colimit category
@@ -2733,21 +2733,21 @@ noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hn
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     -- equalizer data
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     @HasPullbacks C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
   letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
@@ -2769,20 +2769,20 @@ theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : No
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k) :
+        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
     letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hppres hppres_pair
@@ -2855,7 +2855,7 @@ theorem homInclObj_heq_homIncl (C : CatSystem ι D) (hC : C.Coherent)
     (hxZ : C.F a.2.2 (colimOut C Z).2 = C.F hiA x') :
     HEq (homInclObj C hC g)
       (homIncl C hC (colimOut C A).2 (colimOut C Z).2 a
-        (castHom hxA.symm hxZ.symm ((C.functF hiA).map g))) := by
+        (castHom hxA.symm hxZ.symm (C.Fmap hiA g))) := by
   subst eA; subst eZ
   apply heq_of_eq
   -- witness for `homInclObj g` built from `a` and the rep equalities
@@ -2927,19 +2927,19 @@ theorem objIncl_pair_commonBound (C : CatSystem ι D)
     two separately-aligned homs onto a common codomain stage. -/
 theorem homInclObj_push_heq (C : CatSystem ι D) (hC : C.Coherent)
     {N M : ι} (hNM : D.le N M) {xA xZ : C.A N} (fN : xA ⟶ xZ) :
-    HEq (homInclObj C hC ((C.functF hNM).map fN)) (homInclObj C hC fN) := by
+    HEq (homInclObj C hC (C.Fmap hNM fN)) (homInclObj C hC fN) := by
   obtain ⟨K, hMK, hpA, hpZ, hxA, hxZ⟩ := objIncl_pair_commonBound C hNM xA xZ
   -- align `homInclObj fN` (stage N) at the bound `⟨K, hpA, hpZ⟩` over `objIncl N`
   have hN := homInclObj_heq_homIncl C hC fN rfl rfl
     ⟨K, hpA, hpZ⟩ (D.trans hNM hMK) hxA hxZ
   -- align `homInclObj ((functF hNM).map fN)` (stage M) at the same bound, via `objIncl_compat`
-  have hM := homInclObj_heq_homIncl C hC ((C.functF hNM).map fN)
+  have hM := homInclObj_heq_homIncl C hC (C.Fmap hNM fN)
     (C.objIncl_compat hNM xA) (C.objIncl_compat hNM xZ)
     ⟨K, hpA, hpZ⟩ hMK
     (hxA.trans (C.F_trans hNM hMK xA)) (hxZ.trans (C.F_trans hNM hMK xZ))
   refine hM.trans ?_
   refine HEq.trans (b := homIncl C hC (colimOut C (C.objIncl N xA)).2 (colimOut C (C.objIncl N xZ)).2
-    ⟨K, hpA, hpZ⟩ (castHom hxA.symm hxZ.symm ((C.functF (D.trans hNM hMK)).map fN))) ?_ hN.symm
+    ⟨K, hpA, hpZ⟩ (castHom hxA.symm hxZ.symm (C.Fmap (D.trans hNM hMK) fN))) ?_ hN.symm
   -- the two germs agree: `functF (M→K) ∘ functF (N→M) = functF (N→K)` by `trans_map`
   apply heq_of_eq; congr 1
   apply castHom_heq_congr (h2X := hxA.symm) (h2Y := hxZ.symm)
@@ -2974,15 +2974,15 @@ theorem colimHom_cospan_as_homInclObj (C : CatSystem ι D) (hC : C.Coherent) {A 
   -- common stage `N₀ ≥ Nf, Ng`; push both germs there
   obtain ⟨N₀, hNf, hNg⟩ := D.bound Nf Ng
   -- pushed germs at `N₀`
-  let fN0 : C.F hNf xAf ⟶ C.F hNf xZf := (C.functF hNf).map fN
-  let gN0 : C.F hNg xBg ⟶ C.F hNg xZg := (C.functF hNg).map gN
+  let fN0 : C.F hNf xAf ⟶ C.F hNf xZf := C.Fmap hNf fN
+  let gN0 : C.F hNg xBg ⟶ C.F hNg xZg := C.Fmap hNg gN
   -- the two reps of `Z` at `N₀` have equal `objIncl`-images, hence agree at a later `N`
   have hZ0 : C.objIncl N₀ (C.F hNf xZf) = C.objIncl N₀ (C.F hNg xZg) := by
     rw [C.objIncl_compat hNf xZf, C.objIncl_compat hNg xZg, eZf, eZg]
   obtain ⟨N, hN0N, hZeq⟩ := objIncl_eq_commonStage C (C.F hNf xZf) (C.F hNg xZg) hZ0
   -- gN's codomain cast onto the shared `xZ := F hN0N (F hNf xZf)` via `hZeq`
   refine ⟨N, C.F hN0N (C.F hNf xAf), C.F hN0N (C.F hNg xBg), C.F hN0N (C.F hNf xZf),
-    (C.functF hN0N).map fN0, castHom rfl hZeq.symm ((C.functF hN0N).map gN0),
+    C.Fmap hN0N fN0, castHom rfl hZeq.symm (C.Fmap hN0N gN0),
     ?_, ?_, ?_, ?_, ?_⟩
   · rw [C.objIncl_compat hN0N (C.F hNf xAf), C.objIncl_compat hNf xAf, eAf]
   · rw [C.objIncl_compat hN0N (C.F hNg xBg), C.objIncl_compat hNg xBg, eBg]
@@ -3076,21 +3076,21 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u : z ⟶ C.F hij ((hp i).prod a b)) (v : z ⟶ C.F hij ((hp i).prod a b)),
-        u ≫ (C.functF hij).map (hp i).fst = v ≫ (C.functF hij).map (hp i).fst →
-        u ≫ (C.functF hij).map (hp i).snd = v ≫ (C.functF hij).map (hp i).snd → u = v)
+        u ≫ C.Fmap hij (hp i).fst = v ≫ C.Fmap hij (hp i).fst →
+        u ≫ C.Fmap hij (hp i).snd = v ≫ C.Fmap hij (hp i).snd → u = v)
     (hppres_pair : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (p : z ⟶ C.F hij a) (q : z ⟶ C.F hij b),
         ∃ r : z ⟶ C.F hij ((hp i).prod a b),
-          r ≫ (C.functF hij).map (hp i).fst = p ∧ r ≫ (C.functF hij).map (hp i).snd = q)
+          r ≫ C.Fmap hij (hp i).fst = p ∧ r ≫ C.Fmap hij (hp i).snd = q)
     -- equalizers
     (he : ∀ i, HasEqualizers (C.A i))
     (hepres : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (u v : z ⟶ C.F hij (eqObj f g)),
-        u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
+        u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (_ : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
-        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
+        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     -- pullbacks-transfer-covers: the canonical pullback's π₂ is a cover
     (hcanon : letI : Cat C.Obj := colimitCat C hC
         letI : HasPullbacks C.Obj :=
@@ -3136,19 +3136,19 @@ theorem isEqualizer_map_congr {A B : ℬ} {f g : A ⟶ B} {E : ℬ} {e e' : E �
     the stage terminal to the stage terminal — exactly what `colimitHasTerminal`'s `htpres` asks.
     This lemma is the trivial repackaging `F one = one`; it exists to name the obligation
     uniformly (every rung of a *strict* construction delivers the on-the-nose equality). -/
-theorem htpres_of_eq [HasTerminal 𝒜] [HasTerminal ℬ] (F : 𝒜 → ℬ) [Functor F]
-    (hone : F (one : 𝒜) = (one : ℬ)) : F (one : 𝒜) = (one : ℬ) := hone
+theorem htpres_of_eq [HasTerminal 𝒜] [HasTerminal ℬ] (F : Functor 𝒜 ℬ)
+    (hone : F.obj (one : 𝒜) = (one : ℬ)) : F.obj (one : 𝒜) = (one : ℬ) := hone
 
 /-- **Joint monicity of `(F fst, F snd)` from `PreservesBinaryProducts`.**  If the canonical
-    comparison `pair (F fst) (F snd) : F(A×B) → F A × F B` is an iso, then `(F fst, F snd)` is a
+    comparison `pair (F fst) (F snd) : F(A×B) → F.obj A × F.obj B` is an iso, then `(F fst, F snd)` is a
     monic pair: two maps into `F(A×B)` agreeing after `F fst` and `F snd` agree.  This is the
     `hppres` content (`u ≫ F fst = v ≫ F fst → u ≫ F snd = v ≫ F snd → u = v`). -/
 theorem preservesBinaryProducts_jointly_monic [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpp : PreservesBinaryProducts F) {A B : 𝒜} :
-    MonicPair (hF.map (fst (A := A) (B := B))) (hF.map snd) := by
+    (F : Functor 𝒜 ℬ) (hpp : PreservesBinaryProducts F) {A B : 𝒜} :
+    MonicPair (F.map (fst (A := A) (B := B))) (F.map snd) := by
   -- the comparison `φ = pair (F fst) (F snd)` is iso, hence mono; and `φ ≫ fst = F fst`,
   -- `φ ≫ snd = F snd`, so two maps agreeing after both `F`-projections agree after `φ`.
-  let φ : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+  let φ : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) := pair (F.map (fst (A := A) (B := B))) (F.map snd)
   obtain ⟨φ', hφφ', _⟩ := (hpp (A := A) (B := B) : IsIso φ)
   have hφmono : Monic φ := mono_of_retraction φ φ' hφφ'
   intro W u v hu hv
@@ -3159,67 +3159,67 @@ theorem preservesBinaryProducts_jointly_monic [HasBinaryProducts 𝒜] [HasBinar
   · rw [Cat.assoc, Cat.assoc, snd_pair, hv]
 
 /-- **Pairing through `(F fst, F snd)` from `PreservesBinaryProducts`.**  The comparison `φ` being
-    iso lets any pair of legs `p : Z ⟶ F A`, `q : Z ⟶ F B` factor through `F(A×B)`: take
+    iso lets any pair of legs `p : Z ⟶ F.obj A`, `q : Z ⟶ F.obj B` factor through `F(A×B)`: take
     `r := pair p q ≫ φ⁻¹`, then `r ≫ F fst = p` and `r ≫ F snd = q`.  This is the `hppres_pair`
     content. -/
 theorem preservesBinaryProducts_pair [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpp : PreservesBinaryProducts F) {A B : 𝒜} {Z : ℬ}
-    (p : Z ⟶ F A) (q : Z ⟶ F B) :
-    ∃ r : Z ⟶ F (prod A B),
-      r ≫ hF.map (fst (A := A) (B := B)) = p ∧ r ≫ hF.map snd = q := by
-  let φ : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
+    (F : Functor 𝒜 ℬ) (hpp : PreservesBinaryProducts F) {A B : 𝒜} {Z : ℬ}
+    (p : Z ⟶ F.obj A) (q : Z ⟶ F.obj B) :
+    ∃ r : Z ⟶ F.obj (prod A B),
+      r ≫ F.map (fst (A := A) (B := B)) = p ∧ r ≫ F.map snd = q := by
+  let φ : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) := pair (F.map (fst (A := A) (B := B))) (F.map snd)
   obtain ⟨φ', _, hφ'φ⟩ := (hpp (A := A) (B := B) : IsIso φ)
-  have hφ_fst : φ ≫ fst = hF.map (fst (A := A) (B := B)) := fst_pair _ _
-  have hφ_snd : φ ≫ snd = hF.map (snd (A := A) (B := B)) := snd_pair _ _
+  have hφ_fst : φ ≫ fst = F.map (fst (A := A) (B := B)) := fst_pair _ _
+  have hφ_snd : φ ≫ snd = F.map (snd (A := A) (B := B)) := snd_pair _ _
   refine ⟨pair p q ≫ φ', ?_, ?_⟩
   · -- (pair p q ≫ φ') ≫ F fst = (pair p q ≫ φ') ≫ φ ≫ fst = pair p q ≫ fst = p
     rw [← hφ_fst, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, fst_pair]
   · rw [← hφ_snd, ← Cat.assoc, Cat.assoc (pair p q), hφ'φ, Cat.comp_id, snd_pair]
 
-/-- **Joint monicity of `F (eqMap f g)` from `PreservesEqualizers`.**  If `F` preserves the
-    equalizer of `f, g`, then `F (eqMap f g)` is monic (an equalizer map is monic, and its
+/-- **Joint monicity of `F.obj (eqMap f g)` from `PreservesEqualizers`.**  If `F` preserves the
+    equalizer of `f, g`, then `F.obj (eqMap f g)` is monic (an equalizer map is monic, and its
     `F`-image is again an equalizer map up to the comparison iso).  This is the `hepres` content
-    (`u ≫ F (eqMap f g) = v ≫ F (eqMap f g) → u = v`). -/
+    (`u ≫ F.obj (eqMap f g) = v ≫ F.obj (eqMap f g) → u = v`). -/
 theorem preservesEqualizers_mono [HasEqualizers 𝒜] [HasEqualizers ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B) :
-    Monic (hF.map (eqMap f g)) := by
+    (F : Functor 𝒜 ℬ) (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B) :
+    Monic (F.map (eqMap f g)) := by
   -- comparison `k : F(eqObj f g) → eqObj (Ff)(Fg)` is iso; `eqMap (Ff)(Fg)` is monic; and
-  -- `k ≫ eqMap(Ff)(Fg) = F (eqMap f g)`, so `F (eqMap f g)` is `iso ≫ mono`, hence mono.
-  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
-  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
-    { dom := F (eqObj f g), map := hF.map (eqMap f g)
-      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  -- `k ≫ eqMap(Ff)(Fg) = F.obj (eqMap f g)`, so `F.obj (eqMap f g)` is `iso ≫ mono`, hence mono.
+  let cD := HasEqualizers.eq (F.obj A) (F.obj B) (F.map f) (F.map g)
+  let hcone : EqualizerCone (F.map f) (F.map g) :=
+    { dom := F.obj (eqObj f g), map := F.map (eqMap f g)
+      eq := by rw [← F.map_comp, ← F.map_comp, eqMap_eq] }
   let k := cD.lift hcone
-  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  have hk_fac : k ≫ cD.cone.map = F.map (eqMap f g) := cD.fac hcone
   obtain ⟨k', hkk', _⟩ := (hpe f g : IsIso k)
   -- `cD.cone.map = eqMap (F f)(F g)` is monic (two maps agreeing after it lift the same cone).
   have hEqMono : Monic cD.cone.map := by
     intro W p q hpq
-    have hc : (p ≫ cD.cone.map) ≫ hF.map f = (p ≫ cD.cone.map) ≫ hF.map g := by
+    have hc : (p ≫ cD.cone.map) ≫ F.map f = (p ≫ cD.cone.map) ≫ F.map g := by
       rw [Cat.assoc, Cat.assoc, cD.cone.eq]
-    let c : EqualizerCone (hF.map f) (hF.map g) := ⟨W, p ≫ cD.cone.map, hc⟩
+    let c : EqualizerCone (F.map f) (F.map g) := ⟨W, p ≫ cD.cone.map, hc⟩
     rw [cD.uniq c p rfl, cD.uniq c q hpq.symm]
-  -- `F (eqMap f g) = k ≫ cD.cone.map`, with `k` iso (mono via retraction) and `cD.cone.map` mono.
+  -- `F.obj (eqMap f g) = k ≫ cD.cone.map`, with `k` iso (mono via retraction) and `cD.cone.map` mono.
   intro W p q hpq
   rw [← hk_fac] at hpq
   exact mono_of_retraction k k' hkk' p q (hEqMono _ _ (by rw [Cat.assoc, Cat.assoc]; exact hpq))
 
-/-- **Lifting through `F (eqMap f g)` from `PreservesEqualizers`.**  If a map `kk : Z ⟶ F A`
-    equalizes `F f, F g`, it factors through `F (eqObj f g)` via `F (eqMap f g)`.  This is the
+/-- **Lifting through `F.obj (eqMap f g)` from `PreservesEqualizers`.**  If a map `kk : Z ⟶ F.obj A`
+    equalizes `F f, F g`, it factors through `F.obj (eqObj f g)` via `F.obj (eqMap f g)`.  This is the
     `hepres_lift` content. -/
 theorem preservesEqualizers_lift [HasEqualizers 𝒜] [HasEqualizers ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B)
-    {Z : ℬ} (kk : Z ⟶ F A) (hk : kk ≫ hF.map f = kk ≫ hF.map g) :
-    ∃ r : Z ⟶ F (eqObj f g), r ≫ hF.map (eqMap f g) = kk := by
-  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
-  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
-    { dom := F (eqObj f g), map := hF.map (eqMap f g)
-      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+    (F : Functor 𝒜 ℬ) (hpe : PreservesEqualizers F) {A B : 𝒜} (f g : A ⟶ B)
+    {Z : ℬ} (kk : Z ⟶ F.obj A) (hk : kk ≫ F.map f = kk ≫ F.map g) :
+    ∃ r : Z ⟶ F.obj (eqObj f g), r ≫ F.map (eqMap f g) = kk := by
+  let cD := HasEqualizers.eq (F.obj A) (F.obj B) (F.map f) (F.map g)
+  let hcone : EqualizerCone (F.map f) (F.map g) :=
+    { dom := F.obj (eqObj f g), map := F.map (eqMap f g)
+      eq := by rw [← F.map_comp, ← F.map_comp, eqMap_eq] }
   let k := cD.lift hcone
-  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  have hk_fac : k ≫ cD.cone.map = F.map (eqMap f g) := cD.fac hcone
   obtain ⟨k', _, hk'k⟩ := (hpe f g : IsIso k)
   -- `kk` equalizes `F f, F g`, so it lifts to `eqObj (F f)(F g)` via `cD.cone.map`; then transport
-  -- across the iso `k` to `F (eqObj f g)`.
+  -- across the iso `k` to `F.obj (eqObj f g)`.
   let u : Z ⟶ cD.cone.dom := cD.lift ⟨Z, kk, hk⟩
   have hu : u ≫ cD.cone.map = kk := cD.fac ⟨Z, kk, hk⟩
   refine ⟨u ≫ k', ?_⟩
@@ -3237,74 +3237,74 @@ variable {ℰ : Type u} [Cat.{u} ℰ]
 /-- **Terminal preservation composes** (on-the-nose form).  `(G ∘ F) one = one` from `F one = one`
     and `G one = one`. -/
 theorem preservesTerminal_comp [HasTerminal 𝒜] [HasTerminal ℬ] [HasTerminal ℰ]
-    (F : 𝒜 → ℬ) (G : ℬ → ℰ) [Functor F] [Functor G]
-    (hF : F (one : 𝒜) = (one : ℬ)) (hG : G (one : ℬ) = (one : ℰ)) :
-    (G ∘ F) (one : 𝒜) = (one : ℰ) := by
-  show G (F (one : 𝒜)) = (one : ℰ); rw [hF, hG]
+    (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
+    (hF : F.obj (one : 𝒜) = (one : ℬ)) (hG : G.obj (one : ℬ) = (one : ℰ)) :
+    (compFunctor F G).obj (one : 𝒜) = (one : ℰ) := by
+  show G.obj (F.obj (one : 𝒜)) = (one : ℰ); rw [hF, hG]
 
 /-- **Binary-product preservation composes.**  If `F` and `G` each make their product comparison an
     iso, so does `G ∘ F`: the composite comparison factors as `G(φF) ≫ φG` (`φF`, `φG` the rung
     comparisons), a composite of isos (`φF` iso ⟹ `G φF` iso by `functor_preserves_iso`). -/
 theorem preservesBinaryProducts_comp [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
-    [HasBinaryProducts ℰ] (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    [HasBinaryProducts ℰ] (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
     (hppF : PreservesBinaryProducts F) (hppG : PreservesBinaryProducts G) :
-    PreservesBinaryProducts (G ∘ F) := by
+    PreservesBinaryProducts (compFunctor F G) := by
   intro A B
   -- φF : F(A×B) → FA×FB iso; φG : G(FA×FB) → G(FA)×G(FB) iso; composite = G(φF) ≫ φG.
-  let φF : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
-  let φG : G (prod (F A) (F B)) ⟶ prod (G (F A)) (G (F B)) :=
-    pair (hG.map (fst (A := F A) (B := F B))) (hG.map snd)
-  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso (F := G) φF (hppF (A := A) (B := B))
-  have hcomp_iso : IsIso (hG.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F A) (B := F B))
+  let φF : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) := pair (F.map (fst (A := A) (B := B))) (F.map snd)
+  let φG : G.obj (prod (F.obj A) (F.obj B)) ⟶ prod (G.obj (F.obj A)) (G.obj (F.obj B)) :=
+    pair (G.map (fst (A := F.obj A) (B := F.obj B))) (G.map snd)
+  have hGφF_iso : IsIso (G.map φF) := functor_preserves_iso (F := G) φF (hppF (A := A) (B := B))
+  have hcomp_iso : IsIso (G.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F.obj A) (B := F.obj B))
   -- the `G∘F`-comparison equals `G(φF) ≫ φG`: agree after `fst` and after `snd` (jointly monic).
-  have hfst : (hG.map φF ≫ φG) ≫ fst = (compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)) := by
+  have hfst : (G.map φF ≫ φG) ≫ fst = (compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)) := by
     -- (G φF ≫ φG) ≫ fst = G φF ≫ G fst = G(φF ≫ fst) = G(F fst) = (G∘F) fst
-    rw [Cat.assoc, fst_pair, ← hG.map_comp, fst_pair]; rfl
-  have hsnd : (hG.map φF ≫ φG) ≫ snd = (compFunctor (F := F) (G := G)).map (snd (A := A) (B := B)) := by
-    rw [Cat.assoc, snd_pair, ← hG.map_comp, snd_pair]; rfl
+    rw [Cat.assoc, fst_pair, ← G.map_comp, fst_pair]; rfl
+  have hsnd : (G.map φF ≫ φG) ≫ snd = (compFunctor (F := F) (G := G)).map (snd (A := A) (B := B)) := by
+    rw [Cat.assoc, snd_pair, ← G.map_comp, snd_pair]; rfl
   have hkey : pair ((compFunctor (F := F) (G := G)).map (fst (A := A) (B := B)))
-      ((compFunctor (F := F) (G := G)).map snd) = hG.map φF ≫ φG :=
+      ((compFunctor (F := F) (G := G)).map snd) = G.map φF ≫ φG :=
     (pair_uniq _ _ _ hfst hsnd).symm
   rw [hkey]; exact hcomp_iso
 
 /-- **A preserved equalizer image stays an equalizer (any cone).**  If `F` preserves equalizers
-    and `c` is an equalizer cone of `(f, g)`, then `(F c.dom, F c.map)` is an equalizer of
+    and `c` is an equalizer cone of `(f, g)`, then `(F.obj c.dom, F c.map)` is an equalizer of
     `(Ff, Fg)`.  PROOF: `c` is iso to the chosen equalizer (`isIso_of_two_equalizers`), `F` of that
     iso is iso, and the chosen image `(F(eqObj), F(eqMap))` is an equalizer (`PreservesEqualizers`
     transported by `isEqualizer_iso_apex`); chain the two apex-transports. -/
 theorem preservesEqualizers_isEqualizer [HasEqualizers 𝒜] [HasEqualizers ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpe : PreservesEqualizers F) {A B : 𝒜} {f g : A ⟶ B}
+    (F : Functor 𝒜 ℬ) (hpe : PreservesEqualizers F) {A B : 𝒜} {f g : A ⟶ B}
     {c : EqualizerCone f g} (hc : c.IsEqualizer) :
-    (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F c.dom) (hF.map c.map)
-      (by rw [← hF.map_comp, ← hF.map_comp, c.eq])).IsEqualizer := by
+    (EqualizerCone.mk (f := F.map f) (g := F.map g) (F.obj c.dom) (F.map c.map)
+      (by rw [← F.map_comp, ← F.map_comp, c.eq])).IsEqualizer := by
   -- (1) chosen image `(F(eqObj), F(eqMap))` IsEqualizer of `(Ff, Fg)` via the comparison iso.
-  let cD := HasEqualizers.eq (F A) (F B) (hF.map f) (hF.map g)
-  let hcone : EqualizerCone (hF.map f) (hF.map g) :=
-    { dom := F (eqObj f g), map := hF.map (eqMap f g)
-      eq := by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq] }
+  let cD := HasEqualizers.eq (F.obj A) (F.obj B) (F.map f) (F.map g)
+  let hcone : EqualizerCone (F.map f) (F.map g) :=
+    { dom := F.obj (eqObj f g), map := F.map (eqMap f g)
+      eq := by rw [← F.map_comp, ← F.map_comp, eqMap_eq] }
   let k := cD.lift hcone
-  have hk_fac : k ≫ cD.cone.map = hF.map (eqMap f g) := cD.fac hcone
+  have hk_fac : k ≫ cD.cone.map = F.map (eqMap f g) := cD.fac hcone
   obtain ⟨k', hkk', hk'k⟩ := (hpe f g : IsIso k)
   -- transport chosen equalizer apex `eqObj (Ff)(Fg)` to `F(eqObj)` along `k : F(eqObj) → eqObj…`
-  -- (with inverse `k'`); the new map is `k ≫ cD.cone.map = hF.map (eqMap f g)` (`hk_fac`).
-  have hChosenImg : (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F (eqObj f g))
-      (hF.map (eqMap f g)) hcone.eq).IsEqualizer := by
+  -- (with inverse `k'`); the new map is `k ≫ cD.cone.map = F.map (eqMap f g)` (`hk_fac`).
+  have hChosenImg : (EqualizerCone.mk (f := F.map f) (g := F.map g) (F.obj (eqObj f g))
+      (F.map (eqMap f g)) hcone.eq).IsEqualizer := by
     have h0 := isEqualizer_iso_apex (e := cD.cone.map) (hfe := cD.cone.eq)
-      (chosenEqualizer_isEqualizer (hF.map f) (hF.map g)) k k' hkk' hk'k
+      (chosenEqualizer_isEqualizer (F.map f) (F.map g)) k k' hkk' hk'k
     exact isEqualizer_map_congr hk_fac h0
   -- (2) `c` is iso to the chosen `eqObj`: comparison `m := eqLift f g c.map c.eq`, iso by
-  -- `isIso_of_two_equalizers`; `F m : F c.dom → F(eqObj)` iso; transport (1) onto apex `F c.dom`.
+  -- `isIso_of_two_equalizers`; `F m : F.obj c.dom → F(eqObj)` iso; transport (1) onto apex `F.obj c.dom`.
   let m : c.dom ⟶ eqObj f g := eqLift f g c.map c.eq
   have hm_fac : m ≫ eqMap f g = c.map := eqLift_fac f g c.map c.eq
   have hm_iso : IsIso m :=
     isIso_of_two_equalizers hc (chosenEqualizer_isEqualizer f g) m hm_fac
   obtain ⟨m', hmm', hm'm⟩ := functor_preserves_iso (F := F) m hm_iso
-  -- transport hChosenImg (apex F(eqObj), map F(eqMap)) along `F m : F c.dom → F(eqObj)`.
-  have h1 := isEqualizer_iso_apex (e := hF.map (eqMap f g)) (hfe := hcone.eq)
-    hChosenImg (hF.map m) m' hmm' hm'm
-  -- h1 : (F c.dom, F m ≫ F(eqMap)) IsEqualizer; and F m ≫ F(eqMap) = F(m ≫ eqMap) = F c.map.
-  have hcompmap : hF.map m ≫ hF.map (eqMap f g) = hF.map c.map := by
-    rw [← hF.map_comp, hm_fac]
+  -- transport hChosenImg (apex F(eqObj), map F(eqMap)) along `F m : F.obj c.dom → F(eqObj)`.
+  have h1 := isEqualizer_iso_apex (e := F.map (eqMap f g)) (hfe := hcone.eq)
+    hChosenImg (F.map m) m' hmm' hm'm
+  -- h1 : (F.obj c.dom, F m ≫ F(eqMap)) IsEqualizer; and F m ≫ F(eqMap) = F(m ≫ eqMap) = F c.map.
+  have hcompmap : F.map m ≫ F.map (eqMap f g) = F.map c.map := by
+    rw [← F.map_comp, hm_fac]
   exact isEqualizer_map_congr hcompmap h1
 
 /-- **Equalizer preservation composes.**  `(F(eqObj), F(eqMap))` is an equalizer of `(Ff, Fg)`
@@ -3312,13 +3312,13 @@ theorem preservesEqualizers_isEqualizer [HasEqualizers 𝒜] [HasEqualizers ℬ]
     of `(GFf, GFg)` (again `preservesEqualizers_isEqualizer`), and the chosen-equalizer comparison
     for `G ∘ F` is then iso (two equalizers ⟹ comparison iso). -/
 theorem preservesEqualizers_comp [HasEqualizers 𝒜] [HasEqualizers ℬ] [HasEqualizers ℰ]
-    (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
     (hpeF : PreservesEqualizers F) (hpeG : PreservesEqualizers G) :
-    PreservesEqualizers (G ∘ F) := by
+    PreservesEqualizers (compFunctor F G) := by
   intro A B f g
   -- (F(eqObj), F(eqMap)) IsEqualizer of (Ff, Fg):
-  have hFeq : (EqualizerCone.mk (f := hF.map f) (g := hF.map g) (F (eqObj f g)) (hF.map (eqMap f g))
-      (by rw [← hF.map_comp, ← hF.map_comp, eqMap_eq])).IsEqualizer :=
+  have hFeq : (EqualizerCone.mk (f := F.map f) (g := F.map g) (F.obj (eqObj f g)) (F.map (eqMap f g))
+      (by rw [← F.map_comp, ← F.map_comp, eqMap_eq])).IsEqualizer :=
     preservesEqualizers_isEqualizer F hpeF (chosenEqualizer_isEqualizer f g)
   -- apply G's preservation to this cone: (G(F(eqObj)), G(F(eqMap))) IsEqualizer of (GFf, GFg).
   have hGFeq := preservesEqualizers_isEqualizer G hpeG hFeq
@@ -3327,9 +3327,9 @@ theorem preservesEqualizers_comp [HasEqualizers 𝒜] [HasEqualizers ℬ] [HasEq
   -- The goal `IsIso (chosenG.lift {(G∘F)(eqObj), (G∘F)(eqMap), …})`: `(G∘F)(eqMap) = G(F(eqMap))`
   -- and `(G∘F)(eqObj) = G(F(eqObj))` definitionally, so the lifted cone IS `hGFeq`'s cone, the
   -- chosen one is `chosenEqualizer_isEqualizer`, and the comparison is iso (two equalizers).
-  let chosenG := HasEqualizers.eq (G (F A)) (G (F B)) (hG.map (hF.map f)) (hG.map (hF.map g))
+  let chosenG := HasEqualizers.eq (G.obj (F.obj A)) (G.obj (F.obj B)) (G.map (F.map f)) (G.map (F.map g))
   apply isIso_of_two_equalizers hGFeq
-    (chosenEqualizer_isEqualizer (hG.map (hF.map f)) (hG.map (hF.map g)))
+    (chosenEqualizer_isEqualizer (G.map (F.map f)) (G.map (F.map g)))
   exact chosenG.fac _
 
 end PreservationToColimShape

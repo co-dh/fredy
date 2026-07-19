@@ -63,13 +63,13 @@ namespace Freyd
 structure ReflectingAdditiveFunctor
     {𝒞 : Type u} [Cat.{v} 𝒞] [HalfAdditiveCategory 𝒞]
     {𝒟 : Type w} [Cat.{v} 𝒟] [HalfAdditiveCategory 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] : Prop where
+    (F : Functor 𝒞 𝒟) : Prop where
   /-- `F` reflects isomorphisms: if `F.map f` is an iso then so is `f`. -/
-  reflects_iso : ∀ {X Y : 𝒞} {f : X ⟶ Y}, IsIso (hF.map f) → IsIso f
+  reflects_iso : ∀ {X Y : 𝒞} {f : X ⟶ Y}, IsIso (F.map f) → IsIso f
   /-- `F` sends each source shear to an iso in the target (= structure
       preservation into an additive target, conjugated through the product
       comparison). -/
-  maps_shear_iso : ∀ {A B : 𝒞} (x : A ⟶ B), IsIso (hF.map (HalfAdditiveCategory.shear x))
+  maps_shear_iso : ∀ {A B : 𝒞} (x : A ⟶ B), IsIso (F.map (HalfAdditiveCategory.shear x))
 
 /-- **Non-vacuity / satisfiability.**  The interface is not a trivially-false
     hypothesis: on any *additive* category the identity functor satisfies both
@@ -78,7 +78,7 @@ structure ReflectingAdditiveFunctor
     the abelian-cluster reduction below is a genuine implication, not `ex falso`. -/
 theorem reflectingAdditive_id_of_additive
     (𝒞 : Type u) [Cat.{v} 𝒞] [AdditiveCategory 𝒞] :
-    ReflectingAdditiveFunctor (𝒞 := 𝒞) (𝒟 := 𝒞) (fun X => X) where
+    ReflectingAdditiveFunctor (𝒞 := 𝒞) (𝒟 := 𝒞) idFunctor where
   reflects_iso h := h
   maps_shear_iso x :=
     HalfAdditiveCategory.shear_isIso_of_addInv
@@ -104,7 +104,7 @@ variable {𝒟 : Type w} [Cat.{v} 𝒟] [HalfAdditiveCategory 𝒟]
     This is Freyd's "it holds because it holds in `Ab` and the exact rep reflects
     isos", with `Ab` replaced by any additive `𝒟`. -/
 theorem shear_isIso_of_reflectingAdditiveFunctor
-    (F : 𝒞 → 𝒟) [Functor F] (hF : ReflectingAdditiveFunctor F)
+    (F : Functor 𝒞 𝒟) (hF : ReflectingAdditiveFunctor F)
     {A B : 𝒞} (x : A ⟶ B) : IsIso (HalfAdditiveCategory.shear x) :=
   -- `F.map (shear x)` is iso (`maps_shear_iso`: the image is a shear in the
   -- additive target, hence iso); `F` reflects that iso back to `𝒞`.
@@ -118,7 +118,7 @@ theorem shear_isIso_of_reflectingAdditiveFunctor
     backward §1.591 direction `addInv_of_shear_isIso` extracts the inverse.
     This is precisely the step `abelian_has_negatives` was reduced to. -/
 theorem additive_of_reflectingAdditiveFunctor
-    (F : 𝒞 → 𝒟) [Functor F] (hF : ReflectingAdditiveFunctor F)
+    (F : Functor 𝒞 𝒟) (hF : ReflectingAdditiveFunctor F)
     {A B : 𝒞} (f : A ⟶ B) :
     ∃ g : A ⟶ B, HalfAdditiveCategory.add f g = HalfAdditiveCategory.zeroHom A B :=
   HalfAdditiveCategory.addInv_of_shear_isIso

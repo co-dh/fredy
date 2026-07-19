@@ -93,7 +93,8 @@ instance preOrderCat (P : PreOrd) : Cat.{0} P.carrier where
 /-- An order-preserving map between pre-orders is a functor between their categories (§1.245). -/
 def orderPreservingFunctor (P Q : PreOrd) (f : P.carrier → Q.carrier)
     (hf : ∀ {a b : P.carrier}, P.le a b → Q.le (f a) (f b)) :
-    @Functor P.carrier (preOrderCat P) Q.carrier (preOrderCat Q) f where
+    @Functor P.carrier Q.carrier (preOrderCat P) (preOrderCat Q) where
+  obj := f
   map h := ⟨hf h.down⟩
   map_id _ := rfl
   map_comp _ _ := rfl
@@ -194,9 +195,9 @@ class Prefunctor {C : Type u} [Cat.{v} C] {D : Type u} [Cat.{v} D] (F : C → D)
   map_comp : ∀ {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z), map (f ≫ g) = map f ≫ map g
 
 /-- Every functor is a prefunctor (it additionally preserves identities). -/
-instance functorIsPrefunctor {C : Type u} [Cat.{v} C] {D : Type u} [Cat.{v} D]
-    (F : C → D) [hF : Functor F] : Prefunctor F where
-  map := hF.map
-  map_comp := hF.map_comp
+def functorIsPrefunctor {C : Type u} [Cat.{v} C] {D : Type u} [Cat.{v} D]
+    (F : Functor C D) : Prefunctor F.obj where
+  map := F.map
+  map_comp := F.map_comp
 
 end Freyd

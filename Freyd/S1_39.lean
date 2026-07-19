@@ -29,7 +29,7 @@ variable {𝒞 : Type u} [Cat.{v} 𝒞]
     there exist isomorphic inflations.  (Existence of an equivalence functor
     implies equivalence.) -/
 def EquivalentCategories (𝒜 ℬ : Type u) [Cat.{v} 𝒜] [Cat.{v} ℬ] : Prop :=
-  ∃ (F : 𝒜 → ℬ) (_ : Functor F), EquivalenceFunctor F
+  ∃ F : Functor 𝒜 ℬ, EquivalenceFunctor F
 
 /-! ## §1.399 Conjugation invariance of diagrammatic properties
 
@@ -49,9 +49,9 @@ def EquivalentCategories (𝒜 ℬ : Type u) [Cat.{v} 𝒜] [Cat.{v} ℬ] : Prop
     by conjugating the witness with the NatIso component and using naturality. -/
 private theorem satisfies_map_natIso
     {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
-    {F₁ F₂ : 𝒞 → 𝒟} [hF₁ : Functor F₁] [hF₂ : Functor F₂]
+    {F₁ F₂ : Functor 𝒞 𝒟}
     (α : NatIso F₁ F₂) :
-    ∀ {A : 𝒞} (s : QSeq 𝒞 A) {D : 𝒟} (h₁ : F₁ A ⟶ D) (h₂ : F₂ A ⟶ D),
+    ∀ {A : 𝒞} (s : QSeq 𝒞 A) {D : 𝒟} (h₁ : F₁.obj A ⟶ D) (h₂ : F₂.obj A ⟶ D),
       h₁ = α.nat.app A ≫ h₂ →
       (Satisfies (s.map F₁) h₁ ↔ Satisfies (s.map F₂) h₂)
   | _, .nil _ q, _, _, _, _ => Iff.rfl
@@ -59,30 +59,30 @@ private theorem satisfies_map_natIso
     obtain ⟨θA_inv, hθA1, hθA2⟩ := α.isIso _
     obtain ⟨θA'_inv, hθA'1, hθA'2⟩ := α.isIso _
     have nat_step := α.nat.naturality α_step
-    -- derived: hF₂.map α_step ≫ θ_{A'}⁻¹ = θ_A⁻¹ ≫ hF₁.map α_step
-    have nat_inv : hF₂.map α_step ≫ θA'_inv = θA_inv ≫ hF₁.map α_step :=
-      calc hF₂.map α_step ≫ θA'_inv
-          = Cat.id _ ≫ hF₂.map α_step ≫ θA'_inv           := by rw [Cat.id_comp]
-        _ = (θA_inv ≫ α.nat.app _) ≫ hF₂.map α_step ≫ θA'_inv := by rw [hθA2]
-        _ = θA_inv ≫ (α.nat.app _ ≫ hF₂.map α_step) ≫ θA'_inv := by simp [Cat.assoc]
-        _ = θA_inv ≫ (hF₁.map α_step ≫ α.nat.app _) ≫ θA'_inv := by rw [nat_step]
-        _ = θA_inv ≫ hF₁.map α_step ≫ (α.nat.app _ ≫ θA'_inv) := by simp [Cat.assoc]
-        _ = θA_inv ≫ hF₁.map α_step ≫ Cat.id _             := by rw [hθA'1]
-        _ = θA_inv ≫ hF₁.map α_step                         := by rw [Cat.comp_id]
+    -- derived: F₂.map α_step ≫ θ_{A'}⁻¹ = θ_A⁻¹ ≫ F₁.map α_step
+    have nat_inv : F₂.map α_step ≫ θA'_inv = θA_inv ≫ F₁.map α_step :=
+      calc F₂.map α_step ≫ θA'_inv
+          = Cat.id _ ≫ F₂.map α_step ≫ θA'_inv           := by rw [Cat.id_comp]
+        _ = (θA_inv ≫ α.nat.app _) ≫ F₂.map α_step ≫ θA'_inv := by rw [hθA2]
+        _ = θA_inv ≫ (α.nat.app _ ≫ F₂.map α_step) ≫ θA'_inv := by simp [Cat.assoc]
+        _ = θA_inv ≫ (F₁.map α_step ≫ α.nat.app _) ≫ θA'_inv := by rw [nat_step]
+        _ = θA_inv ≫ F₁.map α_step ≫ (α.nat.app _ ≫ θA'_inv) := by simp [Cat.assoc]
+        _ = θA_inv ≫ F₁.map α_step ≫ Cat.id _             := by rw [hθA'1]
+        _ = θA_inv ≫ F₁.map α_step                         := by rw [Cat.comp_id]
     simp only [QSeq.map]
     -- θ_{A'} ≫ θ_{A'}⁻¹ = id, so g₁ = θ_{A'} ≫ (θ_{A'}⁻¹ ≫ g₁)
-    have θ_cancel : ∀ (g₁ : F₁ _ ⟶ D), g₁ = α.nat.app _ ≫ (θA'_inv ≫ g₁) := fun g₁ => by
+    have θ_cancel : ∀ (g₁ : F₁.obj _ ⟶ D), g₁ = α.nat.app _ ≫ (θA'_inv ≫ g₁) := fun g₁ => by
       rw [← Cat.assoc, hθA'1, Cat.id_comp]
     cases q with
     | all =>
       simp only [satisfies_cons_all]
       exact ⟨
         fun hL g₂ htri₂ => by
-          have htri₁ : hF₁.map α_step ≫ (α.nat.app _ ≫ g₂) = h₁ := by
+          have htri₁ : F₁.map α_step ≫ (α.nat.app _ ≫ g₂) = h₁ := by
             rw [← Cat.assoc, nat_step, Cat.assoc, htri₂, ← hcompat]
           exact (satisfies_map_natIso α rest (α.nat.app _ ≫ g₂) g₂ rfl).mp (hL _ htri₁),
         fun hL g₁ htri₁ => by
-          have htri₂ : hF₂.map α_step ≫ (θA'_inv ≫ g₁) = h₂ := by
+          have htri₂ : F₂.map α_step ≫ (θA'_inv ≫ g₁) = h₂ := by
             rw [← Cat.assoc, nat_inv, Cat.assoc, htri₁, hcompat, ← Cat.assoc, hθA2, Cat.id_comp]
           exact (satisfies_map_natIso α rest g₁ (θA'_inv ≫ g₁) (θ_cancel g₁)).mpr
                 (hL _ htri₂)⟩
@@ -101,20 +101,20 @@ private theorem satisfies_map_natIso
 /-- §1.399 CONJUGATION INVARIANCE (Q-sequence formulation).
 
     If `α : NatIso F₁ F₂` then for any Q-sequence `s` in the source category 𝒞 and
-    any morphism `f : A ⟶ B`, `F₁` satisfies `s` (via `hF₁.map f`) iff `F₂` does
-    (via `hF₂.map f`).
+    any morphism `f : A ⟶ B`, `F₁` satisfies `s` (via `F₁.map f`) iff `F₂` does
+    (via `F₂.map f`).
 
     Proof: `satisfies_iff_postcomp_iso` (§1.395 Thm 1) converts the LHS to the form
-    `θ_A ≫ hF₂.map f` via naturality; then `satisfies_map_natIso` transfers along the
+    `θ_A ≫ F₂.map f` via naturality; then `satisfies_map_natIso` transfers along the
     telescope by induction. -/
 theorem conjugation_invariant_satisfies
     {𝒞 : Type u} [Cat.{v} 𝒞] {𝒟 : Type u} [Cat.{v} 𝒟]
-    {F₁ F₂ : 𝒞 → 𝒟} [hF₁ : Functor F₁] [hF₂ : Functor F₂]
+    {F₁ F₂ : Functor 𝒞 𝒟}
     (α : NatIso F₁ F₂) {A B : 𝒞} (s : QSeq 𝒞 A) (f : A ⟶ B) :
-    Satisfies (s.map F₁) (hF₁.map f) ↔ Satisfies (s.map F₂) (hF₂.map f) := by
-  rw [satisfies_iff_postcomp_iso (s.map F₁) (hF₁.map f) (α.isIso B)]
+    Satisfies (s.map F₁) (F₁.map f) ↔ Satisfies (s.map F₂) (F₂.map f) := by
+  rw [satisfies_iff_postcomp_iso (s.map F₁) (F₁.map f) (α.isIso B)]
   rw [α.nat.naturality f]
-  exact satisfies_map_natIso α s (α.nat.app A ≫ hF₂.map f) (hF₂.map f) rfl
+  exact satisfies_map_natIso α s (α.nat.app A ≫ F₂.map f) (F₂.map f) rfl
 
 /-- SKELETAL category (§1.364): isomorphic objects are equal. -/
 def IsSkeletal (𝒞 : Type u) [Cat.{v} 𝒞] : Prop :=

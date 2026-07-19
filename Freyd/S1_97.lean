@@ -2360,28 +2360,28 @@ theorem bicartesian_functor_preserves_nno
     [HasBinaryCoproducts 𝒜] [HasImages 𝒜]
     {𝒜' : Type u} [Cat.{v} 𝒜'] [Topos 𝒜'] [HasBinaryCoproducts 𝒜'] [HasImages 𝒜']
     (hbool : BooleanSub 𝒜') (hcap : Capital (𝒞 := 𝒜')) (htv : TwoValued (𝒞 := 𝒜'))
-    (T : 𝒜 → 𝒜') [hT : Functor T]
+    (T : Functor 𝒜 𝒜')
     -- T preserves the terminal up to a chosen point `tOne : 1 → T 1`; the zero of the
     -- image NNO is `tOne ≫ T 0`.  (No separate `IsIso tOne` field is needed: `hT_iso`
     -- below already forces `tOne ≫ T 0` to be the correct coproduct injection, so an
     -- extra `IsIso tOne` would be a redundant — hence non-faithful — hypothesis.)
-    (tOne : (one : 𝒜') ⟶ T one)
+    (tOne : (one : 𝒜') ⟶ T.obj one)
     -- T preserves the NNO coproduct, in the form §1.98(10) consumes directly:
     -- [tOne ≫ T 0, T s] : 1 + T N → T N is an iso.
-    (hT_iso : IsIso (HasBinaryCoproducts.case (tOne ≫ hT.map hN.zero) (hT.map hN.succ)
-        (A := one) (B := T hN.nno) (X := T hN.nno)))
+    (hT_iso : IsIso (HasBinaryCoproducts.case (tOne ≫ T.map hN.zero) (T.map hN.succ)
+        (A := one) (B := T.obj hN.nno) (X := T.obj hN.nno)))
     -- T preserves the terminal coequalizer (bicartesian functors preserve colimits)
-    (hT_coeq : ∀ (X : 𝒜') (f : T hN.nno ⟶ X),
-      hT.map hN.succ ≫ f = f →
-      ∃ g : one ⟶ X, term (T hN.nno) ≫ g = f ∧
-        ∀ g' : one ⟶ X, term (T hN.nno) ≫ g' = f → g' = g) :
+    (hT_coeq : ∀ (X : 𝒜') (f : T.obj hN.nno ⟶ X),
+      T.map hN.succ ≫ f = f →
+      ∃ g : one ⟶ X, term (T.obj hN.nno) ≫ g = f ∧
+        ∀ g' : one ⟶ X, term (T.obj hN.nno) ≫ g' = f → g' = g) :
     Nonempty (HasNaturalNumbersObject 𝒜') := by
   -- With the faithful hypotheses the conclusion is a LITERAL instance of §1.98(10):
   --   nno_of_bicartesian_data (a := tOne ≫ T 0) (t := T s) hT_iso hT_coeq.
   -- `tOne` forms the zero map `tOne ≫ T 0` fed to `case` in `hT_iso`.  The §1.98(10) recursor is
   -- now derived internally (the old `pmc'` parameter is gone), so this reduction is purely the
   -- transport of the bicartesian data; it carries the SAME single §1.988 residual pinned there.
-  exact nno_of_bicartesian_data hbool hcap htv (tOne ≫ hT.map hN.zero) (hT.map hN.succ) hT_iso hT_coeq
+  exact nno_of_bicartesian_data hbool hcap htv (tOne ≫ T.map hN.zero) (T.map hN.succ) hT_iso hT_coeq
 
 /-! ## §1.98(13)  Bicartesian characterization of free A-action
 

@@ -134,8 +134,8 @@ class BooleanPreLogos (𝒞 : Type u) [Cat.{v} 𝒞] extends PreLogos 𝒞 where
     `Kℯℛ(T)` the values sent to the TOP rather than killed.  Corrected to test
     against the zero object `(PreLogos.bottom _).dom`. -/
 def killedValues {𝒟 : Type u} [Cat.{v} 𝒟] [PreLogos 𝒞] [PreLogos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
-  λ U => @Isomorphic 𝒟 _ (T U.dom) (PreLogos.bottom (T U.dom)).dom
+    (T : Functor 𝒞 𝒟) : (Subobject 𝒞 one) → Prop :=
+  λ U => @Isomorphic 𝒟 _ (T.obj U.dom) (PreLogos.bottom (T.obj U.dom)).dom
 
 /-! ## §1.637 Special pre-logos and characterization
 

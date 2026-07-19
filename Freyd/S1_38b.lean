@@ -285,10 +285,10 @@ theorem iso_reflects_satisfies {A B B' : 𝒟} (s : QSeq 𝒟 A) (f : A ⟶ B)
 /-- Re-index a Q-sequence along a functor `T : 𝒞 → 𝒟`: push every object and arrow of
     the telescope through `T`, keeping the quantifiers.  This is the cross-category
     transport that lets §1.397 STATE "T preserves satisfaction". -/
-def QSeq.map {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → 𝒟) [hT : Functor T] :
-    {A : 𝒞} → QSeq 𝒞 A → QSeq 𝒟 (T A)
-  | _, .nil _ q       => .nil (T _) q
-  | _, .cons q α rest => .cons q (hT.map α) (rest.map T)
+def QSeq.map {𝒞 : Type u} [Cat.{v} 𝒞] (T : Functor 𝒞 𝒟) :
+    {A : 𝒞} → QSeq 𝒞 A → QSeq 𝒟 (T.obj A)
+  | _, .nil _ q       => .nil (T.obj _) q
+  | _, .cons q α rest => .cons q (T.map α) (rest.map T)
 
 /-- §1.397 hypothesis "a Q-sequence all of whose functors separate objects": each step
     arrow `α` (a functor, since the ambient `𝒟` is the category of small categories)
@@ -322,10 +322,10 @@ def StepsSeparate {𝒞 : Type u} [Cat.{v} 𝒞] (Sep : ∀ {A A' : 𝒞}, (A �
     give the cross-category transport directly.  `_hsep` (`StepsSeparate`) is the
     book's hypothesis on the telescope but is subsumed by faithfulness of `T`, hence
     unused. -/
-theorem equiv_preserves_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → 𝒟) [hT : Functor T]
+theorem equiv_preserves_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : Functor 𝒞 𝒟)
     (hT' : EquivalenceFunctor T) {A B : 𝒞} (s : QSeq 𝒞 A) (f : A ⟶ B)
     {Sep : ∀ {X Y : 𝒞}, (X ⟶ Y) → Prop} (_hsep : StepsSeparate Sep s)
-    (hsat : Satisfies s f) : Satisfies (s.map T) (hT.map f) := by
+    (hsat : Satisfies s f) : Satisfies (s.map T) (T.map f) := by
   obtain ⟨hfaith, hfull, _⟩ := hT'
   clear _hsep
   induction s generalizing B with
@@ -339,25 +339,25 @@ theorem equiv_preserves_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → �
       -- goal: ∀ g, T.map α ≫ g = T.map f → Satisfies (rest.map T) g
       rw [QSeq.map, satisfies_cons_all]
       intro g hg
-      obtain ⟨g', rfl⟩ := hfull g                    -- g = hT.map g' by fullness
+      obtain ⟨g', rfl⟩ := hfull g                    -- g = T.map g' by fullness
       have hαg : α ≫ g' = f := by                     -- reflect the factoring
         apply hfaith
-        rw [hT.map_comp]; exact hg
+        rw [T.map_comp]; exact hg
       have := (satisfies_cons_all α rest f).1 hsat g' hαg
       exact ih g' this
     | ex =>
       rw [QSeq.map, satisfies_cons_ex]
       obtain ⟨g', hαg, hrest⟩ := (satisfies_cons_ex α rest f).1 hsat
-      exact ⟨hT.map g', by rw [← hT.map_comp, hαg], ih g' hrest⟩
+      exact ⟨T.map g', by rw [← T.map_comp, hαg], ih g' hrest⟩
 
 /-- §1.397 REFLECTION (cross-category): an equivalence functor `T : 𝒞 → 𝒟` reflects
     satisfaction.  If `Satisfies (s.map T) (hT.map f)` holds in `𝒟` then `Satisfies s f`
     holds in `𝒞`.  Symmetric to `equiv_preserves_satisfies`: fullness lifts the witness
     back, faithfulness reflects the factoring equation.  Uses `Classical` (via Thm 2). -/
-theorem equiv_reflects_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → 𝒟) [hT : Functor T]
+theorem equiv_reflects_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : Functor 𝒞 𝒟)
     (hT' : EquivalenceFunctor T) {A B : 𝒞} (s : QSeq 𝒞 A) (f : A ⟶ B)
     {Sep : ∀ {X Y : 𝒞}, (X ⟶ Y) → Prop} (_hsep : StepsSeparate Sep s)
-    (hsat : Satisfies (s.map T) (hT.map f)) : Satisfies s f := by
+    (hsat : Satisfies (s.map T) (T.map f)) : Satisfies s f := by
   obtain ⟨hfaith, hfull, _⟩ := hT'
   clear _hsep
   induction s generalizing B with
@@ -374,11 +374,11 @@ theorem equiv_reflects_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → �
       intro g' hαg'
       -- need Satisfies rest g'
       -- push g' through T; have T.map α ≫ T.map g' = T.map f
-      have hT_step : hT.map α ≫ hT.map g' = hT.map f := by
-        rw [← hT.map_comp, hαg']
+      have hT_step : T.map α ≫ T.map g' = T.map f := by
+        rw [← T.map_comp, hαg']
       -- hsat : ∀ g, T.map α ≫ g = T.map f → Satisfies (rest.map T) g
       rw [QSeq.map, satisfies_cons_all] at hsat
-      have hD : Satisfies (rest.map T) (hT.map g') := hsat _ hT_step
+      have hD : Satisfies (rest.map T) (T.map g') := hsat _ hT_step
       exact ih g' hD
     | ex =>
       rw [satisfies_cons_ex]
@@ -389,7 +389,7 @@ theorem equiv_reflects_satisfies {𝒞 : Type u} [Cat.{v} 𝒞] (T : 𝒞 → �
       refine ⟨g', ?_, ih g' hrest⟩
       -- α ≫ g' = f; have T.map α ≫ T.map g' = T.map f (from htri); reflect by faith
       apply hfaith
-      rw [hT.map_comp]; exact htri
+      rw [T.map_comp]; exact htri
 
 /-! ## §1.398 Q-trees and their satisfaction (TODO)
 

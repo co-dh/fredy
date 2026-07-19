@@ -176,15 +176,15 @@ theorem coeq_map_is_cover {𝒟 : Type u} [Cat.{v} 𝒟] {A B : 𝒟} {f g : A �
 
 /-- F PRESERVES COEQUALIZERS: the image of any coequalizer in 𝒜 is a
     coequalizer in ℬ.  Concretely: if q : B → C is the coequalizer of f, g
-    in 𝒜, then hF.map q : F B → F C is the coequalizer of hF.map f, hF.map g. -/
+    in 𝒜, then F.map q : F B → F C is the coequalizer of F.map f, F.map g. -/
 def PreservesCoequalizers {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] : Prop :=
+    (F : Functor 𝒜 ℬ) : Prop :=
   ∀ {A B : 𝒜} (f g : A ⟶ B) [hcoeq : HasCoequalizer f g],
-    hF.map f ≫ hF.map hcoeq.map = hF.map g ≫ hF.map hcoeq.map ∧
-    ∀ {X : ℬ} (h : F B ⟶ X),
-      hF.map f ≫ h = hF.map g ≫ h →
-      ∃ m : F hcoeq.obj ⟶ X, hF.map hcoeq.map ≫ m = h ∧
-        ∀ m' : F hcoeq.obj ⟶ X, hF.map hcoeq.map ≫ m' = h → m' = m
+    F.map f ≫ F.map hcoeq.map = F.map g ≫ F.map hcoeq.map ∧
+    ∀ {X : ℬ} (h : F.obj B ⟶ X),
+      F.map f ≫ h = F.map g ≫ h →
+      ∃ m : F.obj hcoeq.obj ⟶ X, F.map hcoeq.map ≫ m = h ∧
+        ∀ m' : F.obj hcoeq.obj ⟶ X, F.map hcoeq.map ≫ m' = h → m' = m
 
 /-- **§1.581**: If 𝒜 and ℬ are regular and cocartesian, and F : 𝒜 → ℬ
     is a functor that preserves coequalizers, then F preserves covers.
@@ -198,10 +198,10 @@ theorem bicart_repr_preserves_covers
     {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [RegularCategory 𝒜] [HasCoequalizers 𝒜]
     [RegularCategory ℬ] [HasCoequalizers ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F]
+    (F : Functor 𝒜 ℬ)
     (hpres : PreservesCoequalizers F)
     {A B : 𝒜} (f : A ⟶ B) (hf : Cover f) :
-    Cover (hF.map f) := by
+    Cover (F.map f) := by
   -- Step 1: coequalizer of kernel pair of f in 𝒜.
   let hce := HasCoequalizers.coeq (kp₁ (f := f)) (kp₂ (f := f))
   -- e₁ : hce.obj → B induced by the coeq universal property applied to f.
@@ -218,26 +218,26 @@ theorem bicart_repr_preserves_covers
     cover_epi hf (by rw [← Cat.assoc, he₂, he₁, Cat.comp_id])
   -- e₁ is an iso; hence F e₁ is an iso.
   have he₁_iso : IsIso e₁ := ⟨e₂, by exact he₁e₂, he₂e₁⟩
-  have hFe₁_iso : IsIso (hF.map e₁) := functor_preserves_iso e₁ he₁_iso
+  have hFe₁_iso : IsIso (F.map e₁) := functor_preserves_iso e₁ he₁_iso
   -- F(hce.map) is a cover: build HasCoequalizer in ℬ from hpres, apply coeq_map_is_cover.
   obtain ⟨hpeq, hpfac⟩ := hpres (kp₁ (f := f)) (kp₂ (f := f))
-  let hceB : HasCoequalizer (hF.map (kp₁ (f := f))) (hF.map (kp₂ (f := f))) :=
-    { obj := F hce.obj, map := hF.map hce.map, eq := hpeq
+  let hceB : HasCoequalizer (F.map (kp₁ (f := f))) (F.map (kp₂ (f := f))) :=
+    { obj := F.obj hce.obj, map := F.map hce.map, eq := hpeq
       desc := fun h heq => (hpfac h heq).choose
       fac  := fun h heq => (hpfac h heq).choose_spec.1
       uniq := fun h heq m hm => (hpfac h heq).choose_spec.2 m hm }
   -- F f = F(hce.map) ≫ F(e₁); prove Cover (F hce.map ≫ F e₁) directly.
-  rw [show hF.map f = hF.map hce.map ≫ hF.map e₁ from by rw [← hF.map_comp, he₁]]
+  rw [show F.map f = F.map hce.map ≫ F.map e₁ from by rw [← F.map_comp, he₁]]
   -- Unfold Cover: given m : C → F B mono, g : F A → C, g ≫ m = F hce.map ≫ F e₁. Show IsIso m.
   intro C m g hm hgm
   obtain ⟨e₁inv, he₁inv_left, he₁inv_right⟩ := hFe₁_iso
-  -- m' = m ≫ e₁inv : C → F hce.obj.  g ≫ m' = F hce.map (post-compose hgm with e₁inv).
-  let m' : C ⟶ F hce.obj := m ≫ e₁inv
-  have hgm'_eq : g ≫ m' = hF.map hce.map :=
+  -- m' = m ≫ e₁inv : C → F.obj hce.obj.  g ≫ m' = F hce.map (post-compose hgm with e₁inv).
+  let m' : C ⟶ F.obj hce.obj := m ≫ e₁inv
+  have hgm'_eq : g ≫ m' = F.map hce.map :=
     calc g ≫ m ≫ e₁inv = (g ≫ m) ≫ e₁inv := (Cat.assoc _ _ _).symm
-      _ = (hF.map hce.map ≫ hF.map e₁) ≫ e₁inv := by rw [hgm]
-      _ = hF.map hce.map ≫ (hF.map e₁ ≫ e₁inv) := Cat.assoc _ _ _
-      _ = hF.map hce.map := by rw [he₁inv_left, Cat.comp_id]
+      _ = (F.map hce.map ≫ F.map e₁) ≫ e₁inv := by rw [hgm]
+      _ = F.map hce.map ≫ (F.map e₁ ≫ e₁inv) := Cat.assoc _ _ _
+      _ = F.map hce.map := by rw [he₁inv_left, Cat.comp_id]
   -- m' is monic: m is mono, e₁inv is iso hence mono (has right inverse F e₁).
   have hm'_mono : Monic m' := by
     intro W a b hab
@@ -249,22 +249,22 @@ theorem bicart_repr_preserves_covers
         _ = (b ≫ m) ≫ e₁inv := (Cat.assoc _ _ _).symm
     -- Post-compose with F e₁ (right inverse of e₁inv) to cancel e₁inv.
     have heq_m : a ≫ m = b ≫ m :=
-      calc a ≫ m = (a ≫ m) ≫ (e₁inv ≫ hF.map e₁) := by rw [he₁inv_right, Cat.comp_id]
-        _ = ((a ≫ m) ≫ e₁inv) ≫ hF.map e₁ := (Cat.assoc _ _ _).symm
-        _ = ((b ≫ m) ≫ e₁inv) ≫ hF.map e₁ := by rw [hstep]
-        _ = (b ≫ m) ≫ (e₁inv ≫ hF.map e₁) := Cat.assoc _ _ _
+      calc a ≫ m = (a ≫ m) ≫ (e₁inv ≫ F.map e₁) := by rw [he₁inv_right, Cat.comp_id]
+        _ = ((a ≫ m) ≫ e₁inv) ≫ F.map e₁ := (Cat.assoc _ _ _).symm
+        _ = ((b ≫ m) ≫ e₁inv) ≫ F.map e₁ := by rw [hstep]
+        _ = (b ≫ m) ≫ (e₁inv ≫ F.map e₁) := Cat.assoc _ _ _
         _ = b ≫ m := by rw [he₁inv_right, Cat.comp_id]
     exact hm _ _ heq_m
   -- F kp₁ ≫ g = F kp₂ ≫ g: from hm'_mono, since (F kp₁ ≫ g) ≫ m' = (F kp₂ ≫ g) ≫ m'
   -- (both equal F kp₁/kp₂ ≫ F hce.map via hgm'_eq and hpeq).
-  have hkp_g : hF.map (kp₁ (f := f)) ≫ g = hF.map (kp₂ (f := f)) ≫ g :=
+  have hkp_g : F.map (kp₁ (f := f)) ≫ g = F.map (kp₂ (f := f)) ≫ g :=
     hm'_mono _ _ (by
       rw [Cat.assoc, Cat.assoc, hgm'_eq]
       exact hpeq)
-  -- k : F hce.obj → C, the candidate inverse of m'.  hceB.desc g hkp_g : obj ⟶ C.
-  let k : F hce.obj ⟶ C := hceB.desc g hkp_g
+  -- k : F.obj hce.obj → C, the candidate inverse of m'.  hceB.desc g hkp_g : obj ⟶ C.
+  let k : F.obj hce.obj ⟶ C := hceB.desc g hkp_g
   have hqk : hceB.map ≫ k = g := hceB.fac g hkp_g
-  -- k ≫ m' = id_{F hce.obj}: hceB.map ≫ (k ≫ m') = g ≫ m' = hceB.map, use uniq.
+  -- k ≫ m' = id_{F.obj hce.obj}: hceB.map ≫ (k ≫ m') = g ≫ m' = hceB.map, use uniq.
   have hkm' : k ≫ m' = Cat.id hceB.obj :=
     (hceB.uniq hceB.map hceB.eq (k ≫ m')
       (by rw [← Cat.assoc, hqk]; exact hgm'_eq)).trans
@@ -278,8 +278,8 @@ theorem bicart_repr_preserves_covers
   -- So m' = m ≫ e₁inv is iso.  Then m = m' ≫ F e₁ is a composition of isos, hence iso.
   have hm'_iso : IsIso m' := ⟨k, hm'k, hkm'⟩
   -- m = m' ≫ F e₁ (since e₁inv ≫ F e₁ = id).
-  have hm_eq : m = m' ≫ hF.map e₁ := by
-    rw [show m' ≫ hF.map e₁ = m ≫ e₁inv ≫ hF.map e₁ from Cat.assoc _ _ _,
+  have hm_eq : m = m' ≫ F.map e₁ := by
+    rw [show m' ≫ F.map e₁ = m ≫ e₁inv ≫ F.map e₁ from Cat.assoc _ _ _,
         he₁inv_right, Cat.comp_id]
   rw [hm_eq]
   exact isIso_comp hm'_iso (functor_preserves_iso e₁ he₁_iso)

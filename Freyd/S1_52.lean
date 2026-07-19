@@ -311,8 +311,8 @@ theorem section_unique_up_to_iso_over_base
 
 /-- A functor `F : 𝒞 → 𝒟` PRESERVES COVERS if it carries every cover to a cover. -/
 def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] : Prop :=
-  ∀ {A B : 𝒞} (f : A ⟶ B), Cover f → Cover (hF.map f)
+    (F : Functor 𝒞 𝒟) : Prop :=
+  ∀ {A B : 𝒞} (f : A ⟶ B), Cover f → Cover (F.map f)
 
 /-- **§1.52 REPRESENTATION OF PRE-REGULAR CATEGORIES**: a functor between
     pre-regular categories preserving finite products, equalizers, and covers.
@@ -320,7 +320,7 @@ def PreservesCovers {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v
     preserves whatever images may exist.) -/
 structure RepOfPreReg {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     [CartesianCategory 𝒞] [CartesianCategory 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] : Prop where
+    (F : Functor 𝒞 𝒟) : Prop where
   cartesian  : CartesianFunctor F
   pres_covers : PreservesCovers F
 

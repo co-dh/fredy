@@ -27,28 +27,28 @@ variable {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
 
 /-- An adjoint pair F ⊣ G: a bijection (F A ⟶ B) ≃ (A ⟶ G B)
     natural in A (contravariant) and B (covariant) (§1.81). -/
-structure Adjunction (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞) [Functor F] [Functor G] where
-  φ {A B} (f : F A ⟶ B) : (A ⟶ G B)
-  ψ {A B} (f : A ⟶ G B) : (F A ⟶ B)
-  φψ {A B} (f : A ⟶ G B) : φ (ψ f) = f
-  ψφ {A B} (f : F A ⟶ B) : ψ (φ f) = f
-  φ_nat_left {A' A B} (a : A' ⟶ A) (h : F A ⟶ B) : φ (Functor.map a ≫ h) = a ≫ φ h
-  φ_nat_right {A B B'} (h : F A ⟶ B) (b : B ⟶ B') : φ (h ≫ b) = φ h ≫ Functor.map b
+structure Adjunction (F : Functor 𝒞 𝒟) (G : Functor 𝒟 𝒞) where
+  φ {A B} (f : F.obj A ⟶ B) : (A ⟶ G.obj B)
+  ψ {A B} (f : A ⟶ G.obj B) : (F.obj A ⟶ B)
+  φψ {A B} (f : A ⟶ G.obj B) : φ (ψ f) = f
+  ψφ {A B} (f : F.obj A ⟶ B) : ψ (φ f) = f
+  φ_nat_left {A' A B} (a : A' ⟶ A) (h : F.obj A ⟶ B) : φ (F.map a ≫ h) = a ≫ φ h
+  φ_nat_right {A B B'} (h : F.obj A ⟶ B) (b : B ⟶ B') : φ (h ≫ b) = φ h ≫ G.map b
 
 infix:25 " ⊣ " => Adjunction
 
 /-- F is a LEFT-ADJOINT of G. -/
-class LeftAdjoint (F : 𝒞 → 𝒟) (G : 𝒟 → 𝒞) [Functor F] [Functor G] where
+class LeftAdjoint (F : Functor 𝒞 𝒟) (G : Functor 𝒟 𝒞) where
   adj : F ⊣ G
 
 /-- G is a RIGHT-ADJOINT of F. -/
-class RightAdjoint (G : 𝒟 → 𝒞) (F : 𝒞 → 𝒟) [Functor G] [Functor F] where
+class RightAdjoint (G : Functor 𝒟 𝒞) (F : Functor 𝒞 𝒟) where
   adj : F ⊣ G
 
 section AdjunctionProperties
-variable {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [Functor F] [Functor G] (adj : F ⊣ G)
+variable {F : Functor 𝒞 𝒟} {G : Functor 𝒟 𝒞} (adj : F ⊣ G)
 
-theorem φ_inj {A B} {f₁ f₂ : F A ⟶ B} (h : adj.φ f₁ = adj.φ f₂) : f₁ = f₂ := by
+theorem φ_inj {A B} {f₁ f₂ : F.obj A ⟶ B} (h : adj.φ f₁ = adj.φ f₂) : f₁ = f₂ := by
   calc
     f₁ = adj.ψ (adj.φ f₁) := by rw [adj.ψφ]
     _ = adj.ψ (adj.φ f₂) := by rw [h]
@@ -56,79 +56,79 @@ theorem φ_inj {A B} {f₁ f₂ : F A ⟶ B} (h : adj.φ f₁ = adj.φ f₂) : f
 
 /-! ### Derived naturality for ψ (= φ⁻¹) -/
 
-theorem ψ_nat_left {A' A B} (a : A' ⟶ A) (g : A ⟶ G B) :
-    adj.ψ (a ≫ g) = Functor.map a ≫ adj.ψ g :=
+theorem ψ_nat_left {A' A B} (a : A' ⟶ A) (g : A ⟶ G.obj B) :
+    adj.ψ (a ≫ g) = F.map a ≫ adj.ψ g :=
   φ_inj adj <| by
     rw [adj.φ_nat_left, adj.φψ, adj.φψ]
 
-theorem ψ_nat_right {A B B'} (g : A ⟶ G B) (b : B ⟶ B') :
-    adj.ψ (g ≫ Functor.map b) = adj.ψ g ≫ b :=
+theorem ψ_nat_right {A B B'} (g : A ⟶ G.obj B) (b : B ⟶ B') :
+    adj.ψ (g ≫ G.map b) = adj.ψ g ≫ b :=
   φ_inj adj <| by
     rw [adj.φ_nat_right, adj.φψ, adj.φψ]
 
 /-! ### Unit and counit -/
 
 /-- The UNIT η_A : A → G(F A) is the adjoint of id_{F A} (§1.81). -/
-def unit (A : 𝒞) : A ⟶ G (F A) := adj.φ (Cat.id (F A))
+def unit (A : 𝒞) : A ⟶ G.obj (F.obj A) := adj.φ (Cat.id (F.obj A))
 
 /-- The COUNIT ε_B : F(G B) → B is the adjoint of id_{G B} (§1.81). -/
-def counit (B : 𝒟) : F (G B) ⟶ B := adj.ψ (Cat.id (G B))
+def counit (B : 𝒟) : F.obj (G.obj B) ⟶ B := adj.ψ (Cat.id (G.obj B))
 
 /-- Unit naturality: f ≫ η_B = η_A ≫ G(F f). -/
 theorem unit_naturality {A B : 𝒞} (f : A ⟶ B) :
-    f ≫ unit adj B = unit adj A ≫ Functor.map (Functor.map f) := by
+    f ≫ unit adj B = unit adj A ≫ G.map (F.map f) := by
   dsimp [unit]
   calc
-    f ≫ adj.φ (Cat.id (F B)) = adj.φ (Functor.map f ≫ Cat.id (F B)) := by
+    f ≫ adj.φ (Cat.id (F.obj B)) = adj.φ (F.map f ≫ Cat.id (F.obj B)) := by
       rw [adj.φ_nat_left]
-    _ = adj.φ (Functor.map f) := by rw [Cat.comp_id]
-    _ = adj.φ (Cat.id (F A) ≫ Functor.map f) := by rw [Cat.id_comp]
-    _ = adj.φ (Cat.id (F A)) ≫ Functor.map (Functor.map f) := by rw [adj.φ_nat_right]
+    _ = adj.φ (F.map f) := by rw [Cat.comp_id]
+    _ = adj.φ (Cat.id (F.obj A) ≫ F.map f) := by rw [Cat.id_comp]
+    _ = adj.φ (Cat.id (F.obj A)) ≫ G.map (F.map f) := by rw [adj.φ_nat_right]
 
 /-- Counit naturality: F(G f) ≫ ε_B = ε_A ≫ f. -/
 theorem counit_naturality {A B : 𝒟} (f : A ⟶ B) :
-    Functor.map (Functor.map f) ≫ counit adj B = counit adj A ≫ f := by
+    F.map (G.map f) ≫ counit adj B = counit adj A ≫ f := by
   dsimp [counit]
   calc
-    Functor.map (Functor.map f) ≫ adj.ψ (Cat.id (G B)) =
-      adj.ψ (Functor.map f ≫ Cat.id (G B)) := by
-      rw [← ψ_nat_left adj (Functor.map f) (Cat.id (G B))]
-    _ = adj.ψ (Functor.map f) := by rw [Cat.comp_id]
-    _ = adj.ψ (Cat.id (G A) ≫ Functor.map f) := by rw [Cat.id_comp]
-    _ = adj.ψ (Cat.id (G A)) ≫ f := by rw [ψ_nat_right adj (Cat.id (G A)) f]
+    F.map (G.map f) ≫ adj.ψ (Cat.id (G.obj B)) =
+      adj.ψ (G.map f ≫ Cat.id (G.obj B)) := by
+      rw [← ψ_nat_left adj (G.map f) (Cat.id (G.obj B))]
+    _ = adj.ψ (G.map f) := by rw [Cat.comp_id]
+    _ = adj.ψ (Cat.id (G.obj A) ≫ G.map f) := by rw [Cat.id_comp]
+    _ = adj.ψ (Cat.id (G.obj A)) ≫ f := by rw [ψ_nat_right adj (Cat.id (G.obj A)) f]
 
 /-- Triangle identity I: F(η_A) ≫ ε_{F A} = id_{F A}. -/
-theorem triangle_one (A : 𝒞) : Functor.map (unit adj A) ≫ counit adj (F A) = Cat.id (F A) := by
+theorem triangle_one (A : 𝒞) : F.map (unit adj A) ≫ counit adj (F.obj A) = Cat.id (F.obj A) := by
   dsimp [unit, counit]
   calc
-    Functor.map (adj.φ (Cat.id (F A))) ≫ adj.ψ (Cat.id (G (F A))) =
-      adj.ψ (adj.φ (Cat.id (F A)) ≫ Cat.id (G (F A))) := by
-      rw [ψ_nat_left adj (adj.φ (Cat.id (F A))) (Cat.id (G (F A)))]
-    _ = adj.ψ (adj.φ (Cat.id (F A))) := by rw [Cat.comp_id]
-    _ = Cat.id (F A) := by rw [adj.ψφ]
+    F.map (adj.φ (Cat.id (F.obj A))) ≫ adj.ψ (Cat.id (G.obj (F.obj A))) =
+      adj.ψ (adj.φ (Cat.id (F.obj A)) ≫ Cat.id (G.obj (F.obj A))) := by
+      rw [ψ_nat_left adj (adj.φ (Cat.id (F.obj A))) (Cat.id (G.obj (F.obj A)))]
+    _ = adj.ψ (adj.φ (Cat.id (F.obj A))) := by rw [Cat.comp_id]
+    _ = Cat.id (F.obj A) := by rw [adj.ψφ]
 
 /-- Triangle identity II: η_{G B} ≫ G(ε_B) = id_{G B}. -/
-theorem triangle_two (B : 𝒟) : unit adj (G B) ≫ Functor.map (counit adj B) = Cat.id (G B) := by
+theorem triangle_two (B : 𝒟) : unit adj (G.obj B) ≫ G.map (counit adj B) = Cat.id (G.obj B) := by
   dsimp [unit, counit]
   calc
-    adj.φ (Cat.id (F (G B))) ≫ Functor.map (adj.ψ (Cat.id (G B))) =
-      adj.φ (Cat.id (F (G B)) ≫ adj.ψ (Cat.id (G B))) := by rw [adj.φ_nat_right]
-    _ = adj.φ (adj.ψ (Cat.id (G B))) := by rw [Cat.id_comp]
-    _ = Cat.id (G B) := by rw [adj.φψ]
+    adj.φ (Cat.id (F.obj (G.obj B))) ≫ G.map (adj.ψ (Cat.id (G.obj B))) =
+      adj.φ (Cat.id (F.obj (G.obj B)) ≫ adj.ψ (Cat.id (G.obj B))) := by rw [adj.φ_nat_right]
+    _ = adj.φ (adj.ψ (Cat.id (G.obj B))) := by rw [Cat.id_comp]
+    _ = Cat.id (G.obj B) := by rw [adj.φψ]
 
 /-- φ(h) = η_A ≫ G(h) — reconstruct φ from the unit. -/
-theorem φ_eq (h : F A ⟶ B) : adj.φ h = unit adj A ≫ Functor.map h := by
+theorem φ_eq (h : F.obj A ⟶ B) : adj.φ h = unit adj A ≫ G.map h := by
   dsimp [unit]
   calc
-    adj.φ h = adj.φ (Cat.id (F A) ≫ h) := by rw [Cat.id_comp]
-    _ = adj.φ (Cat.id (F A)) ≫ Functor.map h := by rw [adj.φ_nat_right]
+    adj.φ h = adj.φ (Cat.id (F.obj A) ≫ h) := by rw [Cat.id_comp]
+    _ = adj.φ (Cat.id (F.obj A)) ≫ G.map h := by rw [adj.φ_nat_right]
 
 /-- ψ(g) = F(g) ≫ ε_B — reconstruct ψ from the counit. -/
-theorem ψ_eq (g : A ⟶ G B) : adj.ψ g = Functor.map g ≫ counit adj B := by
+theorem ψ_eq (g : A ⟶ G.obj B) : adj.ψ g = F.map g ≫ counit adj B := by
   dsimp [counit]
   calc
-    adj.ψ g = adj.ψ (g ≫ Cat.id (G B)) := by rw [Cat.comp_id]
-    _ = Functor.map g ≫ adj.ψ (Cat.id (G B)) := by rw [ψ_nat_left adj g (Cat.id (G B))]
+    adj.ψ g = adj.ψ (g ≫ Cat.id (G.obj B)) := by rw [Cat.comp_id]
+    _ = F.map g ≫ adj.ψ (Cat.id (G.obj B)) := by rw [ψ_nat_left adj g (Cat.id (G.obj B))]
 
 end AdjunctionProperties
 
@@ -136,15 +136,13 @@ end AdjunctionProperties
 
 /-- A subcategory via inclusion I : 𝒜' → 𝒞 is REFLECTIVE
     if I has a left adjoint (§1.813). The left adjoint is the REFLECTION. -/
-class ReflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : 𝒜' → 𝒞) [Functor I] where
-  reflection : 𝒞 → 𝒜'
-  [refl_functor : Functor reflection]
+class ReflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : Functor 𝒜' 𝒞) where
+  reflection : Functor 𝒞 𝒜'
   adj : LeftAdjoint reflection I
 
 /-- §1.816: A subcategory is COREFLECTIVE if the inclusion has a right adjoint. -/
-class CoreflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : 𝒜' → 𝒞) [Functor I] where
-  coreflection : 𝒞 → 𝒜'
-  [corefl_functor : Functor coreflection]
+class CoreflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : Functor 𝒜' 𝒞) where
+  coreflection : Functor 𝒞 𝒜'
   adj : RightAdjoint coreflection I
 
 /-! ## §1.815  Closure operation
@@ -160,11 +158,10 @@ class CoreflectiveSubcategory {𝒜' : Type u₁} [Cat.{v} 𝒜'] (I : 𝒜' →
 /-- A CLOSURE OPERATION on a category (§1.815). T is the closure,
     η is the unit (inflationary), idem says Tη is an isomorphism. -/
 structure ClosureOperation (𝒞 : Type u) [Cat.{v} 𝒞] where
-  T : 𝒞 → 𝒞
-  [functor_T : Functor T]
-  η : (A : 𝒞) → A ⟶ T A
-  η_natural : ∀ {A B} (f : A ⟶ B), f ≫ η B = η A ≫ (Functor.map (F := T) f)
-  idem : ∀ (A : 𝒞), IsIso (Functor.map (F := T) (η A))
+  T : Functor 𝒞 𝒞
+  η : (A : 𝒞) → A ⟶ T.obj A
+  η_natural : ∀ {A B} (f : A ⟶ B), f ≫ η B = η A ≫ T.map f
+  idem : ∀ (A : 𝒞), IsIso (T.map (η A))
 
 /-! ### §1.815 Poset case: three explicit axioms
 
@@ -223,20 +220,20 @@ theorem ClosureOpPoset.reflection_universal {P : Type u} [po : PosetOrder P]
 /-- (A, G(-)) is REPRESENTABLE BY an object R ∈ 𝒟: a bijection
     (A ⟶ G B) ≃ (R ⟶ B), natural in B (§1.817). -/
 structure RepresentedBy {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
-    (G : 𝒟 → 𝒞) [Functor G] (A : 𝒞) (R : 𝒟) where
-  φ {B : 𝒟} : (A ⟶ G B) → (R ⟶ B)
-  ψ {B : 𝒟} : (R ⟶ B) → (A ⟶ G B)
+    (G : Functor 𝒟 𝒞) (A : 𝒞) (R : 𝒟) where
+  φ {B : 𝒟} : (A ⟶ G.obj B) → (R ⟶ B)
+  ψ {B : 𝒟} : (R ⟶ B) → (A ⟶ G.obj B)
   φψ {B : 𝒟} (f : R ⟶ B) : φ (ψ f) = f
-  ψφ {B : 𝒟} (g : A ⟶ G B) : ψ (φ g) = g
+  ψφ {B : 𝒟} (g : A ⟶ G.obj B) : ψ (φ g) = g
   /-- φ is natural in B: precomposing with G(b) on the right corresponds to
       postcomposing with b on the R side. -/
-  φ_nat {B B' : 𝒟} (g : A ⟶ G B) (b : B ⟶ B') :
-    φ (g ≫ Functor.map b) = φ g ≫ b
+  φ_nat {B B' : 𝒟} (g : A ⟶ G.obj B) (b : B ⟶ B') :
+    φ (g ≫ G.map b) = φ g ≫ b
 
 /-- §1.817 (→): if F ⊣ G then (A, G(-)) is represented by F A. -/
 def repr_of_adj {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
-    {F : 𝒞 → 𝒟} {G : 𝒟 → 𝒞} [Functor F] [Functor G]
-    (adj : F ⊣ G) (A : 𝒞) : RepresentedBy G A (F A) where
+    {F : Functor 𝒞 𝒟} {G : Functor 𝒟 𝒞}
+    (adj : F ⊣ G) (A : 𝒞) : RepresentedBy G A (F.obj A) where
   φ g  := adj.ψ g
   ψ h  := adj.φ h
   φψ f := adj.ψφ f
@@ -248,15 +245,15 @@ def repr_of_adj {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} �
 
 section RepresentedByLaws
 variable {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
-variable {G : 𝒟 → 𝒞} [Functor G] {A : 𝒞} {R : 𝒟} (r : RepresentedBy G A R)
+variable {G : Functor 𝒟 𝒞} {A : 𝒞} {R : 𝒟} (r : RepresentedBy G A R)
 
 /-- φ is injective on `(A ⟶ G B)` (it is a bijection). -/
-theorem RepresentedBy.φ_inj {B : 𝒟} {g₁ g₂ : A ⟶ G B} (h : r.φ g₁ = r.φ g₂) : g₁ = g₂ := by
+theorem RepresentedBy.φ_inj {B : 𝒟} {g₁ g₂ : A ⟶ G.obj B} (h : r.φ g₁ = r.φ g₂) : g₁ = g₂ := by
   rw [← r.ψφ g₁, ← r.ψφ g₂, h]
 
 /-- ψ is natural in B (the inverse of `φ_nat`): ψ(f ≫ b) = ψ f ≫ G(b). -/
 theorem RepresentedBy.ψ_nat {B B' : 𝒟} (f : R ⟶ B) (b : B ⟶ B') :
-    r.ψ (f ≫ b) = r.ψ f ≫ Functor.map (F := G) b :=
+    r.ψ (f ≫ b) = r.ψ f ≫ G.map b :=
   r.φ_inj <| by rw [r.φ_nat, r.φψ, r.φψ]
 
 end RepresentedByLaws
@@ -270,30 +267,31 @@ end RepresentedByLaws
     `F x := φ_{A'}(x ≫ η_A) : F A' ⟶ F A`; functoriality and the two naturality
     squares all reduce to unit-naturality `η_{A'} ≫ G(F x) = x ≫ η_A`. -/
 def adj_of_repr {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} 𝒟]
-    (G : 𝒟 → 𝒞) [Functor G]
+    (G : Functor 𝒟 𝒞)
     (repr : ∀ A : 𝒞, Σ R : 𝒟, RepresentedBy G A R) :
-    Σ (F : 𝒞 → 𝒟), Σ (_ : Functor F), F ⊣ G := by
+    Σ (F : Functor 𝒞 𝒟), F ⊣ G := by
   -- Object map and the chosen representation for each A.
   let Fobj : 𝒞 → 𝒟 := fun A => (repr A).1
   let r : (A : 𝒞) → RepresentedBy G A (Fobj A) := fun A => (repr A).2
   -- Unit η_A : A ⟶ G(F A) := ψ(id_{F A}).
-  let η : (A : 𝒞) → A ⟶ G (Fobj A) := fun A => (r A).ψ (Cat.id (Fobj A))
+  let η : (A : 𝒞) → A ⟶ G.obj (Fobj A) := fun A => (r A).ψ (Cat.id (Fobj A))
   -- Map on morphisms: F x := φ_{A'}(x ≫ η_A).
   let Fmap : {A' A : 𝒞} → (A' ⟶ A) → (Fobj A' ⟶ Fobj A) :=
     fun {A' A} x => (r A').φ (x ≫ η A)
   -- Key identity: ψ h = η_A ≫ G h, for h : F A ⟶ B.
-  have ψ_eq : ∀ {A : 𝒞} {B : 𝒟} (h : Fobj A ⟶ B), (r A).ψ h = η A ≫ Functor.map (F := G) h := by
+  have ψ_eq : ∀ {A : 𝒞} {B : 𝒟} (h : Fobj A ⟶ B), (r A).ψ h = η A ≫ G.map h := by
     intro A B h
     have := (r A).ψ_nat (Cat.id (Fobj A)) h
     rwa [Cat.id_comp] at this
   -- Unit naturality: η_{A'} ≫ G(F x) = x ≫ η_A.
-  have η_nat : ∀ {A' A : 𝒞} (x : A' ⟶ A), η A' ≫ Functor.map (F := G) (Fmap x) = x ≫ η A := by
+  have η_nat : ∀ {A' A : 𝒞} (x : A' ⟶ A), η A' ≫ G.map (Fmap x) = x ≫ η A := by
     intro A' A x
     rw [← ψ_eq (Fmap x)]
     show (r A').ψ ((r A').φ (x ≫ η A)) = x ≫ η A
     rw [(r A').ψφ]
-  -- F is a functor.
-  let hF : Functor Fobj := {
+  -- F is a functor (bundled).
+  let F : Functor 𝒞 𝒟 := {
+    obj := Fobj
     map := Fmap
     map_id := by
       intro A
@@ -311,7 +309,7 @@ def adj_of_repr {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} �
       congr 1
       -- (x ≫ y) ≫ η A = (x ≫ η A') ≫ G(Fmap y), via assoc + η_nat y.
       rw [Cat.assoc, Cat.assoc, η_nat y] }
-  refine ⟨Fobj, hF, ?_⟩
+  refine ⟨F, ?_⟩
   -- The adjunction: φ := ψ_repr, ψ := φ_repr.
   exact {
     φ := fun {A B} h => (r A).ψ h
@@ -321,11 +319,10 @@ def adj_of_repr {𝒞 : Type u₁} [Cat.{v} 𝒞] {𝒟 : Type u₂} [Cat.{v} �
     -- φ_nat_left: ψ(F a ≫ h) = a ≫ ψ h.
     φ_nat_left := by
       intro A' A B a h
-      -- show (r A').ψ (Fmap a ≫ h) = a ≫ (r A).ψ h
-      rw [ψ_eq (Functor.map a ≫ h), ψ_eq h, Functor.map_comp, ← Cat.assoc]
-      -- η A' ≫ G(F a) = a ≫ η A  (η_nat); F a = Functor.map a here.
-      rw [show Functor.map (F := G) (Functor.map (F := Fobj) a) = Functor.map (F := G) (Fmap a) from rfl,
-        η_nat a, Cat.assoc]
+      -- show (r A').ψ (F.map a ≫ h) = a ≫ (r A).ψ h
+      rw [ψ_eq (F.map a ≫ h), ψ_eq h, G.map_comp, ← Cat.assoc]
+      -- η A' ≫ G(F a) = a ≫ η A  (η_nat); F.map a = Fmap a here.
+      rw [show G.map (F.map a) = G.map (Fmap a) from rfl, η_nat a, Cat.assoc]
     -- φ_nat_right: ψ(h ≫ b) = ψ h ≫ G b  (exactly ψ_nat).
     φ_nat_right := by
       intro A B B' h b

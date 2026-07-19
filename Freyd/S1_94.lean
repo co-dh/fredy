@@ -92,10 +92,10 @@ noncomputable instance toposHasRightAdjointImage : HasRightAdjointImage 𝒞 whe
     that preserves the topos structure (terminal, products, subobject classifier,
     exponentials).  We record this as a predicate on the functorial data. -/
 def ToposMap {𝒟 : Type u} [Cat.{v} 𝒟] [Topos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : Prop :=
+    (T : Functor 𝒞 𝒟) : Prop :=
   PreservesMono T ∧
-  (Isomorphic (T (one (𝒞 := 𝒞))) (one (𝒞 := 𝒟))) ∧
-  (∀ (A B : 𝒞), Isomorphic (T (prod A B)) (prod (T A) (T B)))
+  (Isomorphic (T.obj (one (𝒞 := 𝒞))) (one (𝒞 := 𝒟))) ∧
+  (∀ (A B : 𝒞), Isomorphic (T.obj (prod A B)) (prod (T.obj A) (T.obj B)))
 
 -- §1.941 (PERMANENT LOWER BOUND under representations): "T(∩F) is below every
 -- subobject named by T(F), for every representation of topoi T : 𝒞 → 𝒟" cannot

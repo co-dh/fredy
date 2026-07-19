@@ -438,8 +438,8 @@ theorem em_implies_complemented [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos
 
 /-- The filter of a representation: subterminators sent to 1. -/
 def repFilter {𝒟 : Type u} [Cat.{v} 𝒟] [Logos 𝒞] [Logos 𝒟]
-    (T : 𝒞 → 𝒟) [Functor T] : (Subobject 𝒞 one) → Prop :=
-  λ U => @Isomorphic 𝒟 _ (T U.dom) one
+    (T : Functor 𝒞 𝒟) : (Subobject 𝒞 one) → Prop :=
+  λ U => @Isomorphic 𝒟 _ (T.obj U.dom) one
 
 /-! ### §1.73 the double-sharp filter bridge `A' = A  ↔  pA##(A') = 1`
 

@@ -314,14 +314,14 @@ theorem monic_inverseImage_iff_distributive [HasImages 𝒞] [HasSubobjectUnions
     Preserving finite unions means: T carries binary unions to binary unions, and the
     bottom (empty union / initial subobject) to the bottom. -/
 class PreLogosFunctor {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] [PreLogos 𝒜] [PreLogos ℬ]
-    (T : 𝒜 → ℬ) [Functor T] (hpm : PreservesMono T) where
+    (T : Functor 𝒜 ℬ) (hpm : PreservesMono T) where
   /-- T maps the binary union of S,U in Sub(A) to the union of T(S), T(U) in Sub(T(A)). -/
   preserves_union : ∀ {A : 𝒜} (S U : Subobject 𝒜 A),
     Isomorphic (Subobject.map T hpm (HasSubobjectUnions.union S U)).dom
                (HasSubobjectUnions.union (Subobject.map T hpm S) (Subobject.map T hpm U)).dom
   /-- T maps the bottom (empty union) to the bottom. -/
   preserves_bottom : ∀ (A : 𝒜),
-    Isomorphic (Subobject.map T hpm (PreLogos.bottom A)).dom (PreLogos.bottom (T A)).dom
+    Isomorphic (Subobject.map T hpm (PreLogos.bottom A)).dom (PreLogos.bottom (T.obj A)).dom
 
 /-- In a thin category (at most one morphism per hom-set), any pair of objects with
     morphisms going both ways are isomorphic: the round-trips are forced to be identities. -/

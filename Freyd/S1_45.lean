@@ -552,16 +552,16 @@ theorem mono_iff_level_diag_iso {A B : 𝒞} {f : A ⟶ B} (L : Level f) :
 /-- T PRESERVES PULLBACKS: for every pullback cone in `𝒜`, the image cone in `ℬ`
     is also a pullback. -/
 def PreservesPullbacks {𝒜 : Type u₁} {ℬ : Type u₂} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
+    (T : Functor 𝒜 ℬ) : Prop :=
   ∀ {A B C : 𝒜} (f : A ⟶ C) (g : B ⟶ C) (c : Cone f g),
     c.IsPullback →
-    (Cone.mk (T c.pt) (hT.map c.π₁) (hT.map c.π₂)
-      (by rw [← hT.map_comp, ← hT.map_comp, c.w])).IsPullback
+    (Cone.mk (T.obj c.pt) (T.map c.π₁) (T.map c.π₂)
+      (by rw [← T.map_comp, ← T.map_comp, c.w])).IsPullback
 
 /-- T PRESERVES PROPERNESS: a non-iso monic maps to a non-iso monic (§1.453). -/
 def PreservesProperness {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
-  ∀ {A' A : 𝒜} (m : A' ⟶ A), Monic m → ¬IsIso m → ¬IsIso (hT.map m)
+    (T : Functor 𝒜 ℬ) : Prop :=
+  ∀ {A' A : 𝒜} (m : A' ⟶ A), Monic m → ¬IsIso m → ¬IsIso (T.map m)
 
 /-- T PRESERVES PRODUCT-MONICITY: the image projections `T fst, T snd` remain a
     monic pair (jointly left-cancellable), so a map into `T(A×B)` is determined by
@@ -573,8 +573,8 @@ def PreservesProperness {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     NOT supply this — `(T fst, T snd)` need not stay jointly monic — which is the
     genuine gap in the `Faithful` direction; adding it makes §1.453 true as stated. -/
 def PreservesProductMonic {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    [HasBinaryProducts 𝒜] (T : 𝒜 → ℬ) [hT : Functor T] : Prop :=
-  ∀ {A B : 𝒜}, MonicPair (hT.map (fst (A := A) (B := B))) (hT.map snd)
+    [HasBinaryProducts 𝒜] (T : Functor 𝒜 ℬ) : Prop :=
+  ∀ {A B : 𝒜}, MonicPair (T.map (fst (A := A) (B := B))) (T.map snd)
 
 /-- The canonical level of `f`, built from the chosen kernel pair. -/
 noncomputable def canonicalLevel {A B : 𝒞} (f : A ⟶ B) : Level f where
@@ -596,16 +596,16 @@ theorem Level.diag_mono {A B : 𝒞} {f : A ⟶ B} (L : Level f) : Monic L.δ :=
 /-- The `T`-image of a level of `f` is a level of `T f` (T preserves the level
     pullback; the diagonal equations are functorial). -/
 noncomputable def Level.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
-    (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T)
-    {A B : 𝒜} {f : A ⟶ B} (L : Level f) : Level (hT.map f) where
-  c := Cone.mk (T L.c.pt) (hT.map L.c.π₁) (hT.map L.c.π₂)
-        (by rw [← hT.map_comp, ← hT.map_comp, L.c.w])
+    (T : Functor 𝒜 ℬ) (hpb : PreservesPullbacks T)
+    {A B : 𝒜} {f : A ⟶ B} (L : Level f) : Level (T.map f) where
+  c := Cone.mk (T.obj L.c.pt) (T.map L.c.π₁) (T.map L.c.π₂)
+        (by rw [← T.map_comp, ← T.map_comp, L.c.w])
   hpb := hpb f f L.c L.hpb
-  δ := hT.map L.δ
-  δ₁ := by rw [show hT.map L.δ ≫ hT.map L.c.π₁ = hT.map (L.δ ≫ L.c.π₁) from
-              (hT.map_comp _ _).symm, L.δ₁, hT.map_id]
-  δ₂ := by rw [show hT.map L.δ ≫ hT.map L.c.π₂ = hT.map (L.δ ≫ L.c.π₂) from
-              (hT.map_comp _ _).symm, L.δ₂, hT.map_id]
+  δ := T.map L.δ
+  δ₁ := by rw [show T.map L.δ ≫ T.map L.c.π₁ = T.map (L.δ ≫ L.c.π₁) from
+              (T.map_comp _ _).symm, L.δ₁, T.map_id]
+  δ₂ := by rw [show T.map L.δ ≫ T.map L.c.π₂ = T.map (L.δ ≫ L.c.π₂) from
+              (T.map_comp _ _).symm, L.δ₂, T.map_id]
 
 /-- §1.453: a pullback-preserving, properness-preserving functor REFLECTS MONICS.
     This is the explicit content of Freyd's argument: `f` monic ⟺ its diagonal is
@@ -613,8 +613,8 @@ noncomputable def Level.map {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     diagonal through `T`; so `T f` monic forces `f` monic. -/
 theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
-    (T : 𝒜 → ℬ) [hT : Functor T] (hpb : PreservesPullbacks T)
-    (hprop : PreservesProperness T) {A B : 𝒜} (f : A ⟶ B) (hm : Monic (hT.map f)) :
+    (T : Functor 𝒜 ℬ) (hpb : PreservesPullbacks T)
+    (hprop : PreservesProperness T) {A B : 𝒜} (f : A ⟶ B) (hm : Monic (T.map f)) :
     Monic f := by
   -- Classical contrapositive: if f not monic, the level diagonal δ is a non-iso mono,
   -- so T δ is non-iso (properness), so T f is not monic — contradiction.
@@ -623,7 +623,7 @@ theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
   · exfalso
     let L := canonicalLevel f
     have hδ_niso : ¬IsIso L.δ := fun h => hnm ((mono_iff_level_diag_iso L).2 h)
-    have hTδ_niso : ¬IsIso (hT.map L.δ) := hprop L.δ L.diag_mono hδ_niso
+    have hTδ_niso : ¬IsIso (T.map L.δ) := hprop L.δ L.diag_mono hδ_niso
     -- T δ is the diagonal of the image level of T f; T f monic ⇒ that diagonal iso.
     exact hTδ_niso ((mono_iff_level_diag_iso (L.map T hpb)).1 hm)
 
@@ -647,7 +647,7 @@ theorem reflectsMono {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
 theorem pullback_faithful_iff_preserves_properness
     {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ]
     [HasTerminal 𝒜] [HasBinaryProducts 𝒜] [HasPullbacks 𝒜]
-    (T : 𝒜 → ℬ) [hT : Functor T]
+    (T : Functor 𝒜 ℬ)
     (hpb : PreservesPullbacks T) (hpbp : PreservesProductMonic T) :
     Faithful T ↔ PreservesProperness T := by
   constructor
@@ -660,7 +660,7 @@ theorem pullback_faithful_iff_preserves_properness
     -- `reflectsMono` above.  `Faithful = Embedding ∧ (reflects isos)`; we prove both.
     intro hprop
     -- Reflecting isos first: it is reused inside the embedding step.
-    have hRefl : ∀ {A B : 𝒜} (f : A ⟶ B), IsIso (hT.map f) → IsIso f := by
+    have hRefl : ∀ {A B : 𝒜} (f : A ⟶ B), IsIso (T.map f) → IsIso f := by
       intro A B f hiso
       -- IsIso (T f) ⇒ Monic (T f) ⇒ Monic f (reflectsMono).
       have hmono : Monic f :=
@@ -712,61 +712,61 @@ theorem pullback_faithful_iff_preserves_properness
       have hq_uniq := P.lift_uniq ⟨W, p ≫ P.cone.π₁, p ≫ P.cone.π₂, hcone⟩ q hpq1.symm hpq2.symm
       rw [hp_uniq, hq_uniq]
     -- Now show `T e` is iso.  T f = T g ⇒ T u = T v (joint-monicity of T fst, T snd).
-    have hTuv : hT.map u = hT.map v := by
+    have hTuv : T.map u = T.map v := by
       apply hpbp
       · -- post T fst : both = T(1_A)
-        rw [← hT.map_comp, ← hT.map_comp, show u ≫ fst = Cat.id A from fst_pair _ _,
+        rw [← T.map_comp, ← T.map_comp, show u ≫ fst = Cat.id A from fst_pair _ _,
             show v ≫ fst = Cat.id A from fst_pair _ _]
       · -- post T snd : T f = T g
-        rw [← hT.map_comp, ← hT.map_comp, show u ≫ snd = f from snd_pair _ _,
+        rw [← T.map_comp, ← T.map_comp, show u ≫ snd = f from snd_pair _ _,
             show v ≫ snd = g from snd_pair _ _, hTfg]
     -- T carries the pullback to a pullback in ℬ; with T u = T v it is the KERNEL PAIR of T u.
     -- `T u` is split mono (T of split mono), hence monic; so the diagonal is iso, so T e iso.
     -- The image cone over the cospan (T u, T v).  Rewriting `T v = T u` (hTuv) turns it into a
     -- cone over (T u, T u) — a *level* of `T u` — and `PreservesPullbacks` makes it a pullback.
     -- Build that level by transporting along `hTuv`.
-    have hTu_split : hT.map u ≫ hT.map (fst (A := A) (B := B)) = Cat.id (T A) := by
-      rw [← hT.map_comp, hu_split, hT.map_id]
-    have hTu_mono : Monic (hT.map u) := mono_of_retraction _ _ hTu_split
+    have hTu_split : T.map u ≫ T.map (fst (A := A) (B := B)) = Cat.id (T.obj A) := by
+      rw [← T.map_comp, hu_split, T.map_id]
+    have hTu_mono : Monic (T.map u) := mono_of_retraction _ _ hTu_split
     -- The level of `T u`: cone (T pt, T π₁, T π₂) over (T u, T u), pullback, diagonal 1_{TA}.
     -- The image of P's cone is a pullback over the cospan (T u, T v).
-    have himg : (Cone.mk (T P.cone.pt) (hT.map P.cone.π₁) (hT.map P.cone.π₂)
-        (show hT.map P.cone.π₁ ≫ hT.map u = hT.map P.cone.π₂ ≫ hT.map v by
-          rw [← hT.map_comp, ← hT.map_comp, P.cone.w])).IsPullback :=
+    have himg : (Cone.mk (T.obj P.cone.pt) (T.map P.cone.π₁) (T.map P.cone.π₂)
+        (show T.map P.cone.π₁ ≫ T.map u = T.map P.cone.π₂ ≫ T.map v by
+          rw [← T.map_comp, ← T.map_comp, P.cone.w])).IsPullback :=
       hpb u v P.cone P.cone_isPullback
     -- A cone over (T u, T u) is a cone over (T u, T v) (the `w` data differs only by hTuv),
     -- so `himg`'s universal property transfers verbatim; this makes cTu a level of `T u`.
-    let cTu : Cone (hT.map u) (hT.map u) :=
-      Cone.mk (T P.cone.pt) (hT.map P.cone.π₁) (hT.map P.cone.π₂)
-        (calc hT.map P.cone.π₁ ≫ hT.map u
-              = hT.map (P.cone.π₁ ≫ u) := (hT.map_comp _ _).symm
-            _ = hT.map (P.cone.π₂ ≫ v) := by rw [P.cone.w]
-            _ = hT.map P.cone.π₂ ≫ hT.map v := hT.map_comp _ _
-            _ = hT.map P.cone.π₂ ≫ hT.map u := (congrArg (hT.map P.cone.π₂ ≫ ·) hTuv).symm)
+    let cTu : Cone (T.map u) (T.map u) :=
+      Cone.mk (T.obj P.cone.pt) (T.map P.cone.π₁) (T.map P.cone.π₂)
+        (calc T.map P.cone.π₁ ≫ T.map u
+              = T.map (P.cone.π₁ ≫ u) := (T.map_comp _ _).symm
+            _ = T.map (P.cone.π₂ ≫ v) := by rw [P.cone.w]
+            _ = T.map P.cone.π₂ ≫ T.map v := T.map_comp _ _
+            _ = T.map P.cone.π₂ ≫ T.map u := (congrArg (T.map P.cone.π₂ ≫ ·) hTuv).symm)
     have hcTu_pb : cTu.IsPullback := by
       intro d
       -- reinterpret d as a cone over (T u, T v) (legs identical; w via hTuv)
-      have hdw : d.π₁ ≫ hT.map u = d.π₂ ≫ hT.map v :=
+      have hdw : d.π₁ ≫ T.map u = d.π₂ ≫ T.map v :=
         d.w.trans (congrArg (d.π₂ ≫ ·) hTuv)
       obtain ⟨l, ⟨hl₁, hl₂⟩, hluniq⟩ := himg ⟨d.pt, d.π₁, d.π₂, hdw⟩
       exact ⟨l, ⟨hl₁, hl₂⟩, hluniq⟩
     obtain ⟨δ, ⟨hδ₁, hδ₂⟩, _⟩ := hcTu_pb
-      ⟨T A, Cat.id (T A), Cat.id (T A), (Cat.id_comp _).trans (Cat.id_comp _).symm⟩
+      ⟨T.obj A, Cat.id (T.obj A), Cat.id (T.obj A), (Cat.id_comp _).trans (Cat.id_comp _).symm⟩
     -- Assemble the level and invoke `mono_iff_level_diag_iso` in ℬ.
     have hδ_iso : IsIso δ :=
-      (mono_iff_level_diag_iso (⟨cTu, hcTu_pb, δ, hδ₁, hδ₂⟩ : Level (hT.map u))).1 hTu_mono
+      (mono_iff_level_diag_iso (⟨cTu, hcTu_pb, δ, hδ₁, hδ₂⟩ : Level (T.map u))).1 hTu_mono
     -- δ ≫ (T π₁) = 1 with δ iso ⇒ T π₁ iso ⇒ T e iso.
-    have hTe_iso : IsIso (hT.map e) := by
+    have hTe_iso : IsIso (T.map e) := by
       obtain ⟨δi, hδi1, hδi2⟩ := hδ_iso  -- hδi1 : δ ≫ δi = id ; hδi2 : δi ≫ δ = id
       -- hδ₁ : δ ≫ T e = 1.  Cancel δ on the left (δ split epi via δi): T e = δi.
-      have hTe_eq : hT.map e = δi := by
-        calc hT.map e = (δi ≫ δ) ≫ hT.map e := by rw [hδi2, Cat.id_comp]
-          _ = δi ≫ (δ ≫ hT.map e) := Cat.assoc _ _ _
+      have hTe_eq : T.map e = δi := by
+        calc T.map e = (δi ≫ δ) ≫ T.map e := by rw [hδi2, Cat.id_comp]
+          _ = δi ≫ (δ ≫ T.map e) := Cat.assoc _ _ _
           _ = δi ≫ Cat.id _ := by rw [hδ₁]
           _ = δi := Cat.comp_id _
       -- e = P.cone.π₁ definitionally; T e = δi, δ ≫ δi = id, δi ≫ δ = id.
-      exact ⟨δ, by show hT.map P.cone.π₁ ≫ δ = _; rw [show hT.map P.cone.π₁ = δi from hTe_eq, hδi2],
-                by show δ ≫ hT.map P.cone.π₁ = _; exact hδ₁⟩
+      exact ⟨δ, by show T.map P.cone.π₁ ≫ δ = _; rw [show T.map P.cone.π₁ = δi from hTe_eq, hδi2],
+                by show δ ≫ T.map P.cone.π₁ = _; exact hδ₁⟩
     -- Finally: e monic and T e iso ⇒ (properness contrapositive) e iso; then cancel e on heq.
     have he_iso : IsIso e := by
       by_cases h : IsIso e

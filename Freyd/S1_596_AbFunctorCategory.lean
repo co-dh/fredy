@@ -46,7 +46,7 @@ variable {𝒜 𝒮 : Type u} [Cat.{u} 𝒜] [Cat.{u} 𝒮] [HasTerminal 𝒮] [
 
 /-! ## Forward direction  `Ab(𝒮^𝒜) → (Ab 𝒮)^𝒜`
 
-  An `AbelianGroupObject (FunctorObj 𝒜 𝒮)` is a functor `G.carrier : 𝒜 → 𝒮` with natural
+  An `AbelianGroupObject (Functor 𝒜 𝒮)` is a functor `G.carrier : 𝒜 → 𝒮` with natural
   structure maps.  Evaluating everything at `a : 𝒜` gives an `AbelianGroupObject 𝒮`, and every
   transition `G.carrier.map f` is a homomorphism (naturality of `G.add`). -/
 
@@ -54,7 +54,7 @@ variable {𝒜 𝒮 : Type u} [Cat.{u} 𝒜] [Cat.{u} 𝒮] [HasTerminal 𝒮] [
     the structure maps are the `a`-components of `G`'s NTs (terminator/product in `𝒮^𝒜` are
     pointwise, so the types match on the nose), and the four axioms are the `a`-components of
     `G`'s axiom equations of natural transformations. -/
-def ptOb (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) (a : 𝒜) : AbelianGroupObject 𝒮 where
+def ptOb (G : AbelianGroupObject (Functor 𝒜 𝒮)) (a : 𝒜) : AbelianGroupObject 𝒮 where
   carrier   := G.carrier.obj a
   zero      := G.zero.app a
   neg       := G.neg.app a
@@ -67,17 +67,16 @@ def ptOb (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) (a : 𝒜) : AbelianGro
 /-- Each transition `G.carrier.map f` is an Ab-object homomorphism `ptOb G a → ptOb G b`.
     This is exactly the naturality square of the NT `G.add`, read backwards
     (`(F×F).map f` unfolds pointwise to `⟨fst ≫ F.map f, snd ≫ F.map f⟩`). -/
-theorem ptOb_isHom (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) {a b : 𝒜} (f : a ⟶ b) :
-    IsHomAbelianGroupObject (ptOb G a) (ptOb G b) (G.carrier.isFunctor.map f) :=
+theorem ptOb_isHom (G : AbelianGroupObject (Functor 𝒜 𝒮)) {a b : 𝒜} (f : a ⟶ b) :
+    IsHomAbelianGroupObject (ptOb G a) (ptOb G b) (G.carrier.map f) :=
   (G.add.naturality f).symm
 
 /-- §1.596 forward map: `G ↦ (a ↦ ptOb G a)`, a functor `𝒜 → Ab(𝒮)`. -/
-def fwdFun (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) : FunctorObj 𝒜 (AbelianGroupObject 𝒮) where
+def fwdFun (G : AbelianGroupObject (Functor 𝒜 𝒮)) : Functor 𝒜 (AbelianGroupObject 𝒮) where
   obj a := ptOb G a
-  isFunctor :=
-    { map      := fun {_ _} f => ⟨G.carrier.isFunctor.map f, ptOb_isHom G f⟩
-      map_id   := fun a => Subtype.ext (G.carrier.isFunctor.map_id a)
-      map_comp := fun f g => Subtype.ext (G.carrier.isFunctor.map_comp f g) }
+  map      := fun {_ _} f => ⟨G.carrier.map f, ptOb_isHom G f⟩
+  map_id   := fun a => Subtype.ext (G.carrier.map_id a)
+  map_comp := fun f g => Subtype.ext (G.carrier.map_comp f g)
 
 /-! ## Backward direction  `(Ab 𝒮)^𝒜 → Ab(𝒮^𝒜)`
 
@@ -88,45 +87,44 @@ def fwdFun (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) : FunctorObj 𝒜 (Ab
 
 /-- Underlying `𝒮`-functor of `H : 𝒜 → Ab(𝒮)`: `a ↦ (H a).carrier`, `f ↦ (H f).val`.
     Functoriality is `H`'s, projected to carriers (`ab_id_val`/`ab_comp_val`). -/
-def bwdCarrier (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) : FunctorObj 𝒜 𝒮 where
+def bwdCarrier (H : Functor 𝒜 (AbelianGroupObject 𝒮)) : Functor 𝒜 𝒮 where
   obj a := (H.obj a).carrier
-  isFunctor :=
-    { map      := fun {_ _} f => (H.isFunctor.map f).val
-      map_id   := fun a => congrArg Subtype.val (H.isFunctor.map_id a)
-      map_comp := fun f g => congrArg Subtype.val (H.isFunctor.map_comp f g) }
+  map      := fun {_ _} f => (H.map f).val
+  map_id   := fun a => congrArg Subtype.val (H.map_id a)
+  map_comp := fun f g => congrArg Subtype.val (H.map_comp f g)
 
 /-- Levelwise zero as an NT `1 ⟶ bwdCarrier H`.  Naturality = `H.map f` preserves zero. -/
-def bwdZero (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
-    (one : FunctorObj 𝒜 𝒮) ⟶ bwdCarrier H where
+def bwdZero (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
+    (one : Functor 𝒜 𝒮) ⟶ bwdCarrier H where
   app a := (H.obj a).zero
   naturality {a b} f := by
-    have h := hom_preserves_zero (H.isFunctor.map f).property (term (one : 𝒮))
+    have h := hom_preserves_zero (H.map f).property (term (one : 𝒮))
     rw [term_uniq (term (one : 𝒮)) (Cat.id one), Cat.id_comp, Cat.id_comp] at h
-    show Cat.id one ≫ (H.obj b).zero = (H.obj a).zero ≫ (H.isFunctor.map f).val
+    show Cat.id one ≫ (H.obj b).zero = (H.obj a).zero ≫ (H.map f).val
     rw [Cat.id_comp, h]
 
 /-- Levelwise negation as an NT `bwdCarrier H ⟶ bwdCarrier H`.  Naturality = `H.map f`
     preserves negation (`hom_preserves_neg`). -/
-def bwdNeg (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
+def bwdNeg (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
     bwdCarrier H ⟶ bwdCarrier H where
   app a := (H.obj a).neg
   naturality {a b} f := by
-    have h := hom_preserves_neg (H.isFunctor.map f).property (Cat.id (H.obj a).carrier)
+    have h := hom_preserves_neg (H.map f).property (Cat.id (H.obj a).carrier)
     rw [Cat.id_comp, Cat.id_comp] at h
     exact h.symm
 
 /-- Levelwise addition as an NT `bwdCarrier H × bwdCarrier H ⟶ bwdCarrier H`.  Naturality is
     exactly the homomorphism condition of `H.map f` (`(F×F).map f` unfolds pointwise). -/
-def bwdAdd (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
+def bwdAdd (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
     prod (bwdCarrier H) (bwdCarrier H) ⟶ bwdCarrier H where
   app a := (H.obj a).add
-  naturality {a b} f := (H.isFunctor.map f).property.symm
+  naturality {a b} f := (H.map f).property.symm
 
 /-- §1.596 backward map: assemble a functor `H : 𝒜 → Ab(𝒮)` into an Ab-object of `𝒮^𝒜`.
     The four group axioms hold as equations of NTs, checked componentwise where they become the
     axioms of the levelwise Ab-objects `H a` (`NaturalTransformation.ext'`). -/
-def bwdFun (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
-    AbelianGroupObject (FunctorObj 𝒜 𝒮) where
+def bwdFun (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
+    AbelianGroupObject (Functor 𝒜 𝒮) where
   carrier   := bwdCarrier H
   zero      := bwdZero H
   neg       := bwdNeg H
@@ -142,10 +140,10 @@ def bwdFun (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) :
   and function-eta, and the proof fields are irrelevant. -/
 
 /-- §1.596: `bwdFun ∘ fwdFun = id` on Ab-objects of `𝒮^𝒜`. -/
-theorem bwd_fwd (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) : bwdFun (fwdFun G) = G := rfl
+theorem bwd_fwd (G : AbelianGroupObject (Functor 𝒜 𝒮)) : bwdFun (fwdFun G) = G := rfl
 
 /-- §1.596: `fwdFun ∘ bwdFun = id` on functors `𝒜 → Ab(𝒮)`. -/
-theorem fwd_bwd (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) : fwdFun (bwdFun H) = H := rfl
+theorem fwd_bwd (H : Functor 𝒜 (AbelianGroupObject 𝒮)) : fwdFun (bwdFun H) = H := rfl
 
 /-! ## Hom-level correspondence  `HomAb G₁ G₂ ≃ FunctorHom (fwdFun G₁) (fwdFun G₂)`
 
@@ -154,7 +152,7 @@ theorem fwd_bwd (H : FunctorObj 𝒜 (AbelianGroupObject 𝒮)) : fwdFun (bwdFun
   levelwise Ab-object homomorphisms — i.e. a morphism of `(Ab 𝒮)^𝒜`.  The two directions just
   transpose "component of a NT with a global equation" and "natural family of pointwise homs". -/
 
-variable {G₁ G₂ G₃ : AbelianGroupObject (FunctorObj 𝒜 𝒮)}
+variable {G₁ G₂ G₃ : AbelianGroupObject (Functor 𝒜 𝒮)}
 
 /-- Forward on homs: the NT `φ` becomes the family `a ↦ φ.app a` of levelwise homomorphisms.
     Pointwise homomorphism = `a`-component of `φ`'s homomorphism square; naturality in `Ab(𝒮)` =
@@ -183,7 +181,7 @@ theorem fwdHom_bwdHom (ψ : FunctorHom (fwdFun G₁) (fwdFun G₂)) : fwdHom (bw
   hom-set (`bwdHom_fwdHom`/`fwdHom_bwdHom`), it is an ISOMORPHISM of categories — the full §1.596. -/
 
 /-- `fwdHom` preserves identities (`Cat.id` in `Ab(𝒮^𝒜)` ↦ `natTrans_id` in `(Ab 𝒮)^𝒜`). -/
-theorem fwdHom_id (G : AbelianGroupObject (FunctorObj 𝒜 𝒮)) :
+theorem fwdHom_id (G : AbelianGroupObject (Functor 𝒜 𝒮)) :
     fwdHom (Cat.id G) = natTrans_id (fwdFun G) := rfl
 
 /-- `fwdHom` preserves composition (`≫` in `Ab(𝒮^𝒜)` ↦ `natTrans_comp` in `(Ab 𝒮)^𝒜`).

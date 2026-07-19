@@ -666,18 +666,19 @@ instance : Cat PhatObj where
 /-- The embedding P → P̂ on objects: identity idempotents. -/
 def embP (α : PObj) : PhatObj := ⟨α, Cat.id α, Cat.id_comp _⟩
 
-instance embPFunctor : Functor embP where
+def embPFunctor : Functor PObj PhatObj where
+  obj := embP
   map f := ⟨f, Cat.id_comp f, Cat.comp_id f⟩
   map_id _ := PhatHom.ext rfl
   map_comp _ _ := PhatHom.ext rfl
 
-theorem embP_full : Full embP := fun h => ⟨h.1, PhatHom.ext rfl⟩
+theorem embP_full : Full embPFunctor := fun h => ⟨h.1, PhatHom.ext rfl⟩
 
-theorem embP_embedding : Embedding embP := fun _ _ h => congrArg Subtype.val h
+theorem embP_embedding : Embedding embPFunctor := fun _ _ h => congrArg Subtype.val h
 
 /-- P ↪ P̂ is a full and faithful embedding. -/
-theorem embP_faithful : Faithful embP :=
-  full_embedding_faithful _ embP_embedding embP_full
+theorem embP_faithful : Faithful embPFunctor :=
+  full_embedding_faithful embPFunctor embP_embedding embP_full
 
 /-- All idempotents of P̂ split (§1.281 data) — the defining property of Spl(P). -/
 theorem phat_idem_split {E : PhatObj} (Φ : E ⟶ E) (h : Idempotent Φ) :
@@ -926,7 +927,8 @@ def omegaPhat : PhatObj := embP omegaP
 /-- The set-valued functor `P̂(ω̂, −)` represented by ω̂. -/
 def phatPoints (E : PhatObj) : Type := omegaPhat ⟶ E
 
-instance phatPointsFunctor : Functor phatPoints where
+def phatPointsFunctor : Functor PhatObj Type where
+  obj := phatPoints
   map φ := fun h => h ≫ φ
   map_id _ := funext fun h => Cat.comp_id h
   map_comp φ ψ := funext fun h => (Cat.assoc h φ ψ).symm
@@ -939,7 +941,7 @@ def pointAt {E : PhatObj} (a : El E.carrier) : phatPoints E :=
 
 /-- **§1.574**: the representable functor `P̂(ω̂,−) : P̂ → 𝒮` is faithful — it
     separates maps (the repo's cross-universe faithfulness for 𝒮-valued functors). -/
-theorem phatPoints_separates : SeparatesMaps phatPoints := by
+theorem phatPoints_separates : SeparatesMaps phatPointsFunctor := by
   intro E F φ ψ h
   refine PhatHom.ext (PMor.ext fun a => ?_)
   have hpt : pointAt a ≫ φ = pointAt a ≫ ψ := congrFun h (pointAt a)
