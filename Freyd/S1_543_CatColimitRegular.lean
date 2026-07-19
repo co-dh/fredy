@@ -2372,7 +2372,7 @@ theorem objIncl_preserves_images (C : CatSystem ι D) (hC : C.Coherent)
     IsImage (homInclObj C hC f)
       (Subobject.mk (C.objIncl i (image f).dom) (homInclObj C hC (image f).arr)
         (homInclObj_mono_of_stage C hC (image f).arr
-          (fun {j} hij z u v huv => hmono hij (image f).monic u v huv))) := by
+          (fun hij _ u v huv => hmono hij (image f).monic u v huv))) := by
   letI : Cat C.Obj := colimitCat C hC
   letI : HasImages (C.A i) := hi i
   -- stage factorization `image.lift f ≫ (image f).arr = f`
