@@ -53,7 +53,7 @@ noncomputable def stageHasImages (b : PreRegBundle.{u}) (hb0 : @HasImages b.carr
 theorem capitalization_lemma_regular (A : Type u) [Cat.{u} A] [RegularCategory A] :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hR : RegularCategory Ā),
       @Capital.{u, u} Ā hC (hR.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   have hFD : ∀ (S : PreRegBundle.{u}),
       letI := S.cat; letI := S.pre; letI := (wsCover S).dec
       FibreDensity (wsCover S) := fun S => Freyd.CofinalProj.wsCover_fibreDensity S
