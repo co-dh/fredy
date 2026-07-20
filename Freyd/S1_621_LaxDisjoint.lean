@@ -178,7 +178,7 @@ noncomputable def laxColimCoprodOfDisjoint
 theorem laxColim_inl_monic
     (hdisj : ∀ i, DisjointBinaryCoproduct (L.A i))
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
         (u v : L.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
         (L.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ u
@@ -207,7 +207,7 @@ theorem laxColim_inl_monic
 theorem laxColim_inr_monic
     (hdisj : ∀ i, DisjointBinaryCoproduct (L.A i))
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : L.A i) (z : L.A j)
         (u v : L.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
         (L.functF hij).map (hdisj i).toHasBinaryCoproducts.inl ≫ u
@@ -248,7 +248,7 @@ theorem laxColim_inr_monic
 theorem laxColim_inl_inter_inr [Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (L.A i))
     (hmono : ∀ {i j : ι} (hij : D.le i j),
-        @PreservesMono _ (L.catA i) _ (L.catA j) (L.F hij) (L.functF hij))
+        @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (hbot : ∀ i, PreLogos (L.A i))
     (hinitpres : ∀ {i j : ι} (hij : D.le i j),
       @StrictCoterminator (L.A j) (L.catA j) (L.F hij (stageZero L hbot i)))
