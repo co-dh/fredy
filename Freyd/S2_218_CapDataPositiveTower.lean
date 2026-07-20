@@ -102,31 +102,31 @@ theorem coprod_jointEpi [HasBinaryCoproducts 𝒜] {A B w : 𝒜}
     hence epic; and `inl ≫ φ = F inl`, `inr ≫ φ = F inr`, so two maps out of `F(A+B)` agreeing after
     `F inl` and `F inr` agree after `φ`, hence are equal.  This is the `hcoppres` content. -/
 theorem preservesBinaryCoproducts_jointEpi [HasBinaryCoproducts 𝒜] [HasBinaryCoproducts ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpc : PreservesBinaryCoproducts F) {A B : 𝒜} {z : ℬ}
-    (u v : F (HasBinaryCoproducts.coprod A B) ⟶ z)
-    (hl : hF.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ u
-        = hF.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ v)
-    (hr : hF.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ u
-        = hF.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ v) : u = v := by
+    (F : Functor 𝒜 ℬ) (hpc : PreservesBinaryCoproducts F) {A B : 𝒜} {z : ℬ}
+    (u v : F.obj (HasBinaryCoproducts.coprod A B) ⟶ z)
+    (hl : F.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ u
+        = F.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ v)
+    (hr : F.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ u
+        = F.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ v) : u = v := by
   obtain ⟨ψ, _, hψ2⟩ := (hpc (A := A) (B := B) :
-    IsIso (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      (hF.map (HasBinaryCoproducts.inr (A := A) (B := B)))))
+    IsIso (HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      (F.map (HasBinaryCoproducts.inr (A := A) (B := B)))))
   -- φ ≫ u = φ ≫ v (jointly epic inl,inr after rewriting `inl ≫ φ = F inl`), then ψ ≫ φ = id gives u = v.
-  have hcomp : HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-        (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ u
-      = HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-        (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ v :=
+  have hcomp : HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+        (F.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ u
+      = HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+        (F.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ v :=
     coprod_jointEpi _ _
       (by rw [← Cat.assoc, ← Cat.assoc, HasBinaryCoproducts.case_inl]; exact hl)
       (by rw [← Cat.assoc, ← Cat.assoc, HasBinaryCoproducts.case_inr]; exact hr)
-  calc u = (ψ ≫ HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-              (hF.map (HasBinaryCoproducts.inr (A := A) (B := B)))) ≫ u := by rw [hψ2, Cat.id_comp]
-    _ = ψ ≫ (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-              (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ u) := by rw [Cat.assoc]
-    _ = ψ ≫ (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-              (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ v) := by rw [hcomp]
-    _ = (ψ ≫ HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-              (hF.map (HasBinaryCoproducts.inr (A := A) (B := B)))) ≫ v := by rw [Cat.assoc]
+  calc u = (ψ ≫ HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+              (F.map (HasBinaryCoproducts.inr (A := A) (B := B)))) ≫ u := by rw [hψ2, Cat.id_comp]
+    _ = ψ ≫ (HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+              (F.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ u) := by rw [Cat.assoc]
+    _ = ψ ≫ (HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+              (F.map (HasBinaryCoproducts.inr (A := A) (B := B))) ≫ v) := by rw [hcomp]
+    _ = (ψ ≫ HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+              (F.map (HasBinaryCoproducts.inr (A := A) (B := B)))) ≫ v := by rw [Cat.assoc]
     _ = v := by rw [hψ2, Cat.id_comp]
 
 /-- **Copairing through `(F inl, F inr)` from `PreservesBinaryCoproducts`** (coproduct dual of
@@ -134,21 +134,21 @@ theorem preservesBinaryCoproducts_jointEpi [HasBinaryCoproducts 𝒜] [HasBinary
     `p : F A ⟶ z`, `q : F B ⟶ z` factor through `F(A+B)`: take `r := φ⁻¹ ≫ case p q`, using
     `F inl ≫ φ⁻¹ = inl`.  This is the `hcoppres_case` content. -/
 theorem preservesBinaryCoproducts_case [HasBinaryCoproducts 𝒜] [HasBinaryCoproducts ℬ]
-    (F : 𝒜 → ℬ) [hF : Functor F] (hpc : PreservesBinaryCoproducts F) {A B : 𝒜} {z : ℬ}
-    (p : F A ⟶ z) (q : F B ⟶ z) :
-    ∃ r : F (HasBinaryCoproducts.coprod A B) ⟶ z,
-      hF.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ r = p
-      ∧ hF.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ r = q := by
+    (F : Functor 𝒜 ℬ) (hpc : PreservesBinaryCoproducts F) {A B : 𝒜} {z : ℬ}
+    (p : F.obj A ⟶ z) (q : F.obj B ⟶ z) :
+    ∃ r : F.obj (HasBinaryCoproducts.coprod A B) ⟶ z,
+      F.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ r = p
+      ∧ F.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ r = q := by
   obtain ⟨ψ, hψ1, _⟩ := (hpc (A := A) (B := B) :
-    IsIso (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      (hF.map (HasBinaryCoproducts.inr (A := A) (B := B)))))
+    IsIso (HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      (F.map (HasBinaryCoproducts.inr (A := A) (B := B)))))
   -- `F inl ≫ ψ = inl`: `F inl = inl ≫ φ` (case_inl) and `φ ≫ ψ = id`, so `F inl ≫ ψ = inl ≫ φ ≫ ψ = inl`.
-  have hFinl : hF.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ ψ = HasBinaryCoproducts.inl := by
-    rw [← HasBinaryCoproducts.case_inl (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))), Cat.assoc, hψ1, Cat.comp_id]
-  have hFinr : hF.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ ψ = HasBinaryCoproducts.inr := by
-    rw [← HasBinaryCoproducts.case_inr (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))), Cat.assoc, hψ1, Cat.comp_id]
+  have hFinl : F.map (HasBinaryCoproducts.inl (A := A) (B := B)) ≫ ψ = HasBinaryCoproducts.inl := by
+    rw [← HasBinaryCoproducts.case_inl (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      (F.map (HasBinaryCoproducts.inr (A := A) (B := B))), Cat.assoc, hψ1, Cat.comp_id]
+  have hFinr : F.map (HasBinaryCoproducts.inr (A := A) (B := B)) ≫ ψ = HasBinaryCoproducts.inr := by
+    rw [← HasBinaryCoproducts.case_inr (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      (F.map (HasBinaryCoproducts.inr (A := A) (B := B))), Cat.assoc, hψ1, Cat.comp_id]
   refine ⟨ψ ≫ HasBinaryCoproducts.case p q, ?_, ?_⟩
   · rw [← Cat.assoc, hFinl, HasBinaryCoproducts.case_inl]
   · rw [← Cat.assoc, hFinr, HasBinaryCoproducts.case_inr]
@@ -170,7 +170,7 @@ theorem rungPresCoprod {C : Type u} (ct : Cat.{u} C) (pr : @PreRegularCategory C
     (dC : @DisjointBinaryCoproduct C ct) (e : dbcPreReg dC = pr) :
     @PreservesBinaryCoproducts C (uniformStepFun ⟨C, ct, pr⟩).T ct
       (uniformStepFun ⟨C, ct, pr⟩).catT
-      (uniformStepFun ⟨C, ct, pr⟩).step (uniformStepFun ⟨C, ct, pr⟩).stepFun
+      (uniformStepFun ⟨C, ct, pr⟩).stepFun
       dC.toHasBinaryCoproducts
       (succ_component ct pr dC e).1.toHasBinaryCoproducts := by
   subst e
@@ -189,7 +189,7 @@ theorem transN_preservesBinaryCoproducts (b : PreRegBundle.{u})
     (hb0 : @DisjointBinaryCoproduct b.carrier b.cat) (hpb0 : dbcPreReg hb0 = b.pre) (n d : Nat) :
     @PreservesBinaryCoproducts _ _ (stageBundle uniformStepFun b n).cat
       (stageBundle uniformStepFun b (n+d)).cat
-      (transN uniformStepFun b n d) (transNFun uniformStepFun b n d)
+      (transNFun uniformStepFun b n d)
       (stageDisjoint b hb0 hpb0 n).toHasBinaryCoproducts
       (stageDisjoint b hb0 hpb0 (n+d)).toHasBinaryCoproducts := by
   induction d with
@@ -219,7 +219,6 @@ theorem transN_preservesBinaryCoproducts (b : PreRegBundle.{u})
       (stageDisjoint b hb0 hpb0 n).toHasBinaryCoproducts
       (stageDisjoint b hb0 hpb0 (n+d)).toHasBinaryCoproducts
       (stageDisjoint b hb0 hpb0 (n+d+1)).toHasBinaryCoproducts
-      (transN uniformStepFun b n d) (stageStep uniformStepFun b (n+d))
       (transNFun uniformStepFun b n d) (stageStepFun uniformStepFun b (n+d))
       ihF
       (rungPresCoprod (stageBundle uniformStepFun b (n+d)).cat (stageBundle uniformStepFun b (n+d)).pre
@@ -235,9 +234,11 @@ theorem stageCast_transN_preservesBinaryCoproducts (b : PreRegBundle.{u})
     (m d n : Nat) (h : m + d = n) :
     @PreservesBinaryCoproducts _ _ (stageBundle uniformStepFun b m).cat
       (stageBundle uniformStepFun b n).cat
-      (fun x => stageCast b uniformStepFun h (transN uniformStepFun b m d x))
-      { map := fun {x y} g => stageCastHom b uniformStepFun h ((transNFun uniformStepFun b m d).map g)
-        map_id := fun x => by rw [(transNFun uniformStepFun b m d).map_id, stageCastHom_id]
+      { obj := fun x => stageCast b uniformStepFun h (transN uniformStepFun b m d x)
+        map := fun {x y} g => stageCastHom b uniformStepFun h ((transNFun uniformStepFun b m d).map g)
+        map_id := fun x => by
+          rw [(transNFun uniformStepFun b m d).map_id]
+          exact stageCastHom_id _ _ _ _
         map_comp := fun f g => by rw [(transNFun uniformStepFun b m d).map_comp, stageCastHom_comp] }
       (stageDisjoint b hb0 hpb0 m).toHasBinaryCoproducts
       (stageDisjoint b hb0 hpb0 n).toHasBinaryCoproducts := by
@@ -251,7 +252,7 @@ theorem towerF_preservesBinaryCoproducts (b : PreRegBundle.{u})
     (hb0 : @DisjointBinaryCoproduct b.carrier b.cat) (hpb0 : dbcPreReg hb0 = b.pre)
     {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j) :
     @PreservesBinaryCoproducts _ _ (stageBundle uniformStepFun b i.down).cat
-      (stageBundle uniformStepFun b j.down).cat (towerF b uniformStepFun hij)
+      (stageBundle uniformStepFun b j.down).cat
       (towerFunctF b uniformStepFun hij)
       (stageDisjoint b hb0 hpb0 i.down).toHasBinaryCoproducts
       (stageDisjoint b hb0 hpb0 j.down).toHasBinaryCoproducts :=
@@ -280,7 +281,7 @@ theorem towerHcoppres (b : PreRegBundle.{u})
   @Freyd.Colim.preservesBinaryCoproducts_jointEpi (stageBundle uniformStepFun b i.down).carrier
     (stageBundle uniformStepFun b j.down).carrier (stageBundle uniformStepFun b i.down).cat
     (stageBundle uniformStepFun b j.down).cat (towerHcop b hb0 hpb0 i) (towerHcop b hb0 hpb0 j)
-    (towerF b uniformStepFun hij) (towerFunctF b uniformStepFun hij)
+    (towerFunctF b uniformStepFun hij)
     (towerF_preservesBinaryCoproducts b hb0 hpb0 hij) a c z u v hl hr
 
 /-- **`hcoppres_case`** (copairing through `(F inl, F inr)`) from `towerF_preservesBinaryCoproducts`. -/
@@ -295,7 +296,7 @@ theorem towerHcoppresCase (b : PreRegBundle.{u})
   @Freyd.Colim.preservesBinaryCoproducts_case (stageBundle uniformStepFun b i.down).carrier
     (stageBundle uniformStepFun b j.down).carrier (stageBundle uniformStepFun b i.down).cat
     (stageBundle uniformStepFun b j.down).cat (towerHcop b hb0 hpb0 i) (towerHcop b hb0 hpb0 j)
-    (towerF b uniformStepFun hij) (towerFunctF b uniformStepFun hij)
+    (towerFunctF b uniformStepFun hij)
     (towerF_preservesBinaryCoproducts b hb0 hpb0 hij) a c z p q
 
 /-! ### Strict-initial preservation along the tower (for the colimit `hinitpres`) -/
@@ -351,7 +352,7 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
     (hi : ∀ i, HasImages (cd.C.A i))
     (hmono : Colim.TransMono cd.C)
     (hcovpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
-        @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij))
+        @PreservesCovers _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.functF hij))
     (hdisj : ∀ i, DisjointBinaryCoproduct (cd.C.A i))
     (hbot : ∀ i, PreLogos (cd.C.A i))
     (hinitpres : ∀ {i j : cd.ι} (hij : cd.D.le i j),
@@ -369,7 +370,7 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
           ∧ (cd.C.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ r = q) :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
       @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
   haveI := cd.hne
   letI : Cat cd.C.Obj := colimitCat cd.C cd.hC
   letI hPre : PreRegularCategory cd.C.Obj :=
@@ -378,7 +379,7 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
   -- image preservation per transition, derived from cover + mono preservation (target pullbacks).
   have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
       IsImage ((cd.C.functF hij).map f)
-        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
+        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.functF hij)
           (hmono hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
     intro i j hij X Y f
     letI : Cat (cd.C.A i) := cd.C.catA i
@@ -387,7 +388,7 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
     letI : HasBinaryProducts (cd.C.A j) := cd.hp j
     letI : HasEqualizers (cd.C.A j) := cd.he j
     letI : HasPullbacks (cd.C.A j) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-    exact Colim.transitions_preserve_images (cd.C.F hij) (hF := cd.C.functF hij)
+    exact Colim.transitions_preserve_images (cd.C.functF hij)
       (hmono hij) (hcovpres hij) f
   letI hImg : HasImages cd.C.Obj := Colim.colimitHasImages cd.C cd.hC hi cd.hfaith hmono himgpres
   letI hReg : RegularCategory cd.C.Obj := { hPre with toHasImages := hImg }
@@ -398,10 +399,7 @@ theorem capitalization_of_capData_positive {A : Type u} [Cat.{u} A] [PreRegularC
     Colim.colimitPositive cd.C cd.hC hdisj hmono hbot hinitpres cd.ht cd.htpres cd.hp cd.hppres
       cd.hppres_pair cd.he cd.hepres cd.hepres_lift hcoppres hcoppres_case hi cd.hfaith himgpres
   refine ⟨cd.C.Obj, _, hD, cd.capital, ?_⟩
-  letI := cd.baseFun
-  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
-    stageInclFunctor cd.C cd.hC cd.i₀
-  exact ⟨cd.C.objIncl cd.i₀ ∘ cd.base, inferInstance,
+  exact ⟨compFunctor cd.baseFun (stageInclFunctor cd.C cd.hC cd.i₀),
     faithful_comp cd.baseFaithful (stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀)⟩
 
 
@@ -424,12 +422,12 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
     [DisjointBinaryCoproduct A] :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
       @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : @Functor A _ Ā hC F),
-        @Faithful.{u, u} A _ Ā hC F hF ∧
-        @RelFunctor.RegularFunctor A Ā _ hC F hF
+      ∃ F : @Functor A Ā _ hC,
+        @Faithful.{u, u} A _ Ā hC F ∧
+        @RelFunctor.RegularFunctor A Ā _ hC F
             (DisjointBinaryCoproduct.toPositivePreLogos.toPreLogos.toRegularCategory)
             (hD.toPositivePreLogos.toPreLogos.toRegularCategory) ∧
-        ∀ {X Y : A} (f : X ⟶ Y), @IsIso Ā hC _ _ (hF.map f) → IsIso f := by
+        ∀ {X Y : A} (f : X ⟶ Y), @IsIso Ā hC _ _ (F.map f) → IsIso f := by
   -- ===== build the cofinal ω-tower CapData (identical to `capitalization_lemma_regular_positive`) =====
   have hFD : ∀ (S : PreRegBundle.{u}),
       letI := S.cat; letI := S.pre; letI := (wsCover S).dec
@@ -501,7 +499,7 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
       cd.he cd.hepres cd.hepres_lift cd.hcanon
   have himgpres : ∀ {i j : cd.ι} (hij : cd.D.le i j) {X Y : cd.C.A i} (f : X ⟶ Y),
       IsImage ((cd.C.functF hij).map f)
-        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.F hij) (cd.C.functF hij)
+        (@Subobject.map _ _ (cd.C.catA i) (cd.C.catA j) (cd.C.functF hij)
           (hmonoTrans hij) _ (@image _ (cd.C.catA i) (hi i) _ _ f)) := by
     intro i j hij X Y f
     letI : Cat (cd.C.A i) := cd.C.catA i
@@ -510,7 +508,7 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
     letI : HasBinaryProducts (cd.C.A j) := cd.hp j
     letI : HasEqualizers (cd.C.A j) := cd.he j
     letI : HasPullbacks (cd.C.A j) := ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
-    exact Colim.transitions_preserve_images (cd.C.F hij) (hF := cd.C.functF hij)
+    exact Colim.transitions_preserve_images (cd.C.functF hij)
       (hmonoTrans hij) (hcovpresElem hij ·) f
   letI hImg : HasImages cd.C.Obj :=
     Colim.colimitHasImages cd.C cd.hC hi cd.hfaith hmonoTrans himgpres
@@ -522,9 +520,7 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
     Colim.colimitPositive cd.C cd.hC hdisj hmonoTrans hbot hinitpres cd.ht cd.htpres cd.hp cd.hppres
       cd.hppres_pair cd.he cd.hepres cd.hepres_lift hcoppres hcoppres_case hi cd.hfaith himgpres
   -- ===== assemble: `F = objIncl ⟨0⟩` is faithful, regular, and reflects all isos =====
-  letI : @Functor (cd.C.A cd.i₀) (cd.C.catA cd.i₀) cd.C.Obj _ (cd.C.objIncl cd.i₀) :=
-    stageInclFunctor cd.C cd.hC cd.i₀
-  refine ⟨cd.C.Obj, _, hD, cd.capital, cd.C.objIncl cd.i₀, inferInstance,
+  refine ⟨cd.C.Obj, _, hD, cd.capital, stageInclFunctor cd.C cd.hC cd.i₀,
     stageInclFaithful cd.C cd.hC cd.hfaith cd.hcons cd.i₀, ?_, ?_⟩
   · -- `objIncl ⟨0⟩` is a `RegularFunctor` against `hReg = hD.…toRegularCategory`.
     exact
@@ -545,9 +541,9 @@ theorem capitalization_lemma_regular_positive_strong (A : Type u) [Cat.{u} A]
 theorem capitalization_lemma_regular_positive (A : Type u) [Cat.{u} A] [DisjointBinaryCoproduct A] :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hD : @DisjointBinaryCoproduct Ā hC),
       @Capital.{u, u} Ā hC (hD.toPositivePreLogos.toPreLogos.toRegularCategory.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF := by
-  obtain ⟨Ā, hC, hD, hcap, F, hF, hfaith, _, _⟩ := capitalization_lemma_regular_positive_strong A
-  exact ⟨Ā, hC, hD, hcap, F, hF, hfaith⟩
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F := by
+  obtain ⟨Ā, hC, hD, hcap, F, hfaith, _, _⟩ := capitalization_lemma_regular_positive_strong A
+  exact ⟨Ā, hC, hD, hcap, F, hfaith⟩
 
 end Freyd
 
