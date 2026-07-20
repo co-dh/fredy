@@ -503,7 +503,7 @@ noncomputable def colimitPositive
         (C.functF hij).map p = (C.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {A B : C.A i} (f : A ⟶ B),
         IsImage ((C.functF hij).map f)
-          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.F hij) (C.functF hij) (hmono hij) _
+          (@Subobject.map _ _ (C.catA i) (C.catA j) (C.functF hij) (hmono hij) _
             (@image _ (C.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory C.Obj (colimitCat C hC)]
     [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :
