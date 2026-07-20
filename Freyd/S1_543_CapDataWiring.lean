@@ -102,7 +102,7 @@ theorem capData_exists (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
 theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F :=
   (capData_exists A).elim (fun cd => capitalization_of_capData cd)
 
 /-- **§1.54 Capitalization Lemma** (small case).  `= capitalization_lemma_small`; the §1.543
@@ -111,7 +111,7 @@ theorem capitalization_lemma_small (A : Type u) [Cat.{u} A] [PreRegularCategory 
 theorem capitalization_lemma (A : Type u) [Cat.{u} A] [PreRegularCategory A] :
     ∃ (Ā : Type u) (hC : Cat.{u} Ā) (hP : PreRegularCategory Ā),
       @Capital.{u, u} Ā hC (hP.toHasTerminal) ∧
-      ∃ (F : A → Ā) (hF : Functor F), @Faithful.{u, u} A _ Ā hC F hF :=
+      ∃ F : @Functor A Ā _ hC, @Faithful.{u, u} A _ Ā hC F :=
   capitalization_lemma_small A
 
 end Freyd
