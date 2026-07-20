@@ -28,17 +28,17 @@ universe v u
 
 /-- Pushing a subobject through `F` then `G` is the same as pushing it through `G ∘ F`. -/
 theorem Subobject.map_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
-    {F : C → D} {G : D → E} [hF : Functor F] [hG : Functor G]
+    {F : Functor C D} {G : Functor D E}
     (hpmF : PreservesMono F) (hpmG : PreservesMono G)
     {B : C} (S : Subobject C B) :
-    Subobject.map (G ∘ F) (fun hm => hpmG (hpmF hm)) S
+    Subobject.map (compFunctor F G) (fun hm => hpmG (hpmF hm)) S
       = Subobject.map G hpmG (Subobject.map F hpmF S) := rfl
 
 /-! ## `RegularFunctor` is closed under identity and composition -/
 
 /-- The identity functor is regular. -/
 theorem regularFunctor_id {C : Type u} [Cat.{u} C] [RegularCategory C] :
-    RegularFunctor (fun X : C => X) where
+    RegularFunctor (idFunctor : Functor C C) where
   pres_prod := by
     intro A B
     -- comparison `pair (id fst) (id snd) = pair fst snd = id`, hence iso.
@@ -55,10 +55,10 @@ theorem regularFunctor_id {C : Type u} [Cat.{u} C] [RegularCategory C] :
     compose directly (they are instance-free `∀`-statements), `pres_image` using `Subobject.map_comp`. -/
 theorem regularFunctor_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
     [RegularCategory C] [RegularCategory D] [RegularCategory E]
-    {F : C → D} {G : D → E} [hF : Functor F] [hG : Functor G]
+    {F : Functor C D} {G : Functor D E}
     (hrF : RegularFunctor F) (hrG : RegularFunctor G) :
-    RegularFunctor (G ∘ F) := by
-  have pm : PreservesMono (G ∘ F) := fun hm => hrG.pres_mono (hrF.pres_mono hm)
+    RegularFunctor (compFunctor F G) := by
+  have pm : PreservesMono (compFunctor F G) := fun hm => hrG.pres_mono (hrF.pres_mono hm)
   refine
     { pres_prod := preservesBinaryProducts_comp F G hrF.pres_prod hrG.pres_prod
       pres_pullback := fun f g c hc => hrG.pres_pullback _ _ _ (hrF.pres_pullback f g c hc)
@@ -67,7 +67,7 @@ theorem regularFunctor_comp {C D E : Type u} [Cat.{u} C] [Cat.{u} D] [Cat.{u} E]
       pres_image := ?_ }
   intro A B f I hI
   -- `Subobject.map (G∘F) pm I = Subobject.map G hrG.pres_mono (Subobject.map F hrF.pres_mono I)`.
-  rw [show (Subobject.map (G ∘ F) pm I)
+  rw [show (Subobject.map (compFunctor F G) pm I)
         = Subobject.map G hrG.pres_mono (Subobject.map F hrF.pres_mono I) from rfl]
   exact hrG.pres_image _ _ (hrF.pres_image f I hI)
 
@@ -104,7 +104,7 @@ theorem objIncl_preservesImages_generic {ι : Type u} {D : Directed ι}
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
-    @PreservesImages (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
+    @PreservesImages (C.A i) C.Obj (C.catA i) (colimitCat C hC)
       (stageInclFunctor C hC i) (objIncl_preservesMono C hC hmono i) := by
   letI : Cat C.Obj := colimitCat C hC
   intro A B f I hI
@@ -157,13 +157,13 @@ theorem objIncl_preservesPullbacks_generic {ι : Type u} {D : Directed ι}
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
-    @PreservesPullbacks (C.A i) C.Obj (C.catA i) (colimitCat C hC) (C.objIncl i)
+    @PreservesPullbacks (C.A i) C.Obj (C.catA i) (colimitCat C hC)
       (stageInclFunctor C hC i) := by
   letI : Cat C.Obj := colimitCat C hC
   -- The chosen-pullback preservation `objIncl_preserves_pullbacks` upgraded to all cones by the
   -- DRY hub `preservesPullbacks_of_chosenPullback` (`stageInclFunctor.map = homInclObj`, defeq).
   exact @preservesPullbacks_of_chosenPullback (C.A i) C.Obj (C.catA i) (colimitCat C hC)
-    (hp i) (he i) (C.objIncl i) (stageInclFunctor C hC i)
+    (hp i) (he i) (stageInclFunctor C hC i)
     (fun f g => objIncl_preserves_pullbacks C hC ht htpres hp hpres hpres_pair he hepres hepres_lift i f g)
 
 set_option maxHeartbeats 1000000 in
@@ -221,7 +221,7 @@ theorem objIncl_regularFunctor {ι : Type u} {D : Directed ι}
     letI : Cat C.Obj := colimitCat C hC
     ∃ (hRA : @RegularCategory (C.A i) (C.catA i)) (hRC : @RegularCategory C.Obj (colimitCat C hC)),
       @RelFunctor.RegularFunctor (C.A i) C.Obj (C.catA i) (colimitCat C hC)
-        (C.objIncl i) (stageInclFunctor C hC i) hRA hRC := by
+        (stageInclFunctor C hC i) hRA hRC := by
   letI : Cat C.Obj := colimitCat C hC
   -- the stage `RegularCategory` (canonical products `hp i`, pullbacks from §1.432).
   letI iT : HasTerminal (C.A i) := ht i
@@ -238,20 +238,19 @@ theorem objIncl_regularFunctor {ι : Type u} {D : Directed ι}
     colimitPreRegular C hC ht htpres hp hpres hpres_pair he hepres hepres_lift hcanon
   have himgpres : ∀ {a b : ι} (hab : D.le a b) {X Y : C.A a} (f : X ⟶ Y),
       IsImage ((C.functF hab).map f)
-        (@Subobject.map _ _ (C.catA a) (C.catA b) (C.F hab) (C.functF hab)
+        (@Subobject.map _ _ (C.catA a) (C.catA b) (C.functF hab)
           (fun {_ _} {φ} hφ => hmono hab φ hφ) _ (@image _ (C.catA a) (hi a) _ _ f)) := by
     intro a b hab X Y f
     letI : HasImages (C.A a) := hi a
     letI : HasBinaryProducts (C.A b) := hp b
     letI : HasEqualizers (C.A b) := he b
     letI : HasPullbacks (C.A b) := ⟨fun p q => products_equalizers_implies_pullbacks p q⟩
-    exact Colim.transitions_preserve_images (C.F hab) (hF := C.functF hab)
+    exact Colim.transitions_preserve_images (C.functF hab)
       (fun {_ _} {φ} hφ => hmono hab φ hφ) (fun {_ _} φ hφ => hcovpres hab φ hφ) f
   letI hImg : @HasImages C.Obj (colimitCat C hC) :=
     Colim.colimitHasImages C hC hi hfaith (fun {_ _} hab {_ _} {φ} hφ => hmono hab φ hφ) himgpres
   letI regC : @RegularCategory C.Obj (colimitCat C hC) := { hPre with toHasImages := hImg }
   refine ⟨regA, regC, ?_⟩
-  letI : @Functor (C.A i) (C.catA i) C.Obj (colimitCat C hC) (C.objIncl i) := stageInclFunctor C hC i
   exact
     { pres_prod := objIncl_preservesBinaryProducts C hC hp hpres hpres_pair i
       pres_pullback :=
