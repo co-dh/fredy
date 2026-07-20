@@ -52,11 +52,11 @@ universe u₁ u₂ v
     `PreservesBinaryProducts`; note the comparison runs `F A + F B → F(A + B)` (the opposite
     direction to the product comparison `F(A × B) → F A × F B`). -/
 def PreservesBinaryCoproducts {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] [HasBinaryCoproducts 𝒞] [HasBinaryCoproducts 𝒟] : Prop :=
+    (F : Functor 𝒞 𝒟) [HasBinaryCoproducts 𝒞] [HasBinaryCoproducts 𝒟] : Prop :=
   ∀ {A B : 𝒞},
-    IsIso (HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-             (hF.map (HasBinaryCoproducts.inr (A := A) (B := B))) :
-             HasBinaryCoproducts.coprod (F A) (F B) ⟶ F (HasBinaryCoproducts.coprod A B))
+    IsIso (HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+             (F.map (HasBinaryCoproducts.inr (A := A) (B := B))) :
+             HasBinaryCoproducts.coprod (F.obj A) (F.obj B) ⟶ F.obj (HasBinaryCoproducts.coprod A B))
 
 end Freyd
 
@@ -74,30 +74,30 @@ variable {𝒜 ℬ ℰ : Type u} [Cat.{u} 𝒜] [Cat.{u} ℬ] [Cat.{u} ℰ]
     `preservesBinaryProducts_comp` (the factor order flips because the coproduct comparison runs the
     opposite way). -/
 theorem preservesBinaryCoproducts_comp [HasBinaryCoproducts 𝒜] [HasBinaryCoproducts ℬ]
-    [HasBinaryCoproducts ℰ] (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    [HasBinaryCoproducts ℰ] (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
     (hpcF : PreservesBinaryCoproducts F) (hpcG : PreservesBinaryCoproducts G) :
-    PreservesBinaryCoproducts (G ∘ F) := by
+    PreservesBinaryCoproducts (compFunctor F G) := by
   intro A B
   -- φF : FA+FB → F(A+B) iso; φG : GFA+GFB → G(FA+FB) iso; composite = φG ≫ G(φF).
-  let φF : HasBinaryCoproducts.coprod (F A) (F B) ⟶ F (HasBinaryCoproducts.coprod A B) :=
-    HasBinaryCoproducts.case (hF.map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      (hF.map (HasBinaryCoproducts.inr (A := A) (B := B)))
-  let φG : HasBinaryCoproducts.coprod (G (F A)) (G (F B)) ⟶ G (HasBinaryCoproducts.coprod (F A) (F B)) :=
-    HasBinaryCoproducts.case (hG.map (HasBinaryCoproducts.inl (A := F A) (B := F B)))
-      (hG.map (HasBinaryCoproducts.inr (A := F A) (B := F B)))
-  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso (F := G) φF (hpcF (A := A) (B := B))
-  have hcomp_iso : IsIso (φG ≫ hG.map φF) := isIso_comp (hpcG (A := F A) (B := F B)) hGφF_iso
+  let φF : HasBinaryCoproducts.coprod (F.obj A) (F.obj B) ⟶ F.obj (HasBinaryCoproducts.coprod A B) :=
+    HasBinaryCoproducts.case (F.map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      (F.map (HasBinaryCoproducts.inr (A := A) (B := B)))
+  let φG : HasBinaryCoproducts.coprod (G.obj (F.obj A)) (G.obj (F.obj B)) ⟶ G.obj (HasBinaryCoproducts.coprod (F.obj A) (F.obj B)) :=
+    HasBinaryCoproducts.case (G.map (HasBinaryCoproducts.inl (A := F.obj A) (B := F.obj B)))
+      (G.map (HasBinaryCoproducts.inr (A := F.obj A) (B := F.obj B)))
+  have hGφF_iso : IsIso (G.map φF) := functor_preserves_iso (F := G) φF (hpcF (A := A) (B := B))
+  have hcomp_iso : IsIso (φG ≫ G.map φF) := isIso_comp (hpcG (A := F.obj A) (B := F.obj B)) hGφF_iso
   -- the `G∘F`-comparison equals `φG ≫ G(φF)`: agree after `inl` and after `inr` (jointly epic).
-  have hinl : HasBinaryCoproducts.inl ≫ (φG ≫ hG.map φF)
-      = (compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inl (A := A) (B := B)) := by
-    rw [← Cat.assoc, HasBinaryCoproducts.case_inl, ← hG.map_comp, HasBinaryCoproducts.case_inl]; rfl
-  have hinr : HasBinaryCoproducts.inr ≫ (φG ≫ hG.map φF)
-      = (compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inr (A := A) (B := B)) := by
-    rw [← Cat.assoc, HasBinaryCoproducts.case_inr, ← hG.map_comp, HasBinaryCoproducts.case_inr]; rfl
+  have hinl : HasBinaryCoproducts.inl ≫ (φG ≫ G.map φF)
+      = (compFunctor F G).map (HasBinaryCoproducts.inl (A := A) (B := B)) := by
+    rw [← Cat.assoc, HasBinaryCoproducts.case_inl, ← G.map_comp, HasBinaryCoproducts.case_inl]; rfl
+  have hinr : HasBinaryCoproducts.inr ≫ (φG ≫ G.map φF)
+      = (compFunctor F G).map (HasBinaryCoproducts.inr (A := A) (B := B)) := by
+    rw [← Cat.assoc, HasBinaryCoproducts.case_inr, ← G.map_comp, HasBinaryCoproducts.case_inr]; rfl
   have hkey : HasBinaryCoproducts.case
-      ((compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inl (A := A) (B := B)))
-      ((compFunctor (F := F) (G := G)).map (HasBinaryCoproducts.inr (A := A) (B := B)))
-      = φG ≫ hG.map φF :=
+      ((compFunctor F G).map (HasBinaryCoproducts.inl (A := A) (B := B)))
+      ((compFunctor F G).map (HasBinaryCoproducts.inr (A := A) (B := B)))
+      = φG ≫ G.map φF :=
     (HasBinaryCoproducts.case_uniq _ _ _ hinl hinr).symm
   rw [hkey]; exact hcomp_iso
 
@@ -118,7 +118,7 @@ variable {ι : Type w} {D : Directed ι} (L : LaxCatSystem.{w, w} ι D) (hL : Co
     Dual of `stageInclFunctorL_preservesProducts`. -/
 theorem stageInclFunctorL_preservesCoproducts (data : LaxCoproductData L) (i : ι) :
     @PreservesBinaryCoproducts (L.A i) (Obj L) (L.catA i) (laxColimCat L hL)
-      (fun x => (⟨i, x⟩ : Obj L)) (stageInclFunctorL L hL i) (data.hcop i)
+      (stageInclFunctorL L hL i) (data.hcop i)
       (laxColimHasBinaryCoproducts L hL data) := by
   letI : Cat (Obj L) := laxColimCat L hL
   letI : HasBinaryCoproducts (Obj L) := laxColimHasBinaryCoproducts L hL data
@@ -177,7 +177,7 @@ theorem terminalSlicePresCoprods :
     letI : HasBinaryCoproducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) :=
       overHasBinaryCoproducts _
     @PreservesBinaryCoproducts S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
-      (terminalSliceObj W) (terminalSliceFunctor W)
+      (terminalSliceFunctor W)
       _ (overHasBinaryCoproducts _) := by
   letI : HasBinaryCoproducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) :=
     overHasBinaryCoproducts _
@@ -209,7 +209,7 @@ theorem uniformStep_preservesBinaryCoproducts :
       laxColimHasBinaryCoproducts (laxOfProjSystem' (cofinalProjSystem (S := S)))
         (coherentProj (cofinalProjSystem (S := S))) (ratLaxCoproductData (cofinalProjSystem (S := S)))
     @PreservesBinaryCoproducts S (uniformTargetTy W) _ (uniformTargetCat W)
-      (uniformStepObj W) (uniformStepFunctor W) _
+      (uniformStepFunctor W) _
       (laxColimHasBinaryCoproducts (laxOfProjSystem' (cofinalProjSystem (S := S)))
         (coherentProj (cofinalProjSystem (S := S))) (ratLaxCoproductData (cofinalProjSystem (S := S)))) := by
   letI : HasBinaryCoproducts (uniformTargetTy W) :=
@@ -221,8 +221,7 @@ theorem uniformStep_preservesBinaryCoproducts :
   intro A B
   exact preservesBinaryCoproducts_comp (𝒜 := S)
     (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
-    (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-    (hF := terminalSliceFunctor W) (hG := stageInclNil W)
+    (F := terminalSliceFunctor W) (G := stageInclNil W)
     (terminalSlicePresCoprods W)
     (stageInclFunctorL_preservesCoproducts (laxOfProjSystem' (cofinalProjSystem (S := S)))
       (coherentProj (cofinalProjSystem (S := S))) (ratLaxCoproductData (cofinalProjSystem (S := S))) W.base)
