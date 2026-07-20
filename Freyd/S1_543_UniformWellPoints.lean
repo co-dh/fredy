@@ -192,8 +192,8 @@ theorem pushTerminalSlice_iso_isIso (A : S) {i : WSList S} (h : (wsDirected S).l
 private theorem projFaithful :
     ∀ {i j : WSList S} (hij : (wsDirected S).le i j)
       {x y : (laxOfProjSystem' (cofinalProjSystem (S := S))).A i} (p q : x ⟶ y),
-      @Functor.map _ _ _ _ _ ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hij) x y p
-        = @Functor.map _ _ _ _ _ ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hij) x y q → p = q :=
+      (laxOfProjSystem' (cofinalProjSystem (S := S))).Fmap hij p
+        = (laxOfProjSystem' (cofinalProjSystem (S := S))).Fmap hij q → p = q :=
   fun {_ _} hij {_ _} p q heq =>
     projStage_faithful (cofinalProjSystem (S := S)) hij (cofinalProjSystem_cover hij) p q heq
 
@@ -201,7 +201,7 @@ private theorem projFaithful :
 private theorem projCons :
     ∀ {i j : WSList S} (hij : (wsDirected S).le i j)
       {x y : (laxOfProjSystem' (cofinalProjSystem (S := S))).A i} (φ : x ⟶ y),
-      IsIso (@Functor.map _ _ _ _ _ ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hij) x y φ) →
+      IsIso ((laxOfProjSystem' (cofinalProjSystem (S := S))).Fmap hij φ) →
         IsIso φ :=
   fun {_ _} hij {_ _} φ hiso =>
     projStage_conservative_full (cofinalProjSystem (S := S)) hij (cofinalProjSystem_cover hij) φ hiso
@@ -210,7 +210,7 @@ private theorem projCons :
     iso), via `stageInclFunctorL_faithful` with `projFaithful`/`projCons`. -/
 theorem stageInclFaithful (i : WSList S) :
     @Faithful ((laxOfProjSystem' (cofinalProjSystem (S := S))).A i) _ (uniformTargetTy W) (uniformTargetCat W)
-      (fun x => (⟨i, x⟩ : uniformTargetTy W)) (stageInclFunctorL _ (coherentProj (cofinalProjSystem (S := S))) i) :=
+      (stageInclFunctorL _ (coherentProj (cofinalProjSystem (S := S))) i) :=
   stageInclFunctorL_faithful (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
     (projFaithful (S := S)) (projCons (S := S)) i
 
@@ -236,7 +236,8 @@ theorem colimitMono_reflects_to_fibre (A : S)
             (@Cat.comp _ (uniformTargetCat W) ⟨U, xE'⟩
               ⟨U, (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)⟩
               ⟨W.base, terminalSliceObj W A⟩
-              (stageInclFunctorL _ (coherentProj (cofinalProjSystem (S := S))) U |>.map g'') j) := by
+              (stageInclL (laxOfProjSystem' (cofinalProjSystem (S := S)))
+                (coherentProj (cofinalProjSystem (S := S))) g'') j) := by
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
   let L := laxOfProjSystem' (cofinalProjSystem (S := S))
   let hL := coherentProj (cofinalProjSystem (S := S))
@@ -269,8 +270,7 @@ theorem colimitMono_reflects_to_fibre (A : S)
     exact hniso (isIso_comp hi_align (isIso_comp h hi_alignInv))
   -- reflect to the FIBRE map `g''` via the faithful embedding.
   obtain ⟨hemb, _hcons⟩ := stageInclFaithful W a.1
-  letI hSF : @Functor _ _ _ (uniformTargetCat W) (fun x => (⟨a.1, x⟩ : uniformTargetTy W)) :=
-    stageInclFunctorL _ hL a.1
+  let hSF := stageInclFunctorL L hL a.1
   -- `Monic g''`: faithful (embedding) reflects monos (`stageInclL g'' = hSF.map g''`).
   have hg''_mono : Monic g'' := by
     intro Z u v huv
@@ -282,7 +282,7 @@ theorem colimitMono_reflects_to_fibre (A : S)
   -- `¬IsIso g''`: a functor preserves iso, so `IsIso g'' ⟹ IsIso (stageInclL g'')`.
   have hg''_niso : ¬ IsIso g'' := by
     intro h
-    exact hniso_stage (@functor_preserves_iso _ _ _ (uniformTargetCat W) _ hSF _ _ g'' h)
+    exact hniso_stage (functor_preserves_iso (F := hSF) g'' h)
   -- `m = alignGerm ⊚ (stageInclL g'' ⊚ alignGermInv)` (= `i ≫ s ≫ j`): `i = alignGerm`,
   -- `s = stageInclL g'' = (stageInclFunctorL).map g''`, `j = alignGermInv`, both flanks iso.
   exact ⟨a.1, a.2.2, L.F ((wsDirected S).trans a.2.1 haU) xE, g'',
