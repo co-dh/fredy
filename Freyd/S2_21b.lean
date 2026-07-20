@@ -48,44 +48,42 @@ open Cat RelFunctor PreLogosHorn.Stalk
 
 /-- A functor preserves isos (cross-universe port of `functor_preserves_iso`). -/
 theorem functor_preserves_iso' {𝒞 : Type u₁} {𝒟 : Type u₂} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
-    (F : 𝒞 → 𝒟) [hF : Functor F] {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : IsIso (hF.map f) := by
+    (F : Functor 𝒞 𝒟) {X Y : 𝒞} (f : X ⟶ Y) (hf : IsIso f) : IsIso (F.map f) := by
   obtain ⟨g, h1, h2⟩ := hf
-  exact ⟨hF.map g, by rw [← hF.map_comp, h1, hF.map_id], by rw [← hF.map_comp, h2, hF.map_id]⟩
+  exact ⟨F.map g, by rw [← F.map_comp, h1, F.map_id], by rw [← F.map_comp, h2, F.map_id]⟩
 
 /-- **Binary-product preservation composes (cross-universe).**  Port of
     `preservesBinaryProducts_comp`. -/
 theorem preservesBinaryProducts_comp' {𝒜 : Type u₁} {ℬ : Type u₂} {ℰ : Type u₃}
     [Cat.{v} 𝒜] [Cat.{v} ℬ] [Cat.{v} ℰ] [HasBinaryProducts 𝒜] [HasBinaryProducts ℬ]
-    [HasBinaryProducts ℰ] (F : 𝒜 → ℬ) (G : ℬ → ℰ) [hF : Functor F] [hG : Functor G]
+    [HasBinaryProducts ℰ] (F : Functor 𝒜 ℬ) (G : Functor ℬ ℰ)
     (hppF : PreservesBinaryProducts F) (hppG : PreservesBinaryProducts G) :
-    @PreservesBinaryProducts 𝒜 ℰ _ _ (G ∘ F) (functorComp hF hG) _ _ := by
+    PreservesBinaryProducts (compFunctor F G) := by
   intro A B
-  let φF : F (prod A B) ⟶ prod (F A) (F B) := pair (hF.map (fst (A := A) (B := B))) (hF.map snd)
-  let φG : G (prod (F A) (F B)) ⟶ prod (G (F A)) (G (F B)) :=
-    pair (hG.map (fst (A := F A) (B := F B))) (hG.map snd)
-  have hGφF_iso : IsIso (hG.map φF) := functor_preserves_iso' G φF (hppF (A := A) (B := B))
-  have hcomp_iso : IsIso (hG.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F A) (B := F B))
-  have hfst : (hG.map φF ≫ φG) ≫ fst = (functorComp hF hG).map (fst (A := A) (B := B)) := by
-    rw [Cat.assoc, fst_pair, ← hG.map_comp, fst_pair]; rfl
-  have hsnd : (hG.map φF ≫ φG) ≫ snd = (functorComp hF hG).map (snd (A := A) (B := B)) := by
-    rw [Cat.assoc, snd_pair, ← hG.map_comp, snd_pair]; rfl
-  have hkey : pair ((functorComp hF hG).map (fst (A := A) (B := B)))
-      ((functorComp hF hG).map snd) = hG.map φF ≫ φG :=
+  let φF : F.obj (prod A B) ⟶ prod (F.obj A) (F.obj B) := pair (F.map (fst (A := A) (B := B))) (F.map snd)
+  let φG : G.obj (prod (F.obj A) (F.obj B)) ⟶ prod (G.obj (F.obj A)) (G.obj (F.obj B)) :=
+    pair (G.map (fst (A := F.obj A) (B := F.obj B))) (G.map snd)
+  have hGφF_iso : IsIso (G.map φF) := functor_preserves_iso' G φF (hppF (A := A) (B := B))
+  have hcomp_iso : IsIso (G.map φF ≫ φG) := isIso_comp hGφF_iso (hppG (A := F.obj A) (B := F.obj B))
+  have hfst : (G.map φF ≫ φG) ≫ fst = (compFunctor F G).map (fst (A := A) (B := B)) := by
+    rw [Cat.assoc, fst_pair, ← G.map_comp, fst_pair]; rfl
+  have hsnd : (G.map φF ≫ φG) ≫ snd = (compFunctor F G).map (snd (A := A) (B := B)) := by
+    rw [Cat.assoc, snd_pair, ← G.map_comp, snd_pair]; rfl
+  have hkey : pair ((compFunctor F G).map (fst (A := A) (B := B)))
+      ((compFunctor F G).map snd) = G.map φF ≫ φG :=
     (pair_uniq _ _ _ hfst hsnd).symm
   rw [hkey]; exact hcomp_iso
 
-/-- **`RegularFunctor` composes (cross-universe).**  Port of `regularFunctor_comp`.  The composite
-    functor instance is supplied explicitly (`functorComp`), since `S1_18`'s `compFunctor` instance
-    is fixed to a single object universe and the §2.218 use crosses universes (`Ā : Type u` →
-    `Set^I : Type (u+1)`). -/
+/-- **`RegularFunctor` composes (cross-universe).**  Cross-universe port of `regularFunctor_comp`
+    (which is single object universe); the §2.218 use crosses universes (`Ā : Type u` →
+    `Set^I : Type (u+1)`), and the bundled `compFunctor` is itself cross-universe. -/
 theorem regularFunctor_comp' {C : Type u₁} {D : Type u₂} {E : Type u₃}
     [Cat.{v} C] [Cat.{v} D] [Cat.{v} E]
     [RegularCategory C] [RegularCategory D] [RegularCategory E]
-    {F : C → D} {G : D → E} [hF : Functor F] [hG : Functor G]
+    {F : Functor C D} {G : Functor D E}
     (hrF : RegularFunctor F) (hrG : RegularFunctor G) :
-    @RegularFunctor C E _ _ (G ∘ F) (functorComp hF hG) _ _ := by
-  letI : Functor (G ∘ F) := functorComp hF hG
-  have pm : @PreservesMono C _ E _ (G ∘ F) (functorComp hF hG) :=
+    RegularFunctor (compFunctor F G) := by
+  have pm : PreservesMono (compFunctor F G) :=
     fun hm => hrG.pres_mono (hrF.pres_mono hm)
   refine
     { pres_prod := preservesBinaryProducts_comp' F G hrF.pres_prod hrG.pres_prod
@@ -94,7 +92,7 @@ theorem regularFunctor_comp' {C : Type u₁} {D : Type u₂} {E : Type u₃}
       pres_mono := pm
       pres_image := ?_ }
   intro A B f I hI
-  rw [show (Subobject.map (G ∘ F) pm I)
+  rw [show (Subobject.map (compFunctor F G) pm I)
         = Subobject.map G hrG.pres_mono (Subobject.map F hrF.pres_mono I) from rfl]
   exact hrG.pres_image _ _ (hrF.pres_image f I hI)
 
@@ -116,18 +114,17 @@ theorem tabular_repr_in_power_of_sets {𝒜 : Type u}
   letI : Cat.{u} (Alg.MapObj 𝒜) := Alg.mapCat
   letI : RegularCategory (Alg.MapObj 𝒜) := Alg.mapRegularCategory
   -- (2) capitalize: faithful regular iso-reflecting `F : Map 𝒜 → Ā`, `Ā` capital positive.
-  obtain ⟨Ā, hCĀ, hDĀ, hcap, F, hFf, hfaithF, hRegF, hreflF⟩ :=
+  obtain ⟨Ā, hCĀ, hDĀ, hcap, F, hfaithF, hRegF, hreflF⟩ :=
     capitalization_lemma_regular_positive_strong (Alg.MapObj 𝒜)
   letI : Cat.{u} Ā := hCĀ
   letI : DisjointBinaryCoproduct Ā := hDĀ
-  letI : Functor F := hFf
   -- (3) the stalk family of `Ā` (regular, reflects isos via the family's collective conservativity).
-  have hRegTstar : RegularFunctor (Tstar (𝒞 := Ā)) := Tstar_regularFunctor hcap
+  have hRegTstar : RegularFunctor (TstarFunctor (𝒞 := Ā)) := Tstar_regularFunctor hcap
   -- (4) the composite `G = Tstar ∘ F : Map 𝒜 → Set^I` is regular (cross-universe) and reflects isos.
   have hRegG := regularFunctor_comp' hRegF hRegTstar
   have hGfaithful : (hRegG.relAllegoryHom).Faithful :=
     hRegG.relAllegoryHom_faithful_of_reflects
-      (fun {_ _} f hiso => hreflF f (Tstar_reflects_iso hcap (hFf.map f) hiso))
+      (fun {_ _} f hiso => hreflF f (Tstar_reflects_iso hcap (F.map f) hiso))
       (fun {_ _} e he => power_cover_splits e he)
   -- (5)+(6) bridge through `Rel(Map 𝒜)` and compose with the faithful `Rel(G)`.
   exact ⟨StalkIndex Ā, (bridgeFunctor 𝒜).comp hRegG.relAllegoryHom,
