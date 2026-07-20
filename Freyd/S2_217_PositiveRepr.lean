@@ -359,12 +359,11 @@ variable {𝒞 : Type u} [Cat.{u} 𝒞] [PreLogos 𝒞]
 /-- **§2.217 — the representation `C → Map(Mat(Rel C))` as a `Functor`** (small case, the one
     the §2.218 pipeline uses: all hom universes coincide).  Its `map` is `embed217`. -/
 noncomputable def embed217Functor :
-    @Functor 𝒞 _ (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞)))
-      embed217Obj :=
+    @Functor 𝒞 (MapObj (MatObj (RelObj 𝒞))) _ (mapCat (𝒜 := MatObj (RelObj 𝒞))) :=
   -- explicit `@Functor.mk`, not `where`: structure-instance notation re-synthesizes the target
   -- `Cat` argument, and — `MapObj A` being an abbrev for `A` — lands on `instCatMatObj`
   -- instead of `mapCat` (the repo-standard `mapCat`-pinning gotcha).
-  @Functor.mk 𝒞 _ (MapObj (MatObj (RelObj 𝒞))) (mapCat (𝒜 := MatObj (RelObj 𝒞))) embed217Obj
+  @Functor.mk 𝒞 (MapObj (MatObj (RelObj 𝒞))) _ (mapCat (𝒜 := MatObj (RelObj 𝒞))) embed217Obj
     (fun {_ _} f => embed217 f) embed217_id (fun f g => embed217_comp f g)
 
 /-- **§2.217 HEADLINE — "A pre-logos may be faithfully represented in a positive
@@ -376,7 +375,10 @@ theorem prelogos_repr_in_positive_prelogos :
     Nonempty (@PositivePreLogos (MapObj (MatObj (RelObj 𝒞)))
         (mapCat (𝒜 := MatObj (RelObj 𝒞)))) ∧
     ∀ {a b : 𝒞} {f g : a ⟶ b},
-      (embed217Functor (𝒞 := 𝒞)).map f = (embed217Functor (𝒞 := 𝒞)).map g → f = g :=
+      @Functor.map 𝒞 (MapObj (MatObj (RelObj 𝒞))) _
+          (mapCat (𝒜 := MatObj (RelObj 𝒞))) (embed217Functor (𝒞 := 𝒞)) a b f =
+        @Functor.map 𝒞 (MapObj (MatObj (RelObj 𝒞))) _
+          (mapCat (𝒜 := MatObj (RelObj 𝒞))) (embed217Functor (𝒞 := 𝒞)) a b g → f = g :=
   ⟨⟨s217PreLogos⟩, fun h => embed217_faithful h⟩
 
 end S217HeadlineSmall
