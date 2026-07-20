@@ -387,11 +387,11 @@ noncomputable def ratCapDisjointBinaryCoproduct [Nonempty ι] (P : ProjSystem ι
   -- transition mono/cover preservation (shared with `himgpres`), sourced as in `ratCapHasImages`.
   have hmono : ∀ {i j : ι} (hij : D.le i j),
       @PreservesMono _ ((laxOfProjSystem' P).catA i) _ ((laxOfProjSystem' P).catA j)
-        ((laxOfProjSystem' P).F hij) ((laxOfProjSystem' P).functF hij) :=
+        ((laxOfProjSystem' P).functF hij) :=
     fun {i j} hij {X Y} {f} hf => projStage_preservesMono P hij f hf
   have hcovpres : ∀ {i j : ι} (hij : D.le i j),
       @PreservesCovers _ _ ((laxOfProjSystem' P).catA i) ((laxOfProjSystem' P).catA j)
-        ((laxOfProjSystem' P).F hij) ((laxOfProjSystem' P).functF hij) :=
+        ((laxOfProjSystem' P).functF hij) :=
     fun {i j} hij {A B} f hf => projStage_preservesCover P hij f hf
   -- RegularCategory (ratCapCat P) = pre-regular (cover-projections) + images.
   letI preReg : @PreRegularCategory (Obj (laxOfProjSystem' P)) (ratCat P) :=
@@ -420,8 +420,8 @@ noncomputable def ratCapDisjointBinaryCoproduct [Nonempty ι] (P : ProjSystem ι
     (fun {i j} hij {X Y} f =>
       letI : HasImages ((laxOfProjSystem' P).A i) := overHasImages (P.pr i)
       letI : HasPullbacks ((laxOfProjSystem' P).A j) := overHasPullbacks (P.pr j)
-      transitions_preserve_images ((laxOfProjSystem' P).F hij)
-        (hF := (laxOfProjSystem' P).functF hij) (hmono hij) (hcovpres hij) f)
+      transitions_preserve_images ((laxOfProjSystem' P).functF hij)
+        (hmono hij) (hcovpres hij) f)
 
 end Assembly
 
