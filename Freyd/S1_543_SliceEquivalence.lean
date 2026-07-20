@@ -405,15 +405,16 @@ def pairOnUSliceMap [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U} (m : P
     the common base `∏U`); morphisms `↦ pairOnUSliceMap` (the underlying arrow `m.g`, the slice
     triangle from the bridge).  Functoriality is `OverHom.ext` on underlying arrows (`id ↦ id`,
     `m.g₁ ≫ m.g₂ ↦ (m₁ ≫ m₂).g`). -/
-instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
-    Functor (fun X : PairOnU U => pairOnUSlice X) where
-  map {X Y} (m : PairHom X.obj Y.obj) := pairOnUSliceMap m
+def pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
+    Functor (PairOnU U) (Over (listProd U)) where
+  obj X := pairOnUSlice X
+  map (m : PairHom _ _) := pairOnUSliceMap m
   map_id X := OverHom.ext rfl
   map_comp m n := OverHom.ext rfl
 
 @[simp] theorem pairOnUToSlice_map_f [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
     (m : PairHom X.obj Y.obj) :
-    (pairOnUToSlice.map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).f = m.g := rfl
+    ((pairOnUToSlice (U := U)).map m : OverHom (pairOnUSlice X) (pairOnUSlice Y)).f = m.g := rfl
 
 /-! ### The functor `Φ` is an `EquivalenceFunctor` (fully faithful + essentially surjective)
 
@@ -427,7 +428,7 @@ instance pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
     its underlying `𝒞`-arrow `m.g`, which is `Φ.map`'s `.f`; equality of `.f` gives equality of `m`
     by `PairHom.ext`. -/
 theorem pairOnUToSlice_embedding [HasPullbacks 𝒞] (U : List 𝒞) :
-    Embedding (fun X : PairOnU U => pairOnUSlice X) := by
+    Embedding (pairOnUToSlice (U := U)) := by
   intro X Y m₁ m₂ h
   exact PairHom.ext (congrArg OverHom.f h)
 
@@ -465,7 +466,7 @@ theorem pairOnUSlice_triangle_to_bridge [HasPullbacks 𝒞] {U : List 𝒞} {X Y
     square `pairOnUSlice_triangle_to_bridge`; its underlying `.g` is `φ.f`, so `Φ.map` of it is `φ`
     (`OverHom.ext`). -/
 theorem pairOnUToSlice_full [HasPullbacks 𝒞] (U : List 𝒞) :
-    Full (fun X : PairOnU U => pairOnUSlice X) := by
+    Full (pairOnUToSlice (U := U)) := by
   intro X Y φ
   refine ⟨pairHomOfSlice (pairOnU_targets_sub X Y) ⟨φ.f, ?_⟩, OverHom.ext rfl⟩
   show φ.f ≫ (pairSliceObj Y.obj).hom
@@ -594,7 +595,7 @@ theorem pairOnUSlice_padPairObj [HasPullbacks 𝒞] (U : List 𝒞) (hws : ∀ T
     EQUAL to it (`pairOnUSlice_padPairObj`), so the witnessing iso is the identity. -/
 theorem pairOnUToSlice_representativeImage [HasPullbacks 𝒞] (U : List 𝒞)
     (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup) :
-    HasRepresentativeImage (fun X : PairOnU U => pairOnUSlice X) := by
+    HasRepresentativeImage (pairOnUToSlice (U := U)) := by
   intro Z
   have heq : pairOnUSlice (padPairObj U hws hnd Z.hom) = Z := by
     rw [pairOnUSlice_padPairObj]
@@ -608,7 +609,7 @@ theorem pairOnUToSlice_representativeImage [HasPullbacks 𝒞] (U : List 𝒞)
     Sorry-free bridge `pairHomToSlice`/`pairHomOfSlice` plus the padding `padPairObj`. -/
 theorem pairOnUToSlice_equivalence [HasPullbacks 𝒞] (U : List 𝒞)
     (hws : ∀ T ∈ U, WellSupported T) (hnd : U.Nodup) :
-    EquivalenceFunctor (fun X : PairOnU U => pairOnUSlice X) :=
+    EquivalenceFunctor (pairOnUToSlice (U := U)) :=
   ⟨pairOnUToSlice_embedding U, pairOnUToSlice_full U,
    pairOnUToSlice_representativeImage U hws hnd⟩
 
