@@ -84,7 +84,7 @@ noncomputable def pushFibre (A : S) {U U' : WSList S} (hbU : (wsDirected S).le W
     (hUU' : (wsDirected S).le U U')
     {xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U} (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)) :
     (laxOfProjSystem' (cofinalProjSystem (S := S))).F hUU' xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hUU' ((laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W A)) :=
-  @Functor.map _ _ _ _ _ ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hUU') _ _ g''
+  ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hUU').map g''
 
 /-- **The genuine §1.546 density CORE.**  For every well-supported `A`, every stage `U ≥ base`, and
     every PROPER fibre mono `g''` into the pushforward of `terminalSliceObj A` at `U`, there is a
@@ -128,7 +128,7 @@ def RicherSliceMiss (W : WSCover S) : Prop :=
     cofinal projection-cover, exactly as `colimitMono_reflects_to_fibre` does). -/
 private theorem L_cons {i j : WSList S} (hij : (wsDirected S).le i j)
     {x y : (laxOfProjSystem' (cofinalProjSystem (S := S))).A i} (φ : x ⟶ y) :
-    IsIso (@Functor.map _ _ _ _ _ ((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hij) x y φ) →
+    IsIso (((laxOfProjSystem' (cofinalProjSystem (S := S))).functF hij).map φ) →
       IsIso φ :=
   fun hiso => projStage_conservative_full (cofinalProjSystem (S := S)) hij
     (cofinalProjSystem_cover hij) φ hiso
@@ -175,66 +175,66 @@ theorem stageInclL_g''_factor (A : S) {U U' : WSList S} (hbU : (wsDirected S).le
   have hpg_eq :
       pushHom L xE' yA ((wsDirected S).refl U) ((wsDirected S).refl U) hUU' f₀
         = (transApp L ((wsDirected S).refl U) hUU' xE'
-              ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE'))
+              ≫ (L.functF hUU').map (reflApp L xE'))
             ≫ pushFibre W A hbU hUU' g''
-            ≫ (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+            ≫ ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
               ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA)) := by
     show transApp L ((wsDirected S).refl U) hUU' xE'
-          ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ f₀
+          ≫ (L.functF hUU').map f₀
           ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA) = _
     show transApp L ((wsDirected S).refl U) hUU' xE'
-          ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE' ≫ g'' ≫ isoInv (reflApp_isIso L yA))
+          ≫ (L.functF hUU').map (reflApp L xE' ≫ g'' ≫ isoInv (reflApp_isIso L yA))
           ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA) = _
-    rw [@Functor.map_comp _ _ _ _ _ (L.functF hUU') _ _ _ (reflApp L xE') (g'' ≫ isoInv (reflApp_isIso L yA)),
-        @Functor.map_comp _ _ _ _ _ (L.functF hUU') _ _ _ g'' (isoInv (reflApp_isIso L yA))]
+    rw [(L.functF hUU').map_comp (reflApp L xE') (g'' ≫ isoInv (reflApp_isIso L yA)),
+        (L.functF hUU').map_comp g'' (isoInv (reflApp_isIso L yA))]
     show _ = _
-    simp only [Cat.assoc, pushFibre]
+    simp only [Cat.assoc, pushFibre, L]
   -- the two flanks are stage isos.
   have hiLeft : IsIso (transApp L ((wsDirected S).refl U) hUU' xE'
-              ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE')) :=
+              ≫ (L.functF hUU').map (reflApp L xE')) :=
     isIso_comp (transApp_isIso L ((wsDirected S).refl U) hUU' xE')
-      (@functor_preserves_iso _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE') (reflApp_isIso L xE'))
-  have hiRight : IsIso (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+      (functor_preserves_iso (F := L.functF hUU') (reflApp L xE') (reflApp_isIso L xE'))
+  have hiRight : IsIso ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
               ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA)) :=
     isIso_comp
-      (@functor_preserves_iso _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+      (functor_preserves_iso (F := L.functF hUU') (isoInv (reflApp_isIso L yA))
         ⟨reflApp L yA, inv_isoInv_comp _, isoInv_comp _⟩)
       ⟨transApp L ((wsDirected S).refl U) hUU' yA, inv_isoInv_comp _, isoInv_comp _⟩
   -- name the colimit-level flanks.
   refine ⟨alignGerm L hL xE' ((wsDirected S).trans ((wsDirected S).refl U) hUU')
             ≫ stageInclL L hL (transApp L ((wsDirected S).refl U) hUU' xE'
-              ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE')),
-          stageInclL L hL (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+              ≫ (L.functF hUU').map (reflApp L xE')),
+          stageInclL L hL ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
               ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA))
             ≫ alignGermInv L hL yA ((wsDirected S).trans ((wsDirected S).refl U) hUU'),
           ?_, ?_, ?_⟩
-  · have h := functor_preserves_iso (F := fun x => (⟨U', x⟩ : Obj L)) (h := stageInclFunctorL L hL U')
+  · have h := functor_preserves_iso (F := stageInclFunctorL L hL U')
       (transApp L ((wsDirected S).refl U) hUU' xE'
-        ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE')) hiLeft
+        ≫ (L.functF hUU').map (reflApp L xE')) hiLeft
     exact isIso_comp (alignGerm_isIso L hL xE' _) h
-  · have h := functor_preserves_iso (F := fun x => (⟨U', x⟩ : Obj L)) (h := stageInclFunctorL L hL U')
-      (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+  · have h := functor_preserves_iso (F := stageInclFunctorL L hL U')
+      ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
         ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA)) hiRight
     exact isIso_comp h (alignGermInv_isIso L hL yA _)
   · -- `stageInclL g'' = hfac RHS`, and the middle `stageInclL pg` distributes by `stageInclL_comp`.
     show homInclL L hL xE' yA ⟨U, (wsDirected S).refl U, (wsDirected S).refl U⟩ f₀ = _
     rw [hfac, hpg_eq, stageInclL_comp L hL
           (transApp L ((wsDirected S).refl U) hUU' xE'
-            ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE'))
+            ≫ (L.functF hUU').map (reflApp L xE'))
           (pushFibre W A hbU hUU' g''
-            ≫ (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+            ≫ ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
               ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA))),
         stageInclL_comp L hL (pushFibre W A hbU hUU' g'')
-          (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+          ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
             ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA))]
     -- both sides are now an associated composite of the same five colimit arrows (`compL = ≫`).
     rw [show @compL _ _ L hL ⟨U, xE'⟩ _ ⟨U, yA⟩
             (alignGerm L hL xE' ((wsDirected S).trans ((wsDirected S).refl U) hUU'))
             (@compL _ _ L hL _ _ ⟨U, yA⟩
               (@compL _ _ L hL _ _ _ (stageInclL L hL (transApp L ((wsDirected S).refl U) hUU' xE'
-                  ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE')))
+                  ≫ (L.functF hUU').map (reflApp L xE')))
                 (@compL _ _ L hL _ _ _ (stageInclL L hL (pushFibre W A hbU hUU' g''))
-                  (stageInclL L hL (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+                  (stageInclL L hL ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
                     ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA)))))
               (alignGermInv L hL yA ((wsDirected S).trans ((wsDirected S).refl U) hUU')))
           = @Cat.comp _ (laxColimCat L hL) _ _ _
@@ -242,9 +242,9 @@ theorem stageInclL_g''_factor (A : S) {U U' : WSList S} (hbU : (wsDirected S).le
               (@Cat.comp _ (laxColimCat L hL) _ _ ⟨U, yA⟩
                 (@Cat.comp _ (laxColimCat L hL) _ _ _
                   (stageInclL L hL (transApp L ((wsDirected S).refl U) hUU' xE'
-                    ≫ @Functor.map _ _ _ _ _ (L.functF hUU') _ _ (reflApp L xE')))
+                    ≫ (L.functF hUU').map (reflApp L xE')))
                   (@Cat.comp _ (laxColimCat L hL) _ _ _ (stageInclL L hL (pushFibre W A hbU hUU' g''))
-                    (stageInclL L hL (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ (isoInv (reflApp_isIso L yA))
+                    (stageInclL L hL ((L.functF hUU').map (isoInv (reflApp_isIso L yA))
                       ≫ isoInv (transApp_isIso L ((wsDirected S).refl U) hUU' yA)))))
                 (alignGermInv L hL yA ((wsDirected S).trans ((wsDirected S).refl U) hUU'))) from rfl]
     simp only [Cat.assoc]
@@ -491,7 +491,7 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
   -- ===== (b) the §1.546 colimit point `x'` (Sorry-free) =====
   let cod' : OverHom (sliceEmbedObj (prod A P) A)
       (baseChangeObj (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))) :=
-    bcSliceIso A P ⊚ (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso)
+    bcSliceIso A P ⊚ (baseChangeFunctor (snd : prod A P ⟶ P)).map pIso
   have hcodEq : L.F hUU' (L.F hbU (terminalSliceObj W A))
       = baseChangeObj (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A)) := by
     show baseChangeObj (tSelectProj Prod.snd U'.1 U.1 hUU') (L.F hbU (terminalSliceObj W A)) = _
@@ -625,12 +625,12 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
   -- ── (ii) the N-image of `pushFibre g''`, a PROPER mono into `sliceEmbedObj (∏N) A` via `Θ⁻¹`. ──
   -- N-image of `pushFibre = Functor.map (functF hUU') g''`.
   let pfN : L.F hUN' (L.F hUU' xE') ⟶ L.F hUN' (L.F hUU' (L.F hbU (terminalSliceObj W A))) :=
-    @Functor.map _ _ _ _ _ (L.functF hUN') _ _ (pushFibre W A hbU hUU' g'')
+    (L.functF hUN').map (pushFibre W A hbU hUU' g'')
   let m_N : OverHom (L.F hUN' (L.F hUU' xE')) (sliceEmbedObj (listProd (N.1.map Prod.snd)) A) :=
     pfN ⊚ isoInv hΘiso
   have hpfN_mono : Monic pfN :=
     projStage_preservesMono (cofinalProjSystem (S := S)) hUN'
-      (@Functor.map _ _ _ _ _ (L.functF hUU') _ _ g'')
+      ((L.functF hUU').map g'')
       (projStage_preservesMono (cofinalProjSystem (S := S)) hUU' g'' hmono)
   have hΘinv_iso : IsIso (isoInv hΘiso) := ⟨Θ, inv_isoInv_comp hΘiso, isoInv_comp hΘiso⟩
   have hm_N_mono : @Monic (Over (listProd (N.1.map Prod.snd))) _ _ _ m_N :=
@@ -815,9 +815,9 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
   let dStep2ψ : OverHom (baseChangeObj ψ (baseChangeObj ((snd : prod A PN ⟶ PN) ≫
         tSelectProj Prod.snd (N.1.erase aT) U.1 hUe) xE'))
       (baseChangeObj ψ (baseChangeObj (snd : prod A PN ⟶ PN) Dbar)) :=
-    @Functor.map _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2
+    (baseChangeFunctor ψ).map dStep2
   have hdStep2ψ_iso : @IsIso (Over (listProd (N.1.map Prod.snd))) _ _ _ dStep2ψ :=
-    @functor_preserves_iso _ _ _ _ _ (baseChangeFunctor ψ) _ _ dStep2 hdStep2_iso
+    functor_preserves_iso (F := baseChangeFunctor ψ) dStep2 hdStep2_iso
   -- `isoInv dStep1 : domain(m_N) ⟶ baseChangeObj (selectProj N U' ≫ snd) xE'` (forward into the
   -- descent), with its iso witness assembled from `isoInv_comp`/`inv_isoInv_comp`.  `dStep1`'s
   -- codomain is the `∘`-composed base-change form, which is defeq to `L.F hUN' (L.F hUU' xE')`.
@@ -936,7 +936,8 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
           show baseChangeObj (tSelectProj Prod.snd U'.val U.val hUU') xE' = baseChangeObj snd xE'
           rw [hsp]
         have hcodObj : L.F ((wsDirected S).trans b.2.2 hbN) (L.F hUU' xE')
-            = (baseChangeObj (tSelectProj Prod.snd N.val U'.val hUN') ∘ baseChangeObj snd) xE' := by
+            = (compFunctor (baseChangeFunctor snd)
+                (baseChangeFunctor (tSelectProj Prod.snd N.val U'.val hUN'))).obj xE' := by
           show baseChangeObj (tSelectProj Prod.snd N.val U'.val ((wsDirected S).trans b.2.2 hbN))
               (L.F hUU' xE')
             = baseChangeObj (tSelectProj Prod.snd N.val U'.val hUN') (baseChangeObj snd xE')
@@ -1267,11 +1268,11 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
               rw [Cat.assoc, ← Cat.assoc (eqToHom hcodEq.symm).f, hee, Cat.id_comp]
               -- `cod'.f = bcSliceIso.f ≫ (baseChangeMap snd pIso).f`.
               show ((bcSliceIso A P).f
-                  ≫ (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso).f)
+                  ≫ ((baseChangeFunctor (snd : prod A P ⟶ P)).map pIso).f)
                   ≫ (_pb (snd : prod A P ⟶ P) (L.F hbU (terminalSliceObj W A))).cone.π₁
                     ≫ pInv.f ≫ (fst : prod A P ⟶ A) = _
               rw [Cat.assoc,
-                  show (@Functor.map _ _ _ _ _ (baseChangeFunctor (snd : prod A P ⟶ P)) _ _ pIso)
+                  show ((baseChangeFunctor (snd : prod A P ⟶ P)).map pIso)
                       = baseChangeMap (snd : prod A P ⟶ P) pIso from rfl,
                   ← Cat.assoc (baseChangeMap (snd : prod A P ⟶ P) pIso).f,
                   baseChangeMap_f_π₁ (snd : prod A P ⟶ P) pIso]
