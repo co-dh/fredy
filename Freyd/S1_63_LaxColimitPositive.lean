@@ -65,11 +65,10 @@ noncomputable def laxColimPreLogos (L : LaxCatSystem.{w, w} ι D) (hL : Coherent
     (coprData : LaxCoproductData L)
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p = (L.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ ((L.functF hij).map f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory (Obj L) (laxColimCat L hL)]
     [hUn : @HasSubobjectUnions (Obj L) (laxColimCat L hL) hReg.toHasImages] :
@@ -122,11 +121,10 @@ noncomputable def laxColimPositive (L : LaxCatSystem.{w, w} ι D) (hL : Coherent
           ∧ (L.functF hij).map (hdisj i).toHasBinaryCoproducts.inr ≫ r = q)
     (hi : ∀ i, @HasImages (L.A i) (L.catA i))
     (hfaith : ∀ {i j : ι} (hij : D.le i j) {x y : L.A i} (p q : x ⟶ y),
-        @Functor.map _ _ _ _ _ (L.functF hij) x y p
-          = @Functor.map _ _ _ _ _ (L.functF hij) x y q → p = q)
+        (L.functF hij).map p = (L.functF hij).map q → p = q)
     (himgpres : ∀ {i j : ι} (hij : D.le i j) {X Y : L.A i} (f : X ⟶ Y),
-        @IsImage (L.A j) (L.catA j) _ _ (@Functor.map _ _ _ _ _ (L.functF hij) X Y f)
-          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.F hij) (L.functF hij) (hmono hij) _
+        @IsImage (L.A j) (L.catA j) _ _ ((L.functF hij).map f)
+          (@Subobject.map _ _ (L.catA i) (L.catA j) (L.functF hij) (hmono hij) _
             (@image _ (L.catA i) (hi i) _ _ f)))
     [hReg : @RegularCategory (Obj L) (laxColimCat L hL)]
     [hUn : @HasSubobjectUnions (Obj L) (laxColimCat L hL) hReg.toHasImages] :
