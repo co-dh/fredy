@@ -158,10 +158,11 @@ def terminalSliceMap {X Y : S} (f : X ⟶ Y) :
 
 /-- The base embedding `S → S/1` is a functor (laws transport via `OverHom.ext` to the underlying
     `S`-arrow equalities, which hold by the source's `Functor`/`Cat` laws). -/
-instance terminalSliceFunctor :
-    @Functor S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (terminalSliceObj W) where
-  map {_ _} f := terminalSliceMap W f
+def terminalSliceFunctor :
+    @Functor S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) where
+  obj := terminalSliceObj W
+  map f := terminalSliceMap W f
   map_id _ := OverHom.ext rfl
   map_comp {_ _ _} _ _ := OverHom.ext rfl
 
@@ -170,7 +171,7 @@ instance terminalSliceFunctor :
 theorem terminalSliceFaithful :
     @Faithful S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
       (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-      (terminalSliceObj W) (terminalSliceFunctor W) := by
+      (terminalSliceFunctor W) := by
   refine ⟨?_, ?_⟩
   · -- embedding: the underlying arrow of `terminalSliceMap f` IS `f`.
     intro X Y f g h
@@ -189,23 +190,17 @@ def uniformStepObj (X : S) : uniformTargetTy W :=
     `⟨W.base, ·⟩`.  (`stageInclFunctorL` of RatCapHcanon.lean, instantiated at the §1.547 system and
     stage `W.base`.) -/
 noncomputable def stageInclNil :
-    @Functor (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-      (uniformTargetTy W) (uniformTargetCat W)
-      (fun x => (⟨W.base, x⟩ : uniformTargetTy W)) :=
+    @Functor (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetTy W)
+      (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetCat W) :=
   stageInclFunctorL (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
     W.base
 
 /-- **The successor functor `step : S → ratCapCat P` is a `Functor`** — the composite
     `stageInclNil ∘ terminalSliceObj` (`compFunctor`).  `uniformStepObj = stageInclNil.obj ∘
     terminalSliceObj` definitionally, so this IS its functoriality. -/
-noncomputable instance uniformStepFunctor :
-    @Functor S _ (uniformTargetTy W) (uniformTargetCat W) (uniformStepObj W) :=
-  @compFunctor S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-    (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-    (uniformTargetTy W) (uniformTargetCat W)
-    (terminalSliceObj W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-    (terminalSliceFunctor W) (stageInclNil W)
+noncomputable def uniformStepFunctor :
+    @Functor S (uniformTargetTy W) _ (uniformTargetCat W) :=
+  compFunctor (terminalSliceFunctor W) (stageInclNil W)
 
 /-! ### Base-embedding (`terminalSliceObj : S → Over (chain base)`) finite-limit preservation
 
@@ -223,7 +218,7 @@ noncomputable local instance : HasEqualizers S := products_pullbacks_implies_equ
 theorem terminalSlicePresTerminal :
     letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasTerminal _
     @PreservesTerminal S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
-      (terminalSliceObj W) (terminalSliceFunctor W)
+      (terminalSliceFunctor W)
       PreRegularCategory.toHasTerminal (overHasTerminal _) := by
   intro X f g
   exact OverHom.ext (term_uniq f.f g.f)
@@ -234,7 +229,7 @@ theorem terminalSlicePresTerminal :
 theorem terminalSlicePresProds :
     letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasBinaryProducts _
     @PreservesBinaryProducts S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
-      (terminalSliceObj W) (terminalSliceFunctor W)
+      (terminalSliceFunctor W)
       PreRegularCategory.toHasBinaryProducts (overHasBinaryProducts _) := by
   letI : HasBinaryProducts (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasBinaryProducts _
   intro A B
@@ -256,7 +251,7 @@ theorem terminalSlicePresProds :
 theorem terminalSlicePresEqs :
     letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
     @PreservesEqualizers S (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) _ _
-      (terminalSliceObj W) (terminalSliceFunctor W)
+      (terminalSliceFunctor W)
       products_pullbacks_implies_equalizers (overHasEqualizers _) := by
   letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
   letI : HasEqualizers S := products_pullbacks_implies_equalizers
@@ -339,7 +334,7 @@ theorem stageInclNilPresTerminal :
     letI : Nonempty (WSList S) := ⟨W.base⟩
     letI : HasTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasTerminal _
     @PreservesTerminal (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetTy W) _
-      (uniformTargetCat W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W)) (stageInclNil W)
+      (uniformTargetCat W) (stageInclNil W)
       (overHasTerminal _)
       (laxColimHasTerminal (laxOfProjSystem' (cofinalProjSystem (S := S))) (coherentProj (cofinalProjSystem (S := S)))
         (ratLaxTerminalData (cofinalProjSystem (S := S)))) := by
@@ -352,11 +347,8 @@ theorem stageInclNilPresTerminal :
     `terminalSliceFaithful` and the faithful lax stage-`[]` inclusion `stageInclNil`. -/
 theorem uniformStepFaithful :
     @Faithful S _ (uniformTargetTy W) (uniformTargetCat W)
-      (uniformStepObj W) (uniformStepFunctor W) :=
-  @faithful_comp S _ (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd)))
-    (overCat (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (uniformTargetTy W) (uniformTargetCat W)
-    (terminalSliceObj W) (fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-    (terminalSliceFunctor W) (stageInclNil W)
+      (uniformStepFunctor W) :=
+  faithful_comp
     (terminalSliceFaithful W)
     (stageInclFunctorL_faithful (laxOfProjSystem' (cofinalProjSystem (S := S)))
       (coherentProj (cofinalProjSystem (S := S)))
@@ -395,8 +387,7 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
     intro X f g
     exact preservesTerminal_uniq_comp (𝒜 := S)
       (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
-      (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-      (hF := terminalSliceFunctor W) (hG := stageInclNil W)
+      (F := terminalSliceFunctor W) (G := stageInclNil W)
       (terminalSlicePresTerminal W) (stageInclNilPresTerminal W)
       (fun {a b} ψ hψ =>
         stageInclFunctorL_preservesMono (laxOfProjSystem' (cofinalProjSystem (S := S)))
@@ -421,8 +412,7 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
     intro A B
     exact preservesBinaryProducts_comp (𝒜 := S)
       (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
-      (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-      (hF := terminalSliceFunctor W) (hG := stageInclNil W)
+      (F := terminalSliceFunctor W) (G := stageInclNil W)
       (terminalSlicePresProds W)
       (stageInclFunctorL_preservesProducts (laxOfProjSystem' (cofinalProjSystem (S := S)))
         (coherentProj (cofinalProjSystem (S := S))) (ratLaxProductData (cofinalProjSystem (S := S))) W.base)
@@ -433,17 +423,16 @@ noncomputable def uniformStep (W : WSCover S) : CapStep S where
         (ratLaxEqualizerData (cofinalProjSystem (S := S)))
     letI : HasEqualizers (Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) := overHasEqualizers _
     have hcomp : @PreservesEqualizers S (uniformTargetTy W) _ (uniformTargetCat W)
-        (uniformStepObj W) (uniformStepFunctor W) _ heCol :=
+        (uniformStepFunctor W) _ heCol :=
       preservesEqualizers_comp (𝒜 := S)
         (ℬ := Over (listProd (𝒞 := S) ((W.base).1.map Prod.snd))) (ℰ := uniformTargetTy W)
-        (F := terminalSliceObj W) (G := fun x => (⟨W.base, x⟩ : uniformTargetTy W))
-        (hF := terminalSliceFunctor W) (hG := stageInclNil W)
+        (F := terminalSliceFunctor W) (G := stageInclNil W)
         (terminalSlicePresEqs W)
         (stageInclFunctorL_preservesEqualizers (laxOfProjSystem' (cofinalProjSystem (S := S)))
           (coherentProj (cofinalProjSystem (S := S))) (ratLaxEqualizerData (cofinalProjSystem (S := S))) W.base)
     letI preT := uniformStepTarget_preRegular W
     have hgoal := @preservesEqualizers_target_irrel S (uniformTargetTy W) _ (uniformTargetCat W)
-      (uniformStepObj W) (uniformStepFunctor W) products_pullbacks_implies_equalizers
+      (uniformStepFunctor W) products_pullbacks_implies_equalizers
       heCol
       (@products_pullbacks_implies_equalizers (uniformTargetTy W) _
         preT.toHasBinaryProducts preT.toHasPullbacks)
