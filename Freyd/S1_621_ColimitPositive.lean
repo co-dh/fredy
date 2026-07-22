@@ -296,7 +296,7 @@ theorem colimit_inr_monic (C : CatSystem ι D) (hC : C.Coherent)
     (`colimitStrictInitial`).  Therefore the intersection's domain maps to the colimit strict initial,
     is itself initial, and lies below `⊥`. -/
 theorem colimit_inl_inter_inr (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne : Nonempty ι]
-    (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (hmono : TransMono C)
+    (hdisj : ∀ i, DisjointBinaryCoproduct (C.A i)) (_hmono : TransMono C)
     (hbot : ∀ i, PreLogos (C.A i))
     (hinitpres : ∀ {i j : ι} (hij : D.le i j),
       @StrictCoterminator (C.A j) (C.catA j) (C.F hij (stageZero C hbot i)))
@@ -317,7 +317,7 @@ theorem colimit_inl_inter_inr (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
@@ -425,7 +425,7 @@ noncomputable def colimitDisjointBinaryCoproduct
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
@@ -485,7 +485,7 @@ noncomputable def colimitPositive
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
         (u v : C.F hij ((hdisj i).toHasBinaryCoproducts.coprod a b) ⟶ z),
@@ -509,7 +509,7 @@ noncomputable def colimitPositive
     [hUn : @HasSubobjectUnions C.Obj (colimitCat C hC) hReg.toHasImages] :
     @DisjointBinaryCoproduct C.Obj (colimitCat C hC) :=
   letI : Cat C.Obj := colimitCat C hC
-  letI hPL : @PreLogos C.Obj (colimitCat C hC) :=
+  letI _hPL : @PreLogos C.Obj (colimitCat C hC) :=
     colimitPreLogos C hC hbot hinitpres hmono ht htpres hp hpres hpres_pair he hepres hepres_lift
       (fun i => (hdisj i).toHasBinaryCoproducts) hcoppres hcoppres_case hi hfaith himgpres
   colimitDisjointBinaryCoproduct C hC hdisj hmono hbot hinitpres ht htpres hp hpres hpres_pair

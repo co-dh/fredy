@@ -1980,7 +1980,7 @@ theorem relReverse_inr_monic (zero : RelObj 𝒞)
 theorem relReverse_inl_union_inr (zero : RelObj 𝒞)
     (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
     (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
-    letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+    letI _H := relReverseHasBinaryCoproducts zero coprodObj hcop
     Subobject.le
       (Subobject.entire (HasBinaryCoproducts.coprod a b))
       (HasSubobjectUnions.union
@@ -2014,7 +2014,7 @@ theorem relReverse_inl_union_inr (zero : RelObj 𝒞)
 theorem relReverse_inl_inter_inr (zero : RelObj 𝒞)
     (coprodObj : RelObj 𝒞 → RelObj 𝒞 → RelObj 𝒞)
     (hcop : ∀ a b : RelObj 𝒞, Freyd.Alg.Coproduct (𝒜 := RelObj 𝒞) (coprodObj a b) a b) {a b : 𝒞} :
-    letI H := relReverseHasBinaryCoproducts zero coprodObj hcop
+    letI _H := relReverseHasBinaryCoproducts zero coprodObj hcop
     Subobject.le
       (Subobject.inter
         (inlSub (𝒞 := 𝒞) (A := a) (B := b) (relReverse_inl_monic zero coprodObj hcop))
@@ -2210,7 +2210,7 @@ variable {F : Functor C D}
 /-- The image-relation of a span through `F`: take `F` of the columns, pair them into
     `F.obj A × F.obj B`, and form the `BinRel` from the image subobject (its arrow is monic, hence
     a jointly-monic pair via `monicPair_of_monic_pair`). -/
-noncomputable def relImageObj (hreg : RegularFunctor F) {A B : C}
+noncomputable def relImageObj (_hreg : RegularFunctor F) {A B : C}
     (R : BinRel C A B) : BinRel D (F.obj A) (F.obj B) :=
   let I := image (pair (F.map R.colA) (F.map R.colB))
   { src  := I.dom
@@ -2792,7 +2792,7 @@ theorem RegularFunctor.relMap_id (hreg : RegularFunctor F) (A : C) :
 noncomputable def RegularFunctor.relAllegoryHom (hreg : RegularFunctor F) :
     AllegoryFunctor (RelObj C) (RelObj D) where
   obj A := ⟨F.obj A.carrier⟩
-  map {a b} x := hreg.relMap x
+  map {_a _b} x := hreg.relMap x
   map_id A := hreg.relMap_id A.carrier
   map_comp R S := hreg.relMap_comp R S
   map_recip R := hreg.relMap_recip R
@@ -2999,7 +2999,7 @@ theorem RegularFunctor.relAllegoryHom_faithful_of_reflects (hreg : RegularFuncto
     (hreflIso : ∀ {X Y : C} (f : X ⟶ Y), IsIso (F.map f) → IsIso f)
     (hsplit : ∀ {X Y : D} (e : X ⟶ Y), Cover e → ∃ s : Y ⟶ X, s ≫ e = Cat.id Y) :
     hreg.relAllegoryHom.Faithful :=
-  fun {a b} R S h => hreg.relMap_faithful_of_reflects hreflIso hsplit R S h
+  fun {_a _b} R S h => hreg.relMap_faithful_of_reflects hreflIso hsplit R S h
 
 end RelFunctor
 
@@ -3045,8 +3045,8 @@ instance powerCatAlg [Cat.{v} 𝒜] : Cat.{max w v} (PowerObj I 𝒜) where
 /-- **§2.218 BRICK 3 — the power allegory `𝒜^I`.**  Reciprocation and intersection pointwise;
     every allegory equation lifts from the fibre by `funext`. -/
 instance powerAllegory [Allegory.{v} 𝒜] : Allegory.{max w v} (PowerObj I 𝒜) where
-  recip {a b} R := fun i => (R i)°
-  inter {a b} R S := fun i => R i ∩ S i
+  recip {_a _b} R := fun i => (R i)°
+  inter {_a _b} R S := fun i => R i ∩ S i
   recip_recip R := funext fun i => Allegory.recip_recip (R i)
   recip_comp R S := funext fun i => Allegory.recip_comp (R i) (S i)
   recip_inter R S := funext fun i => Allegory.recip_inter (R i) (S i)

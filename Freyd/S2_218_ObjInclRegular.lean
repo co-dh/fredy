@@ -153,7 +153,7 @@ theorem objIncl_preservesPullbacks_generic {ι : Type u} {D : Directed ι}
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (i : ι) :
     letI : Cat C.Obj := colimitCat C hC
@@ -199,7 +199,7 @@ theorem objIncl_regularFunctor {ι : Type u} {D : Directed ι}
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hmono : ∀ {i j : ι} (hij : D.le i j) {x y : C.A i} (φ : x ⟶ y),
         Monic φ → Monic ((C.functF hij).map φ))

@@ -438,7 +438,7 @@ theorem mac_join_c₂ {a₁ a₂ c₁ c₂ : PElem P} (hc : c₁.join c₂ = top
     argument (`mac_join_c₂`/`topjoin_absorb`); both on `B` (so `a₁ = b₁ = A∩B`
     by axiom 3) → the modular shear `LHS ⩽ ln B ⊓ (RHS ⊔ pt w) = RHS`. -/
 theorem horn_line_ptw {pa₁ pa₂ pb₁ pb₂ w : P.Point} {A B : P.Line}
-    (ia₁ : P.incid pa₁ A) (ia₂ : P.incid pa₂ A) (ib₁ : P.incid pb₁ A)
+    (ia₁ : P.incid pa₁ A) (_ia₂ : P.incid pa₂ A) (ib₁ : P.incid pb₁ A)
     (_ib₂ : P.incid pb₂ A) (hAB : A ≠ B) (hwB : ¬ P.incid w B) :
     HornConc (pt pa₁) (pt pa₂) (pt pb₁) (pt pb₂) (ln B) (pt w) := by
   have la₁ : (pt pa₁ : PElem P).le (ln A) := ia₁

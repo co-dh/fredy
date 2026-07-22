@@ -205,7 +205,7 @@ noncomputable def ofStrict (C : Colim.CatSystem.{u, w} ι D) (hC : C.Coherent) :
     (fun {X Y} f =>
       -- `idFunctor.map f = f`; `Coherent.refl_map f : HEq ((functF refl).map f) f` conjugates.
       heq_eqToHom_conj (C.F_refl X) (C.F_refl Y) (hC.refl_map f))
-  F_trans_iso {i j k} hij hjk := natIsoOfPointwise
+  F_trans_iso {_i _j _k} hij hjk := natIsoOfPointwise
     (F := C.functF (D.trans hij hjk))
     (G := compFunctor (C.functF hij) (C.functF hjk))
     (fun x => C.F_trans hij hjk x)

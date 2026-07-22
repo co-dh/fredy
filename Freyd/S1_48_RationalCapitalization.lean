@@ -3421,12 +3421,12 @@ theorem survRecon_hom_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x
   rw [← Cat.assoc, survRecon_hom, snd_pair]
 
 /-- `dx.einv ≫ x.g = fst` (the density iso carries `x.g` to `fst`, inverse side). -/
-theorem einv_xg {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+theorem einv_xg {X Y : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
     dx.einv ≫ x.g = (fst : prod Y.A dx.W ⟶ Y.A) := by
   rw [← dx.proj, ← Cat.assoc, dx.e_iso₂, Cat.id_comp]
 
 /-- `dx.einv ≫ dx.e ≫ snd = snd` (used to peel a survivor factor through the density iso). -/
-theorem einv_e_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
+theorem einv_e_snd {X Y : PairObj 𝒞} (x : X ⟶ Y) (dx : PairDense x) :
     dx.einv ≫ dx.e ≫ (snd : prod Y.A dx.W ⟶ dx.W) = snd := by
   rw [← Cat.assoc, dx.e_iso₂, Cat.id_comp]
 
@@ -3472,7 +3472,7 @@ theorem mProd_equalizes {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx :
       have hdist : fm = qm := Z.distinct ⟨ft, fm⟩ hf ⟨ft, qm⟩ hq rfl
       -- goal: `fst ≫ fm = pair (fst≫g.g) wRecon ≫ dx.einv ≫ f'm`, with f'm = x.g ≫ gYm, fm = qm,
       -- g.g ≫ gYm = qm
-      rw [hge, ← Cat.assoc dx.einv x.g gYm, einv_xg (Z := Z) x dx, ← Cat.assoc, fst_pair,
+      rw [hge, ← Cat.assoc dx.einv x.g gYm, einv_xg x dx, ← Cat.assoc, fst_pair,
         Cat.assoc, hqe, hdist]
     · -- SURVIVOR: `f'.2 = dx.e ≫ snd ≫ dx.wf ≫ (hkt ▸ listProdProj dx.surv k)`.
       -- target chain: f.1 = f'.1 = surv.get k; `f ∈ Z.F` ⇒ that coordinate COLLIDES.
@@ -3491,7 +3491,7 @@ theorem mProd_equalizes {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx :
         calc dx.einv ≫ dx.e ≫ snd ≫ dx.wf ≫ listProdProj dx.surv k
             = (dx.einv ≫ dx.e ≫ snd) ≫ dx.wf ≫ listProdProj dx.surv k := by
               rw [Cat.assoc, Cat.assoc]
-          _ = snd ≫ dx.wf ≫ listProdProj dx.surv k := by rw [einv_e_snd (Z := Z) x dx]
+          _ = snd ≫ dx.wf ≫ listProdProj dx.surv k := by rw [einv_e_snd x dx]
       -- RHS reduction: `pair _ wRecon ≫ (dx.einv ≫ f'm) = pair _ wRecon ≫ snd ≫ wf ≫ proj_k`
       rw [heinv, ← Cat.assoc (pair (fst ≫ g.g) (wRecon x g dx)) snd _, snd_pair,
         ← Cat.assoc (wRecon x g dx) dx.wf _, wRecon_wf, survRecon_proj_coll x dx k hcoll]
@@ -3514,7 +3514,7 @@ theorem mProd_square {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : Pa
     mProd x g dx ≫ (fst : prod Z.A X.A ⟶ Z.A) ≫ g.g
       = mProd x g dx ≫ (snd : prod Z.A X.A ⟶ X.A) ≫ x.g := by
   unfold mProd
-  rw [← Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, Cat.assoc, einv_xg (Z := Z) x dx, fst_pair]
+  rw [← Cat.assoc, fst_pair, ← Cat.assoc, snd_pair, Cat.assoc, einv_xg x dx, fst_pair]
 
 /-- `mProd` factored through the product subobject `pairProdW Z X` (step 1: it equalizes every
     cross constraint).  `mProdW ≫ pairProdW Z X = mProd`. -/
@@ -3612,7 +3612,7 @@ def bMap_g {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x)
 /-- `bMap_g ≫ x.g = apexL1 ≫ g.g` (the density iso carries `x.g` to `fst`). -/
 theorem bMap_g_xg {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :
     bMap_g x g dx ≫ x.g = apexL1 x g ≫ g.g := by
-  unfold bMap_g; rw [Cat.assoc, einv_xg (Z := Z) x dx, fst_pair]
+  unfold bMap_g; rw [Cat.assoc, einv_xg x dx, fst_pair]
 
 /-- `bMap_g ≫ dx.e ≫ snd = apexHom ≫ wRecon` (the `dx.W`-component survives the iso round-trip). -/
 theorem bMap_g_e_snd {X Y Z : PairObj 𝒞} (x : X ⟶ Y) (g : Z ⟶ Y) (dx : PairDense x) :

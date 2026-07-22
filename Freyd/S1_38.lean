@@ -248,8 +248,8 @@ def SeparatesObjects (T : 𝒞 → 𝒟) : Prop :=
     for every commutative square with top `b : A₀ → A₁` in `𝔹` and right `a : B → B'`
     in `𝒜`, there exists a diagonal `A₁ → B`. -/
 def DiagonalFillable
-    (𝔹 : ∀ {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (F : Functor 𝒜 ℬ), Prop)
-    (𝒜cls : ∀ {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (F : Functor 𝒜 ℬ), Prop) : Prop :=
+    (𝔹 : ∀ {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : Functor 𝒜 ℬ), Prop)
+    (𝒜cls : ∀ {𝒜 ℬ : Type u} [Cat.{v} 𝒜] [Cat.{v} ℬ] (_F : Functor 𝒜 ℬ), Prop) : Prop :=
   ∀ {𝒜₀ 𝒜₁ ℬ ℬ' : Type u} [Cat.{v} 𝒜₀] [Cat.{v} 𝒜₁] [Cat.{v} ℬ] [Cat.{v} ℬ']
     (b : Functor 𝒜₀ 𝒜₁) (a : Functor ℬ ℬ'),
     𝔹 b → 𝒜cls a → True  -- placeholder: existence of diagonal in the functor-category sense
@@ -407,14 +407,14 @@ theorem qseq_closed_under_product
                    (fun o => (interpC o, interpD o)) hSrc hTgt
                    (composeComposablePath interpC arrowMapC (Q.eq_lhs e) hlL hcL,
                     composeComposablePath interpD arrowMapD (Q.eq_lhs e) hlL hcL)
-    simp only [fstFunctor, Functor.map] at keyL
+    simp only [fstFunctor] at keyL
     -- keyL : hSrc ▸ hTgt ▸ pC = (hSrc ▸ hTgt ▸ (pC,pD)).fst
     exact keyL.symm.trans hC
   · have keyL := functor_dbl_transport (sndFunctor 𝒞 𝒟)
                    (fun o => (interpC o, interpD o)) hSrc hTgt
                    (composeComposablePath interpC arrowMapC (Q.eq_lhs e) hlL hcL,
                     composeComposablePath interpD arrowMapD (Q.eq_lhs e) hlL hcL)
-    simp only [sndFunctor, Functor.map] at keyL
+    simp only [sndFunctor] at keyL
     exact keyL.symm.trans hD
 
 /-! ## §1.399 Conjugate functors satisfy the same Q-sequences

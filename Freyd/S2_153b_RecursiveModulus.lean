@@ -156,7 +156,7 @@ noncomputable def acceptOn (er wit : Nat) : Nat :=
   * eqInd (insOf (nthN (csnd wit) (cfst wit))) (consN (csnd er) 0)
 
 /-- The claimed output of an accepting witness (depends only on `wit`). -/
-noncomputable def uOut (er wit : Nat) : Nat := outOf (nthN (csnd wit) (cfst wit))
+noncomputable def uOut (_er wit : Nat) : Nat := outOf (nthN (csnd wit) (cfst wit))
 
 /-- The output extractor as a UNARY recursive function of `wit` alone. -/
 noncomputable def uOutW (wit : Nat) : Nat := outOf (nthN (csnd wit) (cfst wit))
@@ -313,7 +313,7 @@ noncomputable def branchNum (Nf Ng s : Nat) : Nat := if s = 0 then Nf else Ng
 theorem branchNum_zero (Nf Ng : Nat) : branchNum Nf Ng 0 = Nf := if_pos rfl
 
 theorem rec_branchNum (Nf Ng : Nat) : Recursive1 (branchNum Nf Ng) :=
-  (Recursive1.ifEqConst 0 Nf (Recursive1.const Ng)).congr fun n => rfl
+  (Recursive1.ifEqConst 0 Nf (Recursive1.const Ng)).congr fun _n => rfl
 
 /-- The universal-input preprocessing: pack the selected code number with the recoded
     argument `cp (cfst n) (csnd n / 2)`. -/

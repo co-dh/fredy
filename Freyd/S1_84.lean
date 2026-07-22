@@ -41,7 +41,7 @@ variable {E : Type u} [Cat.{v} E]
 structure Coproduct {𝒞 : Type u} [Cat.{v} 𝒞] {I : Type v} (A : I → 𝒞) where
   obj  : 𝒞
   inj  : ∀ i, A i ⟶ obj
-  desc : ∀ {X : 𝒞} (f : ∀ i, A i ⟶ X), obj ⟶ X
+  desc : ∀ {X : 𝒞} (_f : ∀ i, A i ⟶ X), obj ⟶ X
   fac  : ∀ {X : 𝒞} (f : ∀ i, A i ⟶ X) (i : I), inj i ≫ desc f = f i
   uniq : ∀ {X : 𝒞} (f : ∀ i, A i ⟶ X) (h : obj ⟶ X),
            (∀ i, inj i ≫ h = f i) → h = desc f
@@ -161,7 +161,7 @@ theorem subobjectIso_of_le_le {B : E} {S T : Subobject E B}
     of the §1.843 argument; it lives in `Type v` because the generating set is small. -/
 def subTrace [GrothendieckTopos E] {B : E} (S : Subobject E B) :
     (i : GrothendieckTopos.gen_idx (E := E)) → (GrothendieckTopos.gen_obj i ⟶ B) → Prop :=
-  fun i x => Allows S x
+  fun _i x => Allows S x
 
 /-- BASIS DETECTS SUBOBJECTS (§1.843): if every generalized element from a
     generator that factors through `S` also factors through `T`, then `S ≤ T`.
@@ -241,7 +241,7 @@ def CoverIso {𝒞 : Type u} [Cat.{v} 𝒞] {A : 𝒞} {P Q : 𝒞}
     is bounded by a type in universe v. -/
 class WellCopowered (𝒞 : Type u) [Cat.{v} 𝒞] : Prop where
   small : ∀ (A : 𝒞), ∃ (I : Type v) (codom : I → 𝒞) (cov : ∀ i, A ⟶ codom i)
-            (hcov : ∀ i, Cover (cov i)),
+            (_hcov : ∀ i, Cover (cov i)),
             ∀ (Q : 𝒞) (q : A ⟶ Q) (_ : Cover q),
               ∃ i : I, CoverIso (cov i) q
 
@@ -433,7 +433,7 @@ private theorem graph_comp_recip_le_one_monic {𝒞 : Type u} [Cat.{v} 𝒞]
     then d ≫ image.lift s : A → (image s).dom is the required RelHom. -/
 private theorem one_le_graph_comp_recip_monic {𝒞 : Type u} [Cat.{v} 𝒞]
     [HasBinaryProducts 𝒞] [HasPullbacks 𝒞] [HasImages 𝒞]
-    {A S : 𝒞} (u : A ⟶ S) (hu : Monic u) :
+    {A S : 𝒞} (u : A ⟶ S) (_hu : Monic u) :
     RelLe (graph (Cat.id A)) (graph u ⊚ (graph u)°) := by
   -- Same internal pullback as graph_comp_recip_le_one_monic
   let pb := HasPullbacks.has u u

@@ -56,7 +56,7 @@ namespace Freyd
 class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
     extends HasSubobjectUnions 𝒞 where
   /-- Binary meet (∧) of subobjects. -/
-  meet : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  meet : ∀ {A : 𝒞} (_x _y : Subobject 𝒞 A), Subobject 𝒞 A
   /-- meet is a lower bound: x∧y ≤ x. -/
   meet_le_left  : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject.le (meet x y) x
   /-- meet is a lower bound: x∧y ≤ y. -/
@@ -65,7 +65,7 @@ class HeytingAlgebra (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
   le_meet : ∀ {A : 𝒞} (x y z : Subobject 𝒞 A),
     Subobject.le z x → Subobject.le z y → Subobject.le z (meet x y)
   /-- Implication x → y. -/
-  imp  : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  imp  : ∀ {A : 𝒞} (_x _y : Subobject 𝒞 A), Subobject 𝒞 A
   /-- The adjunction: z ≤ (x→y) ↔ x∧z ≤ y. -/
   adjunction : ∀ {A : 𝒞} (x y z : Subobject 𝒞 A),
     Subobject.le z (imp x y) ↔ Subobject.le (meet x z) y
@@ -125,7 +125,7 @@ end HeytingLaws
 class Locale (𝒞 : Type u) [Cat.{v} 𝒞] [HasImages 𝒞]
     extends LocallyComplete 𝒞 where
   /-- Binary meet (∧). -/
-  meet : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject 𝒞 A
+  meet : ∀ {A : 𝒞} (_x _y : Subobject 𝒞 A), Subobject 𝒞 A
   /-- meet_le_left: x∧y ≤ x. -/
   meet_le_left  : ∀ {A : 𝒞} (x y : Subobject 𝒞 A), Subobject.le (meet x y) x
   /-- meet_le_right: x∧y ≤ y. -/
@@ -424,7 +424,7 @@ theorem em_implies_complemented [HasImages 𝒞] [HeytingAlgebra 𝒞] [PreLogos
         Subobject.le S (PreLogos.bottom A)) ∧
       Subobject.le (Subobject.entire A) (HasSubobjectUnions.union x nx) :=
   ⟨hneg x,
-    fun S hSx hSnx =>
+    fun _S hSx hSnx =>
       Subobject.le_trans
         (HeytingAlgebra.le_meet _ _ _ hSx hSnx)
         (meet_neg_le_bot x),

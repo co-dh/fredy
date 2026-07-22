@@ -187,7 +187,7 @@ private def discreteCone {I : Type v} {ℬ : Type u₁} [Cat.{v} ℬ] (F : I →
 /-- Easy (⇒): a complete category has all products (limits of discrete diagrams). -/
 private def complete_hasProducts {ℬ : Type u₁} [Cat.{v} ℬ] (hc : Complete ℬ) :
     HasProducts ℬ where
-  prod {I} F :=
+  prod {_I} F :=
     { prod      := (hc.hasLimit (discreteFunctor F)).cone.apex
       proj      := fun i => (hc.hasLimit (discreteFunctor F)).cone.π i
       lift      := fun {X} legs =>
@@ -2107,12 +2107,12 @@ private def discreteCocone {I : Type v} {ℬ : Type u₁} [Cat.{v} ℬ] (F : I �
 private def cocomplete_hasCoproducts {ℬ : Type u₁} [Cat.{v} ℬ] (hc : Cocomplete ℬ) :
     HasCoproducts ℬ where
   coprodObj F := (hc.hasColimit (discreteFunctor F)).cocone.nadir
-  inj {I} {F} i := (hc.hasColimit (discreteFunctor F)).cocone.ι i
-  cotupling {I} {F} {X} legs :=
+  inj {_I} {F} i := (hc.hasColimit (discreteFunctor F)).cocone.ι i
+  cotupling {_I} {F} {X} legs :=
     (hc.hasColimit (discreteFunctor F)).lift (discreteCocone F X legs)
-  cotupling_fac := fun {I} {F} {X} legs i =>
+  cotupling_fac := fun {_I} {F} {X} legs i =>
     (hc.hasColimit (discreteFunctor F)).fac (discreteCocone F X legs) i
-  cotupling_uniq := fun {I} {F} {X} legs u hu =>
+  cotupling_uniq := fun {_I} {F} {X} legs u hu =>
     (hc.hasColimit (discreteFunctor F)).uniq (discreteCocone F X legs) u hu
 
 /-- Easy (⇒): a cocomplete category has coequalizers, obtained as the colimit of the

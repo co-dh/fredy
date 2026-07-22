@@ -75,7 +75,7 @@ private theorem meetJoin_le (S W₁ W₂ : Subobject 𝒞 one) :
     This is strictly more than `exists_ultrafilter_excluding` (`Usub = ` a complemented `V ⊊ 1`); it
     is what detects a proper subobject probed by a complemented subterminator. -/
 theorem exists_ultrafilter_excluding_within (U : Subobject 𝒞 one) (hUcomp : IsComplementedSub U)
-    (Usub : Subobject 𝒞 one) (hsub : Usub.le U) (hproper : ¬ U.le Usub) :
+    (Usub : Subobject 𝒞 one) (_hsub : Usub.le U) (hproper : ¬ U.le Usub) :
     ∃ ℱ, IsUltraFilter ℱ ∧ ℱ U ∧
       ∀ V : Subobject 𝒞 one, IsComplementedSub V → V.le Usub → ¬ ℱ V := by
   let 𝒫 : (Subobject 𝒞 one) → Prop :=

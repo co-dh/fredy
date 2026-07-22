@@ -258,10 +258,10 @@ noncomputable def ratCapPreRegular_of_projCover [Nonempty ι] (P : ProjSystem ι
   ratCapPreRegular P
     (laxColim_hcanon_of_stage (laxOfProjSystem' P) (coherentProj P)
       (ratLaxTerminalData P) (ratLaxProductData P) (ratLaxEqualizerData P)
-      (fun {i j} hij {x y} p q heq => projStage_faithful P hij (hpc hij) p q heq)
-      (fun {i j} hij {x y} φ hm hiso => projStage_conservative P hij (hpc hij) φ hm hiso)
-      (fun {i j} hij {x y} φ hm => projStage_preservesMono P hij φ hm)
-      (fun {i j} hij {x y} φ hc => projStage_preservesCover P hij φ hc)
+      (fun {_i _j} hij {_x _y} p q heq => projStage_faithful P hij (hpc hij) p q heq)
+      (fun {_i _j} hij {_x _y} φ hm hiso => projStage_conservative P hij (hpc hij) φ hm hiso)
+      (fun {_i _j} hij {_x _y} φ hm => projStage_preservesMono P hij φ hm)
+      (fun {_i _j} hij {_x _y} φ hc => projStage_preservesCover P hij φ hc)
       (fun i => projStage_PTC P i))
 
 end ProjCover

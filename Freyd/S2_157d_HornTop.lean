@@ -106,7 +106,7 @@ theorem pt_le_join_line {u v m : P.Point} {L : P.Line} (huv : u ≠ v)
     of `X, Y` besides `z` (axiom 3), forcing `z ∈ L`. -/
 theorem meetL_ne {X Y L : P.Line} {z u v : P.Point} (hXY : X ≠ Y)
     (hzX : P.incid z X) (hzY : P.incid z Y) (hzL : ¬ P.incid z L)
-    (huX : P.incid u X) (huL : P.incid u L) (hvY : P.incid v Y) (hvL : P.incid v L) :
+    (huX : P.incid u X) (huL : P.incid u L) (hvY : P.incid v Y) (_hvL : P.incid v L) :
     u ≠ v := by
   intro h
   rcases P.unique huX (h.symm ▸ hvY) hzX hzY with h' | h'
@@ -365,7 +365,7 @@ theorem cP_PLPL {av bv : P.Point} {aB bB : P.Line} (hc : ¬ P.incid cv cB)
 
 /-- cP leaf `(aLP, bLP)`. -/
 theorem cP_LPLP {aw bw : P.Point} {aA bA : P.Line} (hc : ¬ P.incid cv cB)
-    (haw : ¬ P.incid aw aA) (hbw : ¬ P.incid bw bA) :
+    (_haw : ¬ P.incid aw aA) (hbw : ¬ P.incid bw bA) :
     HornConc (ln aA) (pt aw) (ln bA) (pt bw) (pt cv) (ln cB) := by
   by_cases hab : aA = bA
   · subst hab
@@ -690,7 +690,7 @@ theorem cP_LLLP {aA aB bA : P.Line} {bw : P.Point} (hc : ¬ P.incid cv cB)
     dominates through the line-based `M_cb` except where `cv` and `av` split on
     `bA` / `bw` on `cB`. -/
 theorem cP_PLLP {av bw : P.Point} {aB bA : P.Line} (hc : ¬ P.incid cv cB)
-    (hav : ¬ P.incid av aB) (hbw : ¬ P.incid bw bA) :
+    (hav : ¬ P.incid av aB) (_hbw : ¬ P.incid bw bA) :
     HornConc (pt av) (ln aB) (ln bA) (pt bw) (pt cv) (ln cB) := by
   by_cases q : P.incid cv bA
   · by_cases havbA : P.incid av bA
@@ -827,7 +827,7 @@ variable {cA cB : P.Line}
 /-- cL leaf `(aLL, bLL)`.  Shortcuts: `c=a` (resp. `c=b`) makes `M_cb` (resp.
     `M_ac`) EQUAL the LHS.  Only two residual combos need a `⊤`-join. -/
 theorem cL_LLLL {aA aB bA bB : P.Line} (hcAB : cA ≠ cB)
-    (haAB : aA ≠ aB) (hbAB : bA ≠ bB) :
+    (_haAB : aA ≠ aB) (hbAB : bA ≠ bB) :
     HornConc (ln aA) (ln aB) (ln bA) (ln bB) (ln cA) (ln cB) := by
   by_cases hpr : aA = cA ∧ aB = cB
   · obtain ⟨p, r⟩ := hpr; subst p; subst r; exact hornConc_of_le_cb (le_refl _)
@@ -871,7 +871,7 @@ theorem cL_LLLL {aA aB bA bB : P.Line} (hcAB : cA ≠ cB)
     and `M_cb` are line-based, so all 14 non-residual combos dominate through
     `join_mono` against `incid`-as-`le`.  Two residual combos join to `⊤`. -/
 theorem cL_PLPL {av bv : P.Point} {aB bB : P.Line} (hcAB : cA ≠ cB)
-    (hav : ¬ P.incid av aB) (hbv : ¬ P.incid bv bB) :
+    (_hav : ¬ P.incid av aB) (_hbv : ¬ P.incid bv bB) :
     HornConc (pt av) (ln aB) (pt bv) (ln bB) (ln cA) (ln cB) := by
   by_cases p : P.incid av cA <;> by_cases q : P.incid bv cA <;>
     by_cases r : aB = cB <;> by_cases s : cB = bB <;>
@@ -903,7 +903,7 @@ theorem cL_PLPL {av bv : P.Point} {aB bB : P.Line} (hcAB : cA ≠ cB)
 /-- cL leaf `(aLP, bLP)`.  Mirror of `cL_PLPL` with the point-point join in
     row 2. -/
 theorem cL_LPLP {aw bw : P.Point} {aA bA : P.Line} (hcAB : cA ≠ cB)
-    (haw : ¬ P.incid aw aA) (hbw : ¬ P.incid bw bA) :
+    (_haw : ¬ P.incid aw aA) (_hbw : ¬ P.incid bw bA) :
     HornConc (ln aA) (pt aw) (ln bA) (pt bw) (ln cA) (ln cB) := by
   by_cases p : aA = cA <;> by_cases q : cA = bA <;>
     by_cases t : P.incid aw cB <;> by_cases u : P.incid bw cB <;>
@@ -934,7 +934,7 @@ theorem cL_LPLP {aw bw : P.Point} {aA bA : P.Line} (hcAB : cA ≠ cB)
 
 /-- cL leaf `(aLL, bPL)`. -/
 theorem cL_LLPL {aA aB bB : P.Line} {bv : P.Point} (hcAB : cA ≠ cB)
-    (haAB : aA ≠ aB) (hbv : ¬ P.incid bv bB) :
+    (_haAB : aA ≠ aB) (hbv : ¬ P.incid bv bB) :
     HornConc (ln aA) (ln aB) (pt bv) (ln bB) (ln cA) (ln cB) := by
   by_cases hpr : aA = cA ∧ aB = cB
   · obtain ⟨p, r⟩ := hpr; subst p; subst r; exact hornConc_of_le_cb (le_refl _)
@@ -982,7 +982,7 @@ theorem cL_LLPL {aA aB bB : P.Line} {bv : P.Point} (hcAB : cA ≠ cB)
 
 /-- cL leaf `(aLL, bLP)`. -/
 theorem cL_LLLP {aA aB bA : P.Line} {bw : P.Point} (hcAB : cA ≠ cB)
-    (haAB : aA ≠ aB) (hbw : ¬ P.incid bw bA) :
+    (_haAB : aA ≠ aB) (hbw : ¬ P.incid bw bA) :
     HornConc (ln aA) (ln aB) (ln bA) (pt bw) (ln cA) (ln cB) := by
   by_cases hpr : aA = cA ∧ aB = cB
   · obtain ⟨p, r⟩ := hpr; subst p; subst r; exact hornConc_of_le_cb (le_refl _)
@@ -1031,7 +1031,7 @@ theorem cL_LLLP {aA aB bA : P.Line} {bw : P.Point} (hcAB : cA ≠ cB)
 /-- cL leaf `(aPL, bLP)`.  No point-point joins, so all meets are meetPoints;
     the point entries are handled by `join_mono` against `incid`-as-`le`. -/
 theorem cL_PLLP {av bw : P.Point} {aB bA : P.Line} (hcAB : cA ≠ cB)
-    (hav : ¬ P.incid av aB) (hbw : ¬ P.incid bw bA) :
+    (_hav : ¬ P.incid av aB) (hbw : ¬ P.incid bw bA) :
     HornConc (pt av) (ln aB) (ln bA) (pt bw) (ln cA) (ln cB) := by
   by_cases p : P.incid av cA
   · by_cases q : cA = bA

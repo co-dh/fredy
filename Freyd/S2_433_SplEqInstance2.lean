@@ -40,21 +40,21 @@ instance instCatSplEq : Cat (SplEqObj 𝒜) where
   comp R S    := splComp R S
   id_comp R   := SplHom.ext R.fixed_left
   comp_id R   := SplHom.ext R.fixed_right
-  assoc R S T := SplHom.ext (Cat.assoc _ _ _)
+  assoc _R _S _T := SplHom.ext (Cat.assoc _ _ _)
 
 /-- Allegory structure on `SplEqObj 𝒜`: reciprocation and intersection inherited
     from `SplObj 𝒜`; all axioms reduce to the underlying `𝒜` axioms via `SplHom.ext`. -/
 instance instAllegorySplEq : Allegory (SplEqObj 𝒜) where
   recip R             := splRecip R
   inter R S           := splInter R S
-  recip_recip R       := SplHom.ext (Allegory.recip_recip _)
-  recip_comp R S      := SplHom.ext (Allegory.recip_comp _ _)
-  recip_inter R S     := SplHom.ext (Allegory.recip_inter _ _)
-  inter_idem R        := SplHom.ext (Allegory.inter_idem _)
-  inter_comm R S      := SplHom.ext (Allegory.inter_comm _ _)
-  inter_assoc R S T   := SplHom.ext (Allegory.inter_assoc _ _ _)
-  semidistrib R S T   := SplHom.ext (Allegory.semidistrib _ _ _)
-  modular R S T       := SplHom.ext (Allegory.modular _ _ _)
+  recip_recip _R       := SplHom.ext (Allegory.recip_recip _)
+  recip_comp _R _S      := SplHom.ext (Allegory.recip_comp _ _)
+  recip_inter _R _S     := SplHom.ext (Allegory.recip_inter _ _)
+  inter_idem _R        := SplHom.ext (Allegory.inter_idem _)
+  inter_comm _R _S      := SplHom.ext (Allegory.inter_comm _ _)
+  inter_assoc _R _S _T   := SplHom.ext (Allegory.inter_assoc _ _ _)
+  semidistrib _R _S _T   := SplHom.ext (Allegory.semidistrib _ _ _)
+  modular _R _S _T       := SplHom.ext (Allegory.modular _ _ _)
 
 end SplEqObj
 

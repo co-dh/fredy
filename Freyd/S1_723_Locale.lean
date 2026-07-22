@@ -184,7 +184,7 @@ noncomputable def toHeytingLattice (F : Frame.{0}) : HeytingLattice where
   meet          := F.meet
   meet_le_left  := F.meet_le_left
   meet_le_right := F.meet_le_right
-  le_meet       := fun {z x y} hzx hzy => F.le_meet hzx hzy
+  le_meet       := fun {_z _x _y} hzx hzy => F.le_meet hzx hzy
   imp           := F.himp
   imp_adj       := fun {x a b} => (F.himp_adjunction a b x).symm
   top           := F.top
@@ -361,7 +361,7 @@ def sSup (S : τ.Opens → Prop) : τ.Opens :=
      exact τ.isOpen_sUnion _ (fun U ⟨V, _, hUV⟩ => hUV ▸ V.property)⟩
 
 theorem le_sSup (S : τ.Opens → Prop) (U : τ.Opens) (hU : S U) :
-    le U (sSup S) := fun x hx => ⟨U, hU, hx⟩
+    le U (sSup S) := fun _x hx => ⟨U, hU, hx⟩
 
 theorem sSup_le (S : τ.Opens → Prop) (V : τ.Opens) (h : ∀ U, S U → le U V) :
     le (sSup S) V := fun x ⟨U, hU, hx⟩ => h U hU x hx
@@ -394,7 +394,7 @@ def opensFrame (τ : Topology X) : Frame.{u} where
   meet   := Opens.meet
   meet_le_left  := Opens.meet_le_left
   meet_le_right := Opens.meet_le_right
-  le_meet := fun {z x y} hzx hzy => Opens.le_meet hzx hzy
+  le_meet := fun {_z _x _y} hzx hzy => Opens.le_meet hzx hzy
   sSup   := Opens.sSup
   le_sSup := fun S a ha => Opens.le_sSup S a ha
   sSup_le := fun S b h => Opens.sSup_le S b h
@@ -481,7 +481,7 @@ def Topology.principalPoint {X : Type u} (τ : Topology X) (x : X) :
   mem_up hUx hle := hle x hUx
   mem_meet hUx hVx := ⟨hUx, hVx⟩
   not_bot := id
-  prime S hSx := let ⟨U, hUS, hUx⟩ := hSx; ⟨U, hUS, hUx⟩
+  prime _S hSx := let ⟨U, hUS, hUx⟩ := hSx; ⟨U, hUS, hUx⟩
 
 -- BOOK §2.227: Representation theorem for locales / sober spaces.
 -- For a SOBER topological space X, every point of the frame O(X)
@@ -1182,7 +1182,7 @@ variable {F : Frame.{u}} {A : OValuedSet F}
 /-- Pointwise order on predicates. -/
 def le (p q : OPred A) : Prop := ∀ i, F.le (p.val i) (q.val i)
 
-theorem le_refl (p : OPred A) : le p p := fun i => F.le_refl _
+theorem le_refl (p : OPred A) : le p p := fun _i => F.le_refl _
 
 theorem le_trans {p q r : OPred A} (hpq : le p q) (hqr : le q r) : le p r :=
   fun i => F.le_trans (hpq i) (hqr i)
@@ -1196,7 +1196,7 @@ theorem le_antisymm {p q : OPred A} (hpq : le p q) (hqp : le q p) : p = q := by
 /-- The top predicate: `p i = A.E i i` (maximal extent). -/
 def top (A : OValuedSet F) : OPred A where
   val i := A.E i i
-  dom_bound i := F.le_refl _
+  dom_bound _i := F.le_refl _
   -- need: F.le (F.meet (A.E i j) (A.E i i)) (A.E j j)
   -- meet (E i j) (E i i) ≤ E i j ≤ E j j
   natural i j := F.le_trans (F.meet_le_left _ _) (A.E_le_extent_right i j)
@@ -1209,7 +1209,7 @@ def bot (A : OValuedSet F) : OPred A where
 
 theorem le_top (p : OPred A) : le p (top A) := fun i => p.dom_bound i
 
-theorem bot_le (p : OPred A) : le (bot A) p := fun i => F.bot_le _
+theorem bot_le (p : OPred A) : le (bot A) p := fun _i => F.bot_le _
 
 /-- Pointwise meet of two predicates. -/
 def meet (p q : OPred A) : OPred A where
@@ -1225,10 +1225,10 @@ def meet (p q : OPred A) : OPred A where
         (F.le_trans (F.meet_le_right _ _) (F.meet_le_right _ _))) (q.natural i j)
 
 theorem meet_le_left (p q : OPred A) : le (meet p q) p :=
-  fun i => F.meet_le_left _ _
+  fun _i => F.meet_le_left _ _
 
 theorem meet_le_right (p q : OPred A) : le (meet p q) q :=
-  fun i => F.meet_le_right _ _
+  fun _i => F.meet_le_right _ _
 
 theorem le_meet {p q r : OPred A} (hpr : le r p) (hqr : le r q) : le r (meet p q) :=
   fun i => F.le_meet (hpr i) (hqr i)
@@ -1255,11 +1255,11 @@ def sSup (S : OPred A → Prop) : OPred A where
     exact F.le_sSup _ _ ⟨p, hpS, rfl⟩
 
 theorem le_sSup (S : OPred A → Prop) (p : OPred A) (hpS : S p) : le p (sSup S) :=
-  fun i => F.le_sSup _ _ ⟨p, hpS, rfl⟩
+  fun _i => F.le_sSup _ _ ⟨p, hpS, rfl⟩
 
 theorem sSup_le (S : OPred A → Prop) (q : OPred A) (h : ∀ p, S p → le p q) :
     le (sSup S) q :=
-  fun i => F.sSup_le _ _ (fun v ⟨p, hpS, hv⟩ => hv ▸ h p hpS i)
+  fun i => F.sSup_le _ _ (fun _v ⟨p, hpS, hv⟩ => hv ▸ h p hpS i)
 
 /-- Frame distributivity: `meet p (sSup S) = sSup {meet p q | q ∈ S}`. -/
 theorem meet_sSup_distrib (p : OPred A) (S : OPred A → Prop) :
@@ -1293,8 +1293,8 @@ def opredFrame {F : Frame.{u}} (A : OValuedSet F) : Frame.{u} where
   carrier := OPred A
   le      := OPred.le
   le_refl := fun x => OPred.le_refl x
-  le_trans := fun {x y z} hxy hyz => OPred.le_trans hxy hyz
-  le_antisymm := fun {x y} hxy hyx => OPred.le_antisymm hxy hyx
+  le_trans := fun {_x _y _z} hxy hyz => OPred.le_trans hxy hyz
+  le_antisymm := fun {_x _y} hxy hyx => OPred.le_antisymm hxy hyx
   top     := OPred.top A
   le_top  := OPred.le_top
   bot     := OPred.bot A
@@ -1302,7 +1302,7 @@ def opredFrame {F : Frame.{u}} (A : OValuedSet F) : Frame.{u} where
   meet    := OPred.meet
   meet_le_left  := OPred.meet_le_left
   meet_le_right := OPred.meet_le_right
-  le_meet := fun {z x y} hzx hzy => OPred.le_meet hzx hzy
+  le_meet := fun {_z _x _y} hzx hzy => OPred.le_meet hzx hzy
   sSup    := OPred.sSup
   le_sSup := fun S a ha => OPred.le_sSup S a ha
   sSup_le := fun S b h => OPred.sSup_le S b h

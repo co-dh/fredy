@@ -506,8 +506,8 @@ theorem c2_xy_eq (x₂ y₂ w d₁ d₂ z : P.Point)
     on `d₁d₂` forces `x₂ ∈ d₁d₂`; then the conclusion meets `w` (`= W`) and `v`
     (`= M₂`) both lie on `d₁y₁`, so the excess `pt d₁` is absorbed by `M₁`. -/
 theorem c2_xd_eq (x₂ y₁ y₂ d₁ d₂ z : P.Point)
-    (hx : d₁ ≠ x₂)
-    (hAB : P.lineThrough d₁ x₂ ≠ P.lineThrough y₁ y₂)
+    (_hx : d₁ ≠ x₂)
+    (_hAB : P.lineThrough d₁ x₂ ≠ P.lineThrough y₁ y₂)
     (hzA : P.incid z (P.lineThrough d₁ x₂))
     (hd12 : d₁ ≠ d₂) (hzd1 : z ≠ d₁)
     (hzD : P.incid z (P.lineThrough d₁ d₂)) :
@@ -649,7 +649,7 @@ theorem c2_Sac (x₁ x₂ y₁ y₂ d₁ d₂ : P.Point)
 /-- Corresponding `x-y` sides are distinct (the derived `hSab`): else all four
     of `x₁,x₂,y₁,y₂` lie on `line x₁y₁`, forcing `x₁x₂ = y₁y₂` (contra `hAB`). -/
 theorem c2_Sab (x₁ x₂ y₁ y₂ : P.Point) (hx : x₁ ≠ x₂) (hy : y₁ ≠ y₂)
-    (hab₁ : x₁ ≠ y₁) (hab₂ : x₂ ≠ y₂)
+    (_hab₁ : x₁ ≠ y₁) (_hab₂ : x₂ ≠ y₂)
     (hAB : P.lineThrough x₁ x₂ ≠ P.lineThrough y₁ y₂) :
     P.lineThrough x₁ y₁ ≠ P.lineThrough x₂ y₂ := by
   intro hS

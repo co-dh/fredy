@@ -689,7 +689,7 @@ variable {𝒜 : Type u} [LocallyCompleteDistributiveAllegory 𝒜]
     and the domain of R is congruent to 1_A, then (R⁺) is simple and dom(R⁺) ≡ 1_A (dense). -/
 theorem map_in_quotient_named_by_simple (amen : AmenableCongruence 𝒜) {A B : 𝒜}
     (R : A ⟶ B)
-    (hB_sep : Separated amen B)
+    (_hB_sep : Separated amen B)
     (hR_simple : (amen.largest R)° ≫ (amen.largest R) ⊑ Cat.id B)
     (hR_entire : Dense amen (dom R)) :
     Simple (amen.largest R) ∧ Dense amen (dom (amen.largest R)) := by
@@ -847,11 +847,11 @@ instance QuotAllegory.instAllegory {𝒜 : Type u} [Allegory 𝒜] (C : Congruen
 def quotRep {𝒜 : Type u} [Allegory 𝒜] (C : Congruence 𝒜) :
     AllegoryFunctor 𝒜 (QuotAllegory 𝒜 C) where
   obj a := a
-  map {a b} R := Quotient.mk (congSetoid C) R
-  map_id a := rfl
-  map_comp R S := rfl
-  map_recip R := rfl
-  map_inter R S := rfl
+  map {_a _b} R := Quotient.mk (congSetoid C) R
+  map_id _a := rfl
+  map_comp _R _S := rfl
+  map_recip _R := rfl
+  map_inter _R _S := rfl
 
 /-- `quotRep` is faithful exactly when `C` is the discrete congruence; in
     general it is the canonical quotient map.  `[R]` of `R` unfolds to the

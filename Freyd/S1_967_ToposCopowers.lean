@@ -1122,9 +1122,9 @@ theorem topos_powers_copowers_equiv [LocallySmallTopos 𝒞] [HasBinaryCoproduct
       let hone : ∀ (I : Type v), Nonempty (CopowerOfOne I 𝒞) :=
         (topos_copowers_equiv_copowers_of_one).mp hcop
       let pw := powersOfCopowersOfOne (fun I => Classical.choice (hone I))
-      ⟨{ pow := pw.pow, proj := fun {I A} => pw.proj, tupling := fun {I A X} => pw.tupling,
-         tupling_proj := fun {I A X} => pw.tupling_proj,
-         tupling_uniq := fun {I A X} => pw.tupling_uniq }⟩⟩
+      ⟨{ pow := pw.pow, proj := fun {_I _A} => pw.proj, tupling := fun {_I _A _X} => pw.tupling,
+         tupling_proj := fun {_I _A _X} => pw.tupling_proj,
+         tupling_uniq := fun {_I _A _X} => pw.tupling_uniq }⟩⟩
 
 /-! ## §1.968 — `HasAllCoproducts` by the cogenerator carving
 
@@ -1273,9 +1273,9 @@ noncomputable def powersOfProducts (hp : HasProducts 𝒞) :
     @HasArbitraryPowers 𝒞 _ Topos.toHasBinaryProducts where
   pow I A := (hp.prod (fun _ : I => A)).prod
   proj {I A} i := (hp.prod (fun _ : I => A)).proj i
-  tupling {I A X} f := (hp.prod (fun _ : I => A)).lift f
-  tupling_proj {I A X} f i := (hp.prod (fun _ : I => A)).lift_π f i
-  tupling_uniq {I A X} f h hh := (hp.prod (fun _ : I => A)).lift_uniq f h hh
+  tupling {I A _X} f := (hp.prod (fun _ : I => A)).lift f
+  tupling_proj {I A _X} f i := (hp.prod (fun _ : I => A)).lift_π f i
+  tupling_uniq {I A _X} f h hh := (hp.prod (fun _ : I => A)).lift_uniq f h hh
 
 /-! ### Cocomplete → Complete: `HasProducts` from `HasAllCoproducts`.
 
@@ -1464,7 +1464,7 @@ end CoproductsFromProducts
     modification of §1.967 copowers-from-powers". -/
 noncomputable def hasAllCoproducts_of_products (hp : HasProducts 𝒞) :
     HasAllCoproducts 𝒞 where
-  coprod {I} A :=
+  coprod {_I} A :=
     gcoCoproduct (powersOfProducts hp) (cfpEmbed hp A) (cfpEmbed_monic hp A)
       (fun _ _ hij _ u v => cfpEmbed_disjoint hp A hij u v)
 

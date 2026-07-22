@@ -175,7 +175,7 @@ noncomputable def colimitPreLogos (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hcop : ∀ i, HasBinaryCoproducts (C.A i))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)

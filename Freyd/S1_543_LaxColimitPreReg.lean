@@ -231,7 +231,7 @@ structure LaxEqualizerData (L : LaxCatSystem.{u, w} ι D) where
       u ≫ (L.functF hij).map (eqMap f g) = v ≫ (L.functF hij).map (eqMap f g) → u = v
   presLift : ∀ {i j} (hij : D.le i j) {A B : L.A i} (f g : A ⟶ B) (z : L.A j)
       (k : z ⟶ L.F hij A)
-      (hk : k ≫ (L.functF hij).map f = k ≫ (L.functF hij).map g),
+      (_hk : k ≫ (L.functF hij).map f = k ≫ (L.functF hij).map g),
       ∃ r : z ⟶ L.F hij (eqObj f g), r ≫ (L.functF hij).map (eqMap f g) = k
 
 /-! ## §M3b (lax) — binary products of the lax colimit category
@@ -722,10 +722,12 @@ variable (L : LaxCatSystem.{u, w} ι D) (hL : Coherent L) [hne : Nonempty ι]
 /-- **§M3d (lax): the lax colimit category has pullbacks**, via terminal + products + equalizers and
     the §1.432 construction `products_equalizers_implies_pullbacks`.  Mirrors `colimitHasPullbacks`. -/
 noncomputable def laxColimHasPullbacks
-    (tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L) :
+    -- `_tData` feeds a `HasTerminal` instance the products+equalizers pullback route does not consume,
+    -- so the elaborated term drops it (linter flags it); kept for the finite-limit bundle's symmetry.
+    (_tData : LaxTerminalData L) (pData : LaxProductData L) (eqData : LaxEqualizerData L) :
     @HasPullbacks (Obj L) (laxColimCat L hL) := by
   letI : Cat (Obj L) := laxColimCat L hL
-  letI : HasTerminal (Obj L) := laxColimHasTerminal L hL tData
+  letI : HasTerminal (Obj L) := laxColimHasTerminal L hL _tData
   letI : HasBinaryProducts (Obj L) := laxColimHasBinaryProducts L hL pData
   letI : HasEqualizers (Obj L) := laxColimHasEqualizers L hL eqData
   exact ⟨fun f g => products_equalizers_implies_pullbacks f g⟩

@@ -121,7 +121,7 @@ def inflForgetObj (s : Infl 𝒞) : 𝒞 := listProd s
 
 def inflForget : Functor (Infl 𝒞) 𝒞 where
   obj := inflForgetObj
-  map {s t} f := f
+  map {_s _t} f := f
   map_id _ := rfl
   map_comp _ _ := rfl
 
@@ -163,7 +163,7 @@ def inflFunctor : Functor 𝒞 (Infl 𝒞) where
 instance inflHasTerminal : HasTerminal (Infl 𝒞) where
   one := ([] : List 𝒞)
   trm s := (term (listProd (𝒞 := 𝒞) s) : listProd s ⟶ listProd ([] : List 𝒞))
-  uniq {s} f g := term_uniq (𝒞 := 𝒞) f g
+  uniq {_s} f g := term_uniq (𝒞 := 𝒞) f g
 
 /-! ## §1.544  The STRICT slice-append functor `A′ → A′/B`
 
@@ -198,7 +198,7 @@ def appendForget : ∀ (s : List 𝒞) (B : 𝒞), listProd (𝒞 := 𝒞) (s ++
 /-- Assemble an arrow into `∏(t ++ [B])` from its `∏t`-part `g` and its `B`-part `b`
     (recursion on `t`).  This is the `pair` that makes the appended factor strict. -/
 def appendArrange : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
-    (g : X ⟶ listProd (𝒞 := 𝒞) t) (b : X ⟶ B), X ⟶ listProd (𝒞 := 𝒞) (t ++ [B])
+    (_g : X ⟶ listProd (𝒞 := 𝒞) t) (_b : X ⟶ B), X ⟶ listProd (𝒞 := 𝒞) (t ++ [B])
   | [],      _, _, _, b => pair b (term _)
   | _ :: t', B, _, g, b => pair (g ≫ fst) (appendArrange t' B (g ≫ snd) b)
 
@@ -251,8 +251,8 @@ theorem appendArrange_forget : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
     on `t`; the product `∏(t++[B])` is a table on `(∏t, B)` via these two arrows.) -/
 theorem append_jointly_monic : ∀ (t : List 𝒞) (B : 𝒞) {X : 𝒞}
     (p q : X ⟶ listProd (𝒞 := 𝒞) (t ++ [B]))
-    (hf : p ≫ appendForget t B = q ≫ appendForget t B)
-    (hb : p ≫ appendProj t B = q ≫ appendProj t B), p = q
+    (_hf : p ≫ appendForget t B = q ≫ appendForget t B)
+    (_hb : p ≫ appendProj t B = q ≫ appendProj t B), p = q
   | [],      B, X, p, q, _, hb => by
       -- `∏([]++[B]) = B×1`; `appendProj [] B = fst`, and the `1`-component is forced by `term`.
       apply fst_snd_jointly_monic
@@ -441,7 +441,7 @@ def catForget : ∀ (s d : List 𝒞), listProd (𝒞 := 𝒞) (s ++ d) ⟶ list
 
 /-- Assemble an arrow into `∏(t ++ d)` from its `∏t`-part `g` and its `∏d`-part `b` (recursion on `t`). -/
 def catArrange : ∀ (t d : List 𝒞) {X : 𝒞}
-    (g : X ⟶ listProd (𝒞 := 𝒞) t) (b : X ⟶ listProd d), X ⟶ listProd (𝒞 := 𝒞) (t ++ d)
+    (_g : X ⟶ listProd (𝒞 := 𝒞) t) (_b : X ⟶ listProd d), X ⟶ listProd (𝒞 := 𝒞) (t ++ d)
   | [],      _, _, _, b => b
   | _ :: t', d, _, g, b => pair (g ≫ fst) (catArrange t' d (g ≫ snd) b)
 
@@ -478,8 +478,8 @@ theorem catArrange_forget : ∀ (t d : List 𝒞) {X : 𝒞}
 /-- `catTail`/`catForget` are JOINTLY MONIC into `∏(t ++ d)`. -/
 theorem cat_jointly_monic : ∀ (t d : List 𝒞) {X : 𝒞}
     (p q : X ⟶ listProd (𝒞 := 𝒞) (t ++ d))
-    (hf : p ≫ catForget t d = q ≫ catForget t d)
-    (hb : p ≫ catTail t d = q ≫ catTail t d), p = q
+    (_hf : p ≫ catForget t d = q ≫ catForget t d)
+    (_hb : p ≫ catTail t d = q ≫ catTail t d), p = q
   | [],      d, X, p, q, _, hb => by
       -- `∏([]++d) = ∏d`; `catTail [] d = id`, so `hb : p = q` directly.
       rw [catTail, Cat.comp_id, Cat.comp_id] at hb; exact hb
@@ -1623,7 +1623,7 @@ theorem PrefixChain.prefix (P : PrefixChain 𝒞) : ∀ {i j : Nat}, i ≤ j →
     generic `ordChain*` machinery specialize back to the ℕ-chain (DRY: one set of proofs). -/
 def PrefixChain.toOrdChain (P : PrefixChain 𝒞) : OrdChain (uliftNatDirected.{u}) 𝒞 where
   chain n := P.chain n.down
-  mono {i j} hij := P.prefix hij
+  mono {_i _j} hij := P.prefix hij
 
 /-- Transport a slice-valued functor along a base equality.  For a source category `𝒟` and a base
     category `ℰ` with `e : B = B'` (`B B' : ℰ`) and a functor `G : 𝒟 → Over B`, the map
@@ -2468,15 +2468,15 @@ open Freyd.Colim in
     (`ordChainStageHasImages`), mono-preserving transitions (`ordChainPreservesMono`), and
     image-preserving transitions (`Colim.transitions_preserve_images` from mono+cover preservation). -/
 noncomputable def ordChainSliceHasImages [RegularCategory 𝒞]
-    (hwsuf : ∀ {i j : ι} (hij : D.le i j),
+    (hwsuf : ∀ {i j : ι} (_hij : D.le i j),
         WellSupported (listProd (𝒞 := 𝒞) (prefixSuffix (O.chain i) (O.chain j))))
     [hpull : @HasPullbacks (ordChainSliceSystem O).Obj (colimitCat _ (ordChainSliceCoherent O))] :
     @HasImages (ordChainSliceSystem O).Obj (colimitCat _ (ordChainSliceCoherent O)) :=
   Colim.colimitHasImages (ordChainSliceSystem O) (ordChainSliceCoherent O)
     (fun i => ordChainStageHasImages O i)
-    (fun {i j} hij {x y} p q h => ordChainHfaith O hij (hwsuf hij) p q h)
-    (fun {i j} hij => ordChainPreservesMono O hij)
-    (fun {i j} hij {A B} f =>
+    (fun {_i _j} hij {_x _y} p q h => ordChainHfaith O hij (hwsuf hij) p q h)
+    (fun {_i _j} hij => ordChainPreservesMono O hij)
+    (fun {i j} hij {_A _B} f =>
       letI : @HasImages ((ordChainSliceSystem O).A i) ((ordChainSliceSystem O).catA i) :=
         ordChainStageHasImages O i
       letI : @HasPullbacks ((ordChainSliceSystem O).A j) ((ordChainSliceSystem O).catA j) :=
@@ -2601,14 +2601,14 @@ open Freyd.Colim in
     pullbacks (`hpull`) and the WS-suffix faithfulness precondition (`hwsuf`).  This is the per-rung
     `HasImages` upgrade of `chainSlicePreRegular`, the regular half of the §1.543 successor. -/
 noncomputable def chainSliceHasImages [RegularCategory 𝒞]
-    (hwsuf : ∀ {i j : ULift.{u} Nat} (hij : uliftNatDirected.le i j),
+    (hwsuf : ∀ {i j : ULift.{u} Nat} (_hij : uliftNatDirected.le i j),
         WellSupported (listProd (𝒞 := 𝒞)
           (prefixSuffix (P.toOrdChain.chain i) (P.toOrdChain.chain j))))
     [hpull : @HasPullbacks (chainSliceSystem P).Obj (colimitCat _ (chainSliceCoherent P))] :
     @HasImages (chainSliceSystem P).Obj (colimitCat _ (chainSliceCoherent P)) :=
   letI : @HasPullbacks (ordChainSliceSystem P.toOrdChain).Obj
       (colimitCat _ (ordChainSliceCoherent P.toOrdChain)) := hpull
-  ordChainSliceHasImages P.toOrdChain (fun {i j} hij => hwsuf hij)
+  ordChainSliceHasImages P.toOrdChain (fun {_i _j} hij => hwsuf hij)
 
 end InnerPackageNat
 

@@ -756,7 +756,7 @@ noncomputable def colimitHasEqualizers (C : CatSystem ι D) (hC : C.Coherent)
         u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hpres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     @HasEqualizers C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
@@ -1357,7 +1357,7 @@ def HioWitness.germ {C : CatSystem ι D} {i : ι} {x y : C.A i} (w : HioWitness 
   castHom w.hgx.symm w.hgy.symm (C.Fmap w.hix g)
 
 /-- A chosen witness, materialized from the `colimOut` `Rel`s by `Classical.choose`. -/
-noncomputable def hioWitness (C : CatSystem ι D) (hC : C.Coherent) {i : ι} (x y : C.A i) :
+noncomputable def hioWitness (C : CatSystem ι D) (_hC : C.Coherent) {i : ι} (x y : C.A i) :
     HioWitness C x y := by
   classical
   let hxrel : Rel C.objSystem
@@ -2063,7 +2063,7 @@ theorem objIncl_preserves_equalizers (C : CatSystem ι D) (hC : C.Coherent)
         u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     (i : ι) {a b : C.A i} (f g : a ⟶ b) :
     @EqualizerCone.IsEqualizer C.Obj (colimitCat C hC)
@@ -2725,10 +2725,13 @@ theorem image_chosenPullback_isPullback {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat
   `products_equalizers_implies_pullbacks`.  DRY: we do not rebuild the
   representative-transport machinery; we reuse the three finite-limit
   constructors and the stage-level §1.432 derivation. -/
-noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hne : Nonempty ι]
+noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [_hne : Nonempty ι]
     -- terminal data
     (ht : ∀ i, HasTerminal (C.A i))
-    (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
+    -- `_htpres` feeds a `HasTerminal` instance that the products+equalizers pullback route below does
+    -- not consume, so the elaborated term drops it (linter flags it); kept in the signature for the
+    -- symmetry of the finite-limit data bundle expected by callers.
+    (_htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one)
     -- binary-product data
     (hp : ∀ i, HasBinaryProducts (C.A i))
     (hppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)
@@ -2746,11 +2749,11 @@ noncomputable def colimitHasPullbacks (C : CatSystem ι D) (hC : C.Coherent) [hn
         u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     @HasPullbacks C.Obj (colimitCat C hC) := by
   letI : Cat C.Obj := colimitCat C hC
-  letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
+  letI : HasTerminal C.Obj := colimitHasTerminal C hC ht _htpres
   letI : HasBinaryProducts C.Obj := colimitHasBinaryProducts C hC hp hppres hppres_pair
   letI : HasEqualizers C.Obj := colimitHasEqualizers C hC he hepres hepres_lift
   exact ⟨fun f g => products_equalizers_implies_pullbacks f g⟩
@@ -2781,7 +2784,7 @@ theorem colimitHasPullbacks_has (C : CatSystem ι D) (hC : C.Coherent) [hne : No
         u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k) :
     letI : Cat C.Obj := colimitCat C hC
     letI : HasTerminal C.Obj := colimitHasTerminal C hC ht htpres
@@ -3089,7 +3092,7 @@ noncomputable def colimitPreRegular (C : CatSystem ι D) (hC : C.Coherent) [hne 
         u ≫ C.Fmap hij (eqMap f g) = v ≫ C.Fmap hij (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
+        (_hk : k ≫ C.Fmap hij f = k ≫ C.Fmap hij g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ C.Fmap hij (eqMap f g) = k)
     -- pullbacks-transfer-covers: the canonical pullback's π₂ is a cover
     (hcanon : letI : Cat C.Obj := colimitCat C hC

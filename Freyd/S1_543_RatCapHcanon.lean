@@ -737,9 +737,9 @@ noncomputable def stageInclFunctorL (i : ι) :
     @Functor (L.A i) (Obj L) (L.catA i) (laxColimCat L hL) :=
   letI : Cat (Obj L) := laxColimCat L hL
   { obj := fun x => ⟨i, x⟩
-    map := fun {x y} g => stageInclL L hL g
+    map := fun {_x _y} g => stageInclL L hL g
     map_id := fun x => stageInclL_id L hL x
-    map_comp := fun {x y z} g h => stageInclL_comp L hL g h }
+    map_comp := fun {_x _y _z} g h => stageInclL_comp L hL g h }
 
 /-! ## Cover reflection/preservation for the stage-inclusion functor need faithfulness etc.
 

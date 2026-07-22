@@ -260,7 +260,7 @@ noncomputable def germSub (C : CatSystem ι D) (hC : C.Coherent) (hmono : TransM
     Subobject C.Obj (C.objIncl N y) :=
   letI : Cat C.Obj := colimitCat C hC
   Subobject.mk (C.objIncl N X.dom) (homInclObj C hC X.arr)
-    (homInclObj_mono_of_stage C hC X.arr (fun {j} hij z u v huv => hmono hij X.monic u v huv))
+    (homInclObj_mono_of_stage C hC X.arr (fun {_j} hij _z u v huv => hmono hij X.monic u v huv))
 
 theorem germSub_dom (C : CatSystem ι D) (hC : C.Coherent) (hmono : TransMono C)
     {N : ι} {y : C.A N} (X : Subobject (C.A N) y) :
@@ -333,7 +333,7 @@ theorem invImage_germ_equiv (C : CatSystem.{u, u} ι D) (hC : C.Coherent) [hne :
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     [hpull : @HasPullbacks C.Obj (colimitCat C hC)]
     (N : ι) {xA xB : C.A N} (f_N : xA ⟶ xB) (X_N : Subobject (C.A N) xB) :
@@ -516,7 +516,7 @@ theorem colimit_invImage_union_le (C : CatSystem.{u, u} ι D) (hC : C.Coherent) 
         u ≫ (C.functF hij).map (eqMap f g) = v ≫ (C.functF hij).map (eqMap f g) → u = v)
     (hepres_lift : ∀ {i j} (hij : D.le i j) {A B : C.A i} (f g : A ⟶ B) (z : C.A j)
         (k : z ⟶ C.F hij A)
-        (hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
+        (_hk : k ≫ (C.functF hij).map f = k ≫ (C.functF hij).map g),
         ∃ r : z ⟶ C.F hij (eqObj f g), r ≫ (C.functF hij).map (eqMap f g) = k)
     (hcop : ∀ i, HasBinaryCoproducts (C.A i))
     (hcoppres : ∀ {i j} (hij : D.le i j) (a b : C.A i) (z : C.A j)

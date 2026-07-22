@@ -75,7 +75,7 @@ noncomputable def toposPreLogos : PreLogos 𝒞 :=
   -- instance-diamond against `InverseImage`/`invImg`.  Bind `hReg`/`hUni` first so the
   -- forward field references during structure elaboration do not trigger a `PreLogos` search.
   let hReg : RegularCategory 𝒞 := { }
-  letI hUni : HasSubobjectUnions 𝒞 := toposHasSubobjectUnions
+  letI _hUni : HasSubobjectUnions 𝒞 := toposHasSubobjectUnions
   { hReg with
     union       := HasSubobjectUnions.union
     union_left  := HasSubobjectUnions.union_left

@@ -247,7 +247,7 @@ theorem laxColim_inr_monic
     `Colim.colimit_inl_inter_inr`. -/
 theorem laxColim_inl_inter_inr [Nonempty ι]
     (hdisj : ∀ i, DisjointBinaryCoproduct (L.A i))
-    (hmono : ∀ {i j : ι} (hij : D.le i j),
+    (_hmono : ∀ {i j : ι} (hij : D.le i j),
         @PreservesMono _ (L.catA i) _ (L.catA j) (L.functF hij))
     (hbot : ∀ i, PreLogos (L.A i))
     (hinitpres : ∀ {i j : ι} (hij : D.le i j),

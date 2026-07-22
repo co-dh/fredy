@@ -118,7 +118,7 @@ def bwdNeg (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
 def bwdAdd (H : Functor 𝒜 (AbelianGroupObject 𝒮)) :
     prod (bwdCarrier H) (bwdCarrier H) ⟶ bwdCarrier H where
   app a := (H.obj a).add
-  naturality {a b} f := (H.map f).property.symm
+  naturality {_a _b} f := (H.map f).property.symm
 
 /-- §1.596 backward map: assemble a functor `H : 𝒜 → Ab(𝒮)` into an Ab-object of `𝒮^𝒜`.
     The four group axioms hold as equations of NTs, checked componentwise where they become the
@@ -159,7 +159,7 @@ variable {G₁ G₂ G₃ : AbelianGroupObject (Functor 𝒜 𝒮)}
     `φ`'s naturality (carriers agree). -/
 def fwdHom (φ : HomAb G₁ G₂) : FunctorHom (fwdFun G₁) (fwdFun G₂) where
   app a := ⟨φ.val.app a, congrFun (congrArg NaturalTransformation.app φ.property) a⟩
-  naturality {a b} f := Subtype.ext (φ.val.naturality f)
+  naturality {_a _b} f := Subtype.ext (φ.val.naturality f)
 
 /-- Backward on homs: a natural family `ψ` of levelwise homs is the NT `a ↦ (ψ.app a).val`,
     whose homomorphism square holds componentwise (each `ψ.app a` is a levelwise hom). -/

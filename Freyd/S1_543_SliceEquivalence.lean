@@ -409,8 +409,8 @@ def pairOnUToSlice [HasPullbacks 𝒞] {U : List 𝒞} :
     Functor (PairOnU U) (Over (listProd U)) where
   obj X := pairOnUSlice X
   map (m : PairHom _ _) := pairOnUSliceMap m
-  map_id X := OverHom.ext rfl
-  map_comp m n := OverHom.ext rfl
+  map_id _X := OverHom.ext rfl
+  map_comp _m _n := OverHom.ext rfl
 
 @[simp] theorem pairOnUToSlice_map_f [HasPullbacks 𝒞] {U : List 𝒞} {X Y : PairOnU U}
     (m : PairHom X.obj Y.obj) :

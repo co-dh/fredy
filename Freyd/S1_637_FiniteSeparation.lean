@@ -73,8 +73,7 @@ theorem homRep_reflects_iso (𝒞 : Type u) [Cat.{u} 𝒞]
       intro i g h hgh
       have hg := congrFun (congrFun h1 i) g
       have hh := congrFun (congrFun h1 i) h
-      simp only [powerCat, homRep, homRepFunctor, familyFunctor, familyFunctorFunctor,
-        homFunctor] at hg hh
+      simp only [powerCat, homRepFunctor, familyFunctor, familyFunctorFunctor, homFunctor] at hg hh
       rw [← hg, ← hh, hgh]
     apply hinj (m ≫ r) (Cat.id A')
     rw [Cat.assoc, hrm, Cat.comp_id, Cat.id_comp]

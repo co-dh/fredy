@@ -184,7 +184,7 @@ theorem stageInclFaithful (C : CatSystem ι D) (hC : C.Coherent)
 /-- **The stage terminal is the colimit terminal.**  For any two stages `i j`,
     `objIncl i (ht i).one = objIncl j (ht j).one`.  Both are carried to `objIncl k (ht k).one`
     at a common bound `k` (via `objIncl_compat` + the on-the-nose `htpres`). -/
-theorem objIncl_terminal_eq (C : CatSystem.{u, u} ι D) (hC : C.Coherent)
+theorem objIncl_terminal_eq (C : CatSystem.{u, u} ι D) (_hC : C.Coherent)
     (ht : ∀ i, HasTerminal (C.A i))
     (htpres : ∀ {i j} (hij : D.le i j), C.F hij (ht i).one = (ht j).one) (i j : ι) :
     C.objIncl i (ht i).one = C.objIncl j (ht j).one := by

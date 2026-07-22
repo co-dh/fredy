@@ -428,7 +428,7 @@ theorem baseChangeTransNatIso_app_f_π₁_cast {C D E : S} (g : C ⟶ D) (g' : E
     `baseChange_freshFactor_missed`, the (a) base-change data, the (b) point `x'`, the §1.547
     reduction) is machine-checked Sorry-free. -/
 theorem richerSliceSection (W : WSCover S) (aT : Tok S)
-    (hA : WellSupported aT.2) (U : WSList S)
+    (_hA : WellSupported aT.2) (U : WSList S)
     (hbU : (wsDirected S).le W.base U) (hAU : aT ∉ U.1)
     (xE' : (laxOfProjSystem' (cofinalProjSystem (S := S))).A U)
     (g'' : xE' ⟶ (laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W aT.2))
@@ -438,19 +438,19 @@ theorem richerSliceSection (W : WSCover S) (aT : Tok S)
     ∃ (x' : @Cat.Hom _ (uniformTargetCat W)
               (@HasTerminal.one _ (uniformTargetCat W) (uniformStepTarget_preRegular W).toHasTerminal)
               ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-                (fun t hB => List.mem_cons.2 (Or.inr hB))
+                (fun _t hB => List.mem_cons.2 (Or.inr hB))
                 ((laxOfProjSystem' (cofinalProjSystem (S := S))).F hbU (terminalSliceObj W aT.2))⟩),
       ¬ ∃ (y' : @Cat.Hom _ (uniformTargetCat W)
                 (@HasTerminal.one _ (uniformTargetCat W)
                   (uniformStepTarget_preRegular W).toHasTerminal)
                 ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-                  (fun t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩),
+                  (fun _t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩),
         @Cat.comp _ (uniformTargetCat W) _
             ⟨⟨aT :: U.1, hnd, hws⟩, (laxOfProjSystem' (cofinalProjSystem (S := S))).F
-              (fun t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩ _ y'
+              (fun _t hB => List.mem_cons.2 (Or.inr hB)) xE'⟩ _ y'
           (stageInclL (laxOfProjSystem' (cofinalProjSystem (S := S)))
             (coherentProj (cofinalProjSystem (S := S)))
-            (pushFibre W aT.2 hbU (fun t hB => List.mem_cons.2 (Or.inr hB)) g'')) = x' := by
+            (pushFibre W aT.2 hbU (fun _t hB => List.mem_cons.2 (Or.inr hB)) g'')) = x' := by
   letI : HasEqualizers S := products_pullbacks_implies_equalizers
   letI : Cat (uniformTargetTy W) := uniformTargetCat W
   let A : S := aT.2

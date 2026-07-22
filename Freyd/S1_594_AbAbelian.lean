@@ -393,7 +393,7 @@ noncomputable instance instHasBinaryCoproductsAb : HasBinaryCoproducts (AbelianG
   case f g := ⟨caseCar f.val g.val, isHom_caseCar f.property g.property⟩
   case_inl f g := Subtype.ext (caseCar_inl f.val g.property)
   case_inr f g := Subtype.ext (caseCar_inr g.val f.property)
-  case_uniq f g hm h₁ h₂ :=
+  case_uniq _f _g hm h₁ h₂ :=
     Subtype.ext (caseCar_uniq hm.property (congrArg Subtype.val h₁) (congrArg Subtype.val h₂))
 
 /-! ### §1.595 The product/coproduct coincidence — `Ab(𝒞)` is half-additive

@@ -867,7 +867,7 @@ instance : Cat.{u} SmallRegCat.{u} where
 instance : Cat.{u} SmallTabAlleg.{u} where
   Hom := UnitaryRep
   id 𝒜 := ⟨allegIdFun 𝒜.carrier, UnitaryAllegory.unit_prop⟩
-  comp {𝒜 ℬ 𝒞} F G :=
+  comp {_𝒜 _ℬ _𝒞} F G :=
     ⟨F.toFun.comp G.toFun,
      pres_isUnit_of_isUnit G.toFun UnitaryAllegory.unit_prop G.unit F.unit⟩
   id_comp _ := rfl

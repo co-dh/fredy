@@ -434,7 +434,7 @@ structure CartesianFunctor {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
   equalizers, it preserves this construction. -/
 theorem cartesianFunctor_preserves_pullbacks {𝒞 𝒟 : Type u} [Cat.{v} 𝒞] [Cat.{v} 𝒟]
     [CartesianCategory 𝒞] [CartesianCategory 𝒟]
-    {F : Functor 𝒞 𝒟} (hcf : CartesianFunctor F) :
+    {F : Functor 𝒞 𝒟} (_hcf : CartesianFunctor F) :
     ∀ {A B C : 𝒞} (f : A ⟶ C) (g : B ⟶ C),
       (products_equalizers_implies_pullbacks f g).cone.IsPullback :=
   fun f g => (products_equalizers_implies_pullbacks f g).cone_isPullback
